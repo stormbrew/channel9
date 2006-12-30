@@ -1,4 +1,6 @@
 require 'bytecode/assembler'
+require 'object'
+require 'cpu/runtime'
 
 module Bytecode
   class MethodDescription
@@ -86,6 +88,55 @@ module Bytecode
       end
       
       return tup
+    end
+  end
+  
+  class Assembler
+    def exceptions_as_tuple
+      return RObject.nil if @exceptions.empty?
+      excs = sorted_exceptions()
+      tuple_of_int_tuples(excs)
+    end
+    
+    def tuple_of_int_tuples(excs)
+      exctup = Rubinius::Tuple.new(excs.size)
+      i = 0
+      excs.each do |ary|
+        tup = Rubinius::Tuple.new(3)
+        tup.put 0, RObject.wrap(ary[0])
+        tup.put 1, RObject.wrap(ary[1])
+        tup.put 2, RObject.wrap(ary[2])
+        exctup.put i, tup
+        i += 1
+      end
+      return exctup
+    end
+    
+    def tuple_of_syms(ary)
+      tup = Rubinius::Tuple.new(ary.size)
+      i = 0
+      ary.each do |t|
+        sym = Rubinius::String.new(t.to_s).to_sym
+        tup.put i, sym
+        i += 1
+      end
+      return tup
+    end
+    
+    def into_method
+      cm = Rubinius::CompiledMethod.from_string(bytecodes, @locals.size)
+      if @primitive
+        cm.primitive = RObject.wrap(@primitive)
+      end
+      cm.literals = literals_as_tuple()
+      cm.arguments = arguments_as_tuple()
+      cm.exceptions = exceptions_as_tuple()
+      cm.lines = lines_as_tuple()
+      return cm
+    end
+    
+    def primitive_to_index(sym)
+      idx = CPU::Primitives.name_to_index(sym)
     end
   end
 end
