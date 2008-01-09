@@ -1,4 +1,4 @@
-class Compiler2
+class Compiler
   module Bootstrap
     HINTS = {
     :MatchData=>{:@__ivars__=>0, :@source=>1, :@regexp=>2, :@full=>3, :@region=>4},

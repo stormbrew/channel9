@@ -12,7 +12,7 @@ require 'options'
 def interactive
   require 'readline'
   
-  c = Compiler2.new(Compiler2::Generator)
+  c = Compiler.new(Compiler::Generator)
   puts "Enter ? for help, ^D to exit."
 
   while code = Readline.readline("rbx:compile> ")
@@ -35,7 +35,7 @@ end
 
 # "Batch" mode
 def batch(opts)
-  c = Compiler2.new(Compiler2::Generator)
+  c = Compiler.new(Compiler::Generator)
   verbose = opts['verbose']
 
   # Loopty-doop
@@ -56,8 +56,8 @@ def batch(opts)
 #TODO: Figure out why text generation breaks subsequent compilation
     if verbose
       old_gen = c.generator_class
-      c.generator_class = Compiler2::TextGenerator
-      txt = Compiler2::TextGenerator.new
+      c.generator_class = Compiler::TextGenerator
+      txt = Compiler::TextGenerator.new
       n.bytecode(txt)
       txt.close
       puts txt.text

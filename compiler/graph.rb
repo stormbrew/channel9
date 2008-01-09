@@ -6,7 +6,7 @@ require 'bytecode'
 require 'text'
 
 
-class Compiler2::Node
+class Compiler::Node
 
   # Debug print for the AST
   def describe_ast(indent = 0, stack = [self])
@@ -25,7 +25,7 @@ class Compiler2::Node
 
       if var.kind_of? Array
         indented =  var.map do |v|
-                      if v.kind_of? Compiler2::Node
+                      if v.kind_of? Compiler::Node
                         if stack.include? v
                           "#<#{var.class.name} RECURSIVE...>"
                         else
@@ -42,7 +42,7 @@ class Compiler2::Node
         next
       end
 
-      if var.kind_of? Compiler2::Node
+      if var.kind_of? Compiler::Node
         if stack.include? var
           str << "#<#{var.class.name} RECURSIVE...>"
         else   
@@ -74,13 +74,13 @@ class Compiler2::Node
       obj = instance_variable_get(name)
       n = name.to_s[::Range.new(1,-1)]
       
-      if obj.kind_of? Compiler2::Node
+      if obj.kind_of? Compiler::Node
         j = obj.to_dot(output, ds)
         output << "node#{orig} -> node#{j} [label=\" #{n} \", fontsize=8.0, fontname=\"Monaco\"];\n"
       elsif obj.kind_of? Array
         j = 0
         obj.each do |x|
-          if x.kind_of? Compiler2::Node
+          if x.kind_of? Compiler::Node
             k = x.to_dot(output, ds)
             output << "node#{orig} -> node#{k} [label=\"#{n}:#{j}\", fontsize=8.0, fontname=\"Monaco\"];\n"
           end
@@ -206,9 +206,9 @@ end
 if "./#{$0}" == __FILE__      # TODO: Fix this when we set the same way
   file = ARGV.shift
 
-  gen = Compiler2::Generator
+  gen = Compiler::Generator
 
-  c = Compiler2.new(gen)
+  c = Compiler.new(gen)
 
 
   if file

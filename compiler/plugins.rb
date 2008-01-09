@@ -1,6 +1,6 @@
-require 'compiler2/execute'
+require 'compiler/execute'
 
-module Compiler2::Plugins
+module Compiler::Plugins
   
   @plugins = {}
   
@@ -18,13 +18,13 @@ module Compiler2::Plugins
     end
     
     def self.plugin(name)
-      Compiler2::Plugins.add_plugin name, self
+      Compiler::Plugins.add_plugin name, self
     end
     
     def call_match(c, const, method)
       return false unless c.call?
       return false unless c.method == method
-      return false unless c.object.kind_of? Compiler2::Node::ConstFind
+      return false unless c.object.kind_of? Compiler::Node::ConstFind
       return false unless c.object.name == const
       return true
     end
@@ -50,7 +50,7 @@ module Compiler2::Plugins
     plugin :method_visibility
     
     def handle(g, call)
-      return false unless call.kind_of? Compiler2::Node::VCall
+      return false unless call.kind_of? Compiler::Node::VCall
       scope = @compiler.get(:scope)
       return false unless scope
                   
@@ -91,7 +91,7 @@ module Compiler2::Plugins
       return false unless call_match(call, :Rubinius, :asm)
       return false unless call.block
       
-      exc = Compiler2::ExecuteContext.new(g)
+      exc = Compiler::ExecuteContext.new(g)
       i = 0
       args = call.arguments
       

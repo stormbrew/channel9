@@ -1,4 +1,4 @@
-class Compiler2
+class Compiler
 class Node
   Mapping = {}
   
@@ -70,7 +70,7 @@ class Node
   def inspect
     kind = self.class.kind
     if kind
-      prefix = "Compiler2:#{self.class.kind}"
+      prefix = "Compiler:#{self.class.kind}"
     else
       prefix = self.class.name
     end
@@ -106,7 +106,7 @@ class Node
     attr_accessor :visibility
     
     def create_scope
-      Compiler2::LocalScope.new(self)
+      Compiler::LocalScope.new(self)
     end
     
     attr_accessor :use_eval
@@ -708,7 +708,7 @@ class Node
       if cond.is? ArrayLiteral      
         cond.body.each do |c|
           # Inner when means splat.
-          if c.is? Compiler2::Node::When
+          if c.is? Compiler::Node::When
             if c.splat
               @splat = c.splat
             else
@@ -1188,10 +1188,10 @@ class Node
       if slot
         return slot
       elsif !@namespace
-        if tbl = Compiler2::Bootstrap::HINTS[@name]
+        if tbl = Compiler::Bootstrap::HINTS[@name]
           return tbl[name]
         elsif @superclass_name
-          if tbl = Compiler2::Bootstrap::HINTS[@superclass_name]
+          if tbl = Compiler::Bootstrap::HINTS[@superclass_name]
             return tbl[name]
           end
         end

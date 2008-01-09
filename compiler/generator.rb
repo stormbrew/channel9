@@ -1,4 +1,4 @@
-class Compiler2
+class Compiler
     
   class Generator
     
@@ -77,7 +77,7 @@ class Compiler2
       tup = Tuple.new(@literals.size)
       i = 0
       @literals.each do |lit|
-        if lit.kind_of? Compiler2::MethodDescription
+        if lit.kind_of? Compiler::MethodDescription
           lit = lit.to_cmethod
         end
         tup[i] = lit
@@ -227,15 +227,15 @@ class Compiler2
         
         # Make sure that the 2 blocks are valid
         if os == @start and oe == @end
-          raise Compiler2::Error, "Invalid exception blocking detected"
+          raise Compiler::Error, "Invalid exception blocking detected"
         end
         
         if @start < os and @end >= os and @end <= oe
-          raise Compiler2::Error, "Overlapping exception ranges"
+          raise Compiler::Error, "Overlapping exception ranges"
         end
         
         if os < @start and oe >= @start and oe <= @end
-          raise Compiler2::Error, "Overlapping exception ranges"
+          raise Compiler::Error, "Overlapping exception ranges"
         end
         
         # Now, they're either disjoined or one is a subrange.
