@@ -12,15 +12,15 @@ module Channel9
       end
 
       class InvalidReturn
-        def call(environment, val, ret)
+        def channel_send(environment, val, ret)
           raise "Invalid Return, exiting"
         end
       end
 
       class Stdout
-        def call(environment, val, ret)
+        def channel_send(environment, val, ret)
           $stdout.puts(val)
-          ret.call(environment, val, InvalidReturn)
+          ret.channel_send(environment, val, InvalidReturn)
         end
       end
     end
