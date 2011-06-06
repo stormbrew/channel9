@@ -12,8 +12,18 @@ module Channel9
       @stack = []
     end
 
-    def start(pos, stack = [])
+    def set_pos(pos)
       @pos = @instruction_stream.label(pos)
+      return self
+    end
+
+    def channel_send(environment, val, ret)
+      @stack = [val, ret]
+      environment.set_context(self)
+      return self
+    end
+
+    def start(stack = [])
       @stack = stack
       return self
     end

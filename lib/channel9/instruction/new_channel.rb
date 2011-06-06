@@ -1,5 +1,3 @@
-require 'channel9/channel'
-
 module Channel9
   module Instruction
     class NEW_CHANNEL < Base
@@ -11,7 +9,7 @@ module Channel9
       end
 
       def run(environment)
-        channel = Channel.new(environment.context, @label)
+        channel = environment.context.dup.set_pos(@label)
         environment.context.push(channel)
       end
     end

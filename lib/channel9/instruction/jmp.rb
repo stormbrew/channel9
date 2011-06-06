@@ -9,7 +9,7 @@ module Channel9
       end
 
       def run(environment)
-        environment.context.start(@to, [])
+        environment.context.set_pos(@to)
       end
     end
   end
