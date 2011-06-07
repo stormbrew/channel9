@@ -1,0 +1,1 @@
+require 'channel9/primitive/message'
