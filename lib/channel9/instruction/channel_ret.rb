@@ -11,12 +11,6 @@ module Channel9
 
         channel.dup.channel_send(environment, value, InvalidReturnChannel)
       end
-
-      module InvalidReturnChannel
-        def self.channel_send(environment, val, ret)
-          raise "Invalid Return, exiting"
-        end
-      end
     end
   end
 end
