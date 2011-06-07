@@ -1,6 +1,13 @@
 require 'pp'
 
 module Channel9
+  module CleanExitChannel
+    def self.channel_send(environment, val, ret)
+      pp(:clean_exit => val)
+      exit(0)
+    end
+  end
+
   class Environment
     attr :context
     attr :debug, true
@@ -14,7 +21,9 @@ module Channel9
       @context = context
     end
 
-    def run
+    def run(value = nil, ret = CleanExitChannel)
+      @context.push(value)
+      @context.push(ret)
       while (instruction = @context.next)
         current_context = @context
         sp = @context.stack.length
