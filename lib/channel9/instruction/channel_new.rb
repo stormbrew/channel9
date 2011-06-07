@@ -1,6 +1,6 @@
 module Channel9
   module Instruction
-    class NEW_CHANNEL < Base
+    class CHANNEL_NEW < Base
       attr :label
 
       def initialize(stream, label)

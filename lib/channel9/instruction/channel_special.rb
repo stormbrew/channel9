@@ -1,6 +1,6 @@
 module Channel9
   module Instruction
-    class SPECIAL_CHANNEL < Base
+    class CHANNEL_SPECIAL < Base
       def initialize(stream, name)
         super(stream, 0, 1)
         @name = name
