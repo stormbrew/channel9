@@ -23,7 +23,7 @@ s.set_local(:x)
 
 # print the result of the identity method
 s.get_local(:x)
-s.channel_special(:Stdout)
+s.channel_special(:stdout)
 s.channel_call
 # clean up here.
 s.pop
