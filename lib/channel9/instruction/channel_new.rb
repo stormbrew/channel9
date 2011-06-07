@@ -1,5 +1,16 @@
 module Channel9
   module Instruction
+    # channel_new label
+    # ---
+    # Creates a new channel from the current execution context at the
+    # label specified, and pushes it onto the stack.
+    #
+    # Takes no inputs.
+    # After executing, the stack will look like:
+    #  SP -> channel
+    #
+    # The channel created can be used given to the channel_send
+    # family of instructions.
     class CHANNEL_NEW < Base
       attr :label
 

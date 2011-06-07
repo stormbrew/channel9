@@ -1,6 +1,14 @@
 module Channel9
   module Instruction
-    class SET_LOCAL < Base
+    # local_set name
+    # ---
+    # Takes the top element off the stack and stores it in the named
+    # local in the current execution context.
+    #
+    # Takes one element from the stack:
+    #  SP -> element
+    # After executing, the element will be removed from the stack.
+    class LOCAL_SET < Base
       attr :local_name
       attr :local
 

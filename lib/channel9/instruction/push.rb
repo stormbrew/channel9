@@ -1,5 +1,12 @@
 module Channel9
   module Instruction
+    # push constant
+    # ---
+    # Pushes the specified constant onto the stack.
+    #
+    # Takes no inputs
+    # After execution, the stack will have the constant on it:
+    #  SP -> constant
     class PUSH < Base
       attr :value
 
