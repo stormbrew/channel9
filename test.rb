@@ -10,8 +10,10 @@ s.pop # we don't care what value was passed in
 s.channel_new(:identity_method)
 s.local_set(:identity)
 s.jmp(:identity_method_done)
-s.set_label(:identity_method) # start method, stack will have input value and return address
+s.set_label(:identity_method) # start method, stack will have message and return address
 s.local_set(:output)
+s.message_unpack(1, 0, 0)
+s.pop # unpack leaves the message on the stack, we're done with it.
 s.local_set(:value)
 s.local_get(:output)
 s.local_get(:value)
@@ -21,6 +23,7 @@ s.set_label(:identity_method_done)
 # call the identity method with constant 1 and store its result
 s.local_get(:identity)
 s.push(1)
+s.message_new(:identity, 1)
 s.channel_call
 s.pop
 s.local_set(:x)
