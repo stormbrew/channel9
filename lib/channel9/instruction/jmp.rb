@@ -1,5 +1,10 @@
 module Channel9
   module Instruction
+    # jmp label
+    # ---
+    # Unconditionally jumps to the label specified.
+    #
+    # Takes no inputs and produces no outputs.
     class JMP < Base
       attr :to
 
