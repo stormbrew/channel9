@@ -19,6 +19,10 @@ module Channel9
         @name = name.to_sym
       end
 
+      def arguments
+        [@name.to_s]
+      end
+
       def run(env)
         env.context.push(env.special_channel(@name))
       end

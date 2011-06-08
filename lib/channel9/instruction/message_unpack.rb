@@ -25,6 +25,10 @@ module Channel9
         @total = total
       end
 
+      def arguments
+        [@first, @remain, @last]
+      end
+
       def run(env)
         message = env.context.pop
 

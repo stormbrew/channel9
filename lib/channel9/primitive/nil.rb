@@ -7,6 +7,9 @@ module Channel9
       def truthy?
         false
       end
+      def to_json(*a)
+        nil.to_json(*a)
+      end
     end
     Nil = NilC.new.freeze
   end

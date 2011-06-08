@@ -15,6 +15,10 @@ module Channel9
         @to = to
       end
 
+      def arguments
+        [@to]
+      end
+
       def run(environment)
         value = environment.context.pop
         environment.context.set_pos(@to) if (!value.truthy?)

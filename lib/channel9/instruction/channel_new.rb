@@ -19,6 +19,10 @@ module Channel9
         @label = label
       end
 
+      def arguments
+        [@label]
+      end
+
       def run(environment)
         channel = environment.context.dup.set_pos(@label).reset_stack
         

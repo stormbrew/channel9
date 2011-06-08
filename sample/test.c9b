@@ -1,0 +1,40 @@
+{
+	"code": [
+		["local_set", "exit"],
+		["pop"],
+
+		["channel_new", "plus1_method"],
+		["local_set", "plus1"],
+		["jmp", "plus1_method_done"],
+		["set_label", "plus1_method"],
+		["local_set", "output"],
+		["message_unpack", 1, 0, 0],
+		["pop"],
+		["local_set", "value"],
+		["local_get", "output"],
+		["local_get", "value"],
+		["push", 1],
+		["message_new", "plus", 1],
+		["channel_call"],
+		["pop"],
+		["channel_ret"],
+		["set_label", "plus1_method_done"],
+
+		["local_get", "plus1"],
+		["push", 1],
+		["message_new", "plus1", 1],
+		["channel_call"],
+		["pop"],
+		["local_set", "x"],
+
+		["channel_special", "stdout"],
+		["local_get", "x"],
+		["channel_call"],
+		["pop"],
+		["pop"],
+
+		["local_get", "exit"],
+		["push", null],
+		["channel_ret"]
+	]
+}

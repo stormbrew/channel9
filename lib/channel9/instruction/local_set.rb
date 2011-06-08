@@ -18,6 +18,10 @@ module Channel9
         @local = stream.local(name)
       end
 
+      def arguments
+        [@local_name]
+      end
+
       def run(environment)
         val = environment.context.pop
         environment.context.set_local(local_name, val)

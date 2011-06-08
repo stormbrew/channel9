@@ -12,7 +12,22 @@ module Channel9
       end
 
       def debug_info
-        self.class.name
+        "#{instruction_name} #{arguments.join(' ')}"
+      end
+
+      def instruction_name
+        cname = self.class.name
+        cname = cname.gsub(/^.+::([^:]+)$/, '\1').downcase
+        cname
+      end
+
+      # override in derived classes if they have extra args
+      def arguments
+        []
+      end
+
+      def to_json(*a)
+        [instruction_name, *arguments].to_json(*a)
       end
     end
 

@@ -9,6 +9,9 @@ module Channel9
       def to_s
         @real_ary.to_s
       end
+      def to_json(*a)
+        @real_ary.to_json(*a)
+      end
 
       def ==(other)
         other.is_a?(Tuple) && @real_ary == other.real_ary
