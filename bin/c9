@@ -5,9 +5,15 @@ require 'channel9'
 
 debug = ARGV.include?("-d")
 ARGV.delete("-d")
+print = ARGV.include?("-p")
+ARGV.delete("-p")
 
 stream = Channel9::Stream.from_json(File.read(ARGV[0]))
-context = Channel9::Context.new(stream)
-environment = Channel9::Environment.new(context, debug)
+if (print)
+  puts stream.to_json
+else
+  context = Channel9::Context.new(stream)
+  environment = Channel9::Environment.new(context, debug)
 
-environment.run
+  environment.run
+end
