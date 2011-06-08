@@ -23,6 +23,9 @@ module Channel9
       def to_s
         @real_str.to_s
       end
+      def to_json(*a)
+        @real_str.to_json(*a)
+      end
       
       def c9_to_str
         self

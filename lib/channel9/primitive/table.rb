@@ -9,6 +9,9 @@ module Channel9
       def to_s
         @real_hash.to_s
       end
+      def to_json(*a)
+        @real_hash.to_json(*a)
+      end
 
       def ==(other)
         other.is_a?(Table) && @real_hash == other.real_hash

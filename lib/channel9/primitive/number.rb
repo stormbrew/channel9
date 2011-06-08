@@ -22,6 +22,9 @@ module Channel9
       def to_s
         @real_num.to_s
       end
+      def to_json(*a)
+        @real_num.to_json(*a)
+      end
 
       def c9_to_num
         self

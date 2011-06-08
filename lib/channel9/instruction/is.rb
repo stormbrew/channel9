@@ -15,6 +15,10 @@ module Channel9
         @const = const.to_c9
       end
 
+      def arguments
+        [@const]
+      end
+
       def run(environment)
         val = environment.context.pop
         environment.context.push((val == @const).to_c9)

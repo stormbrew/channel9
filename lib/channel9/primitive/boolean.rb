@@ -5,10 +5,16 @@ module Channel9
       def to_s
         true.to_s
       end
+      def to_json(*a)
+        true.to_json(*a)
+      end
     end
     class FalseC < Boolean
       def to_s
         false.to_s
+      end
+      def to_json(*a)
+        false.to_json(*a)
       end
       def truthy?
         false

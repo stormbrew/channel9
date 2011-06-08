@@ -13,6 +13,10 @@ module Channel9
         @to = to
       end
 
+      def arguments
+        [@to]
+      end
+
       def run(environment)
         environment.context.set_pos(@to)
       end

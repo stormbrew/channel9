@@ -8,6 +8,9 @@ module Channel9
       def to_s
         "<undef>"
       end
+      def to_json(*a)
+        [null, "undef"].to_json(*a)
+      end
     end
     Undef = UndefC.new.freeze
   end

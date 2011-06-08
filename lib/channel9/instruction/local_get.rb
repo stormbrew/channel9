@@ -15,6 +15,10 @@ module Channel9
         super(stream, 0, 1)
         @name = name
       end
+
+      def arguments
+        [@name]
+      end
       def run(environment)
         val = environment.context.get_local(@name)
         environment.context.push(val)

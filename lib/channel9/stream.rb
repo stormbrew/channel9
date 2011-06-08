@@ -26,6 +26,12 @@ module Channel9
       new.from_json(json)
     end
 
+    def to_json(*a)
+      {
+        "code" => @instructions
+      }.to_json(*a)
+    end
+
     def set_label(name)
       @labels[name] = @pos
     end

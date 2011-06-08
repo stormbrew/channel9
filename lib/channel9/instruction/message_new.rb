@@ -23,6 +23,10 @@ module Channel9
         @count = count
       end
 
+      def arguments
+        [@name, @count]
+      end
+
       def run(env)
         args = []
         @count.times { args.unshift(env.context.pop) }

@@ -15,6 +15,10 @@ module Channel9
         @value = value.to_c9
       end
 
+      def arguments
+        [@value]
+      end
+
       def run(environment)
         environment.context.push(@value)
       end
