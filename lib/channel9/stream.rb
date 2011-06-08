@@ -27,9 +27,9 @@ module Channel9
     end
 
     def to_json(*a)
-      {
+      JSON.pretty_generate(
         "code" => @instructions
-      }.to_json(*a)
+      )
     end
 
     def set_label(name)

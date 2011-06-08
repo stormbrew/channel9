@@ -27,6 +27,16 @@ module Channel9
       end
 
       def to_json(*a)
+        # instructions should appear as one entity.
+        if (a.first.is_a? JSON.state)
+          a = a.dup
+          state = a.shift.dup
+          state.array_nl = ""
+          state.indent = ""
+          state.space = ""
+          a.unshift(state)
+        end
+
         [instruction_name, *arguments].to_json(*a)
       end
     end
