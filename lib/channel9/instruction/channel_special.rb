@@ -16,7 +16,7 @@ module Channel9
     class CHANNEL_SPECIAL < Base
       def initialize(stream, name)
         super(stream, 0, 1)
-        @name = name
+        @name = name.to_sym
       end
 
       def run(env)

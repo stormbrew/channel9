@@ -25,7 +25,7 @@ module Channel9
 
       def run(env)
         args = []
-        @count.times { args.push(env.context.pop) }
+        @count.times { args.unshift(env.context.pop) }
         message = Primitive::Message.new(@name, args)
         env.context.push(message)
       end

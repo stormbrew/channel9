@@ -1,6 +1,6 @@
 module Channel9
   module Primitive
-    class Message
+    class Message < Base
       attr :name
       attr :positional
       attr :named
@@ -8,10 +8,11 @@ module Channel9
       def initialize(name, positional)
         @name = name
         @positional = positional
+        @named = {}
       end
 
-      def channel_send(environment, val, ret)
-        ret.channel_send(environment, nil, InvalidReturnChannel)
+      def to_s
+        "<Channel9::Primitive::Message #{@name}(#{@positional.collect {|x| x.to_s }.join(', ')})>"
       end
     end
   end
