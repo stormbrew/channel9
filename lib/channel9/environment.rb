@@ -62,7 +62,7 @@ module Channel9
     end
 
     def run(value = nil, ret = CleanExitChannel)
-      @context.push(value)
+      @context.push(value.to_c9)
       @context.push(ret)
       while (instruction = @context.next)
         current_context = @context
