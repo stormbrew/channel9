@@ -38,7 +38,7 @@ module Channel9
     attr :context
     attr :debug, true
 
-    def initialize(initial_context, debug = true)
+    def initialize(initial_context, debug = false)
       @context = initial_context
       @debug = debug
       @special_channels = {
@@ -70,6 +70,7 @@ module Channel9
           pp(:instruction => {:ip => @context.pos - 1, :instruction => instruction.debug_info}) if @debug
           pp(:before => @context.debug_info) if @debug
         instruction.run(self)
+          pp(:orig_after_jump => current_context.debug_info) if @debug && current_context != @context
           pp(:after => @context.debug_info) if @debug
         puts("--------------") if @debug
         stack_should = (sp - instruction.stack_input + instruction.stack_output)

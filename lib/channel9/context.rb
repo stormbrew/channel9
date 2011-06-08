@@ -12,14 +12,26 @@ module Channel9
       @stack = []
     end
 
+    def initialize_copy(other)
+      super
+      @stack = @stack.dup
+    end
+
     def set_pos(pos)
       @pos = @instruction_stream.label(pos)
       return self
     end
 
+    def reset_stack
+      @stack = []
+      return self
+    end
+
     def channel_send(environment, val, ret)
-      @stack = [val, ret]
-      environment.set_context(self)
+      copy = self.dup
+      copy.push val
+      copy.push ret
+      environment.set_context(copy)
       return self
     end
 

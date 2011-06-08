@@ -1,0 +1,59 @@
+{
+	"code": [
+		["local_set", "exit"],
+		["pop"],
+
+		["line", "def gcd(a,b)"],
+		["channel_new", "gcd_body"],
+		["local_set", "gcd"],
+		["jmp", "gcd_done"],
+		["set_label", "gcd_body"],
+		["local_set", "output"],
+		["message_unpack", 2, 0, 0],
+		["pop"],
+		["local_set", "a"],
+		["local_set", "b"],
+
+		["line", " if (!a)"],
+		["local_get", "b"],
+		["is", 0],
+		["jmp_if", "gcd_found"],
+
+		["line", "  output <- gcd(b, a % b)"],
+		["local_get", "gcd"],
+		["local_get", "output"],
+		["local_get", "a"],
+		["local_get", "b"],
+		["message_new", "mod", 1],
+		["channel_call"],
+		["pop"],
+		["local_get", "b"],
+		["message_new", "gcd", 2],
+		["channel_send"],
+
+		["line", "  else"],
+		["set_label", "gcd_found"],
+
+		["line", "  return a"],
+		["local_get", "output"],
+		["local_get", "a"],
+		["channel_ret"],
+
+		["set_label", "gcd_done"],
+
+		["line", " res = gcd(5, 10)"],
+		["local_get", "gcd"],
+		["push", 462],
+		["push", 1071],
+		["message_new", "gcd", 2],
+		["channel_call"],
+		["pop"],
+		["local_set", "res"],
+
+		["line", " $stdout <- res"],
+		["channel_special", "stdout"],
+		["local_get", "exit"],
+		["local_get", "res"],
+		["channel_send"]
+	]
+}

@@ -12,7 +12,7 @@ module Channel9
 
       def initialize(stream, value)
         super(stream, 0, 1)
-        @value = value
+        @value = value.to_c9
       end
 
       def run(environment)

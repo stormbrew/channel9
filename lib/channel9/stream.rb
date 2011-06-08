@@ -1,4 +1,5 @@
 require 'channel9/instruction'
+require 'json'
 
 module Channel9
   class Stream # a stream of bytecode with label and local tables
@@ -13,12 +14,26 @@ module Channel9
       @pos = 0
     end
 
+    def from_json(json)
+      o = JSON.parse(json)
+      code = o["code"]
+      code.each do |instruction|
+        self.send(*instruction)
+      end
+      self
+    end
+    def self.from_json(json)
+      new.from_json(json)
+    end
+
     def set_label(name)
       @labels[name] = @pos
     end
     def label(name_or_ip)
       @labels[name_or_ip] || name_or_ip
     end
+
+    def line(*args); end
 
     def local(name)
       @locals[name] ||= @locals.length

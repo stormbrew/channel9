@@ -20,7 +20,8 @@ module Channel9
       end
 
       def run(environment)
-        channel = environment.context.dup.set_pos(@label)
+        channel = environment.context.dup.set_pos(@label).reset_stack
+        
         environment.context.push(channel)
       end
     end
