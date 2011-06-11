@@ -1,4 +1,5 @@
 require 'channel9/instruction'
+require 'channel9/builder'
 require 'json'
 
 module Channel9
@@ -16,9 +17,10 @@ module Channel9
 
     def from_json(json)
       o = JSON.parse(json)
+      builder = Builder.new(self)
       code = o["code"]
       code.each do |instruction|
-        self.send(*instruction)
+        builder.send(*instruction)
       end
       self
     end
@@ -30,6 +32,13 @@ module Channel9
       JSON.pretty_generate(
         "code" => @instructions
       )
+    end
+
+    def build
+      yield Builder.new(self)
+    end
+    def self.build(&block)
+      Stream.new.build(&block)
     end
 
     def set_label(name)
@@ -55,15 +64,9 @@ module Channel9
       end
     end
 
-    # generate methods based on instruction names
-    def method_missing(name, *args)
-      if (instruction = Instruction.get(name))
-        @instructions << instruction.new(self, *args)
-        @pos += 1
-        return self
-      else
-        super
-      end
+    def <<(instruction)
+      @instructions << instruction
+      @pos += 1
     end
   end
 end
