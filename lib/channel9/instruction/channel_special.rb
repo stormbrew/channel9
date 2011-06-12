@@ -24,7 +24,7 @@ module Channel9
       end
 
       def run(env)
-        env.context.push(env.special_channel(@name))
+        env.context.push(env.special_channel[@name])
       end
     end
   end
