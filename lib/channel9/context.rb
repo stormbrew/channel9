@@ -1,11 +1,13 @@
 module Channel9
   class Context
+    attr :environment
     attr :instruction_stream
     attr :pos
     attr :local_variables
     attr :stack
 
-    def initialize(stream)
+    def initialize(environment, stream)
+      @environment = environment
       @instruction_stream = stream
       @pos = 0
       @local_variables = {}
@@ -27,11 +29,11 @@ module Channel9
       return self
     end
 
-    def channel_send(environment, val, ret)
+    def channel_send(val, ret)
       copy = self.dup
       copy.push val
       copy.push ret
-      environment.set_context(copy)
+      @environment.set_context(copy)
       return self
     end
 

@@ -37,7 +37,7 @@ module Channel9
         value = environment.context.pop
         channel = environment.context.pop
 
-        channel.channel_send(environment, value, InvalidReturnChannel)
+        channel.channel_send(value, InvalidReturnChannel)
       end
     end
   end
