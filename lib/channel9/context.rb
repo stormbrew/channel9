@@ -1,4 +1,14 @@
 module Channel9
+  class CallbackChannel
+    def initialize(&cb)
+      @callback = cb
+    end
+    def to_c9; self; end
+    def channel_send(val, ret)
+      @callback.call(val, ret)
+    end
+  end
+
   class Context
     attr :environment
     attr :instruction_stream
