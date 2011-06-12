@@ -36,6 +36,7 @@ module Channel9
 
   class Environment
     attr :context
+    attr :special_channel
     attr :debug, true
     attr :running
 
@@ -43,7 +44,7 @@ module Channel9
       @context = nil
       @running = false
       @debug = debug
-      @special_channels = {
+      @special_channel = {
         :clean_exit => CleanExitChannel,
         :exit => ExitChannel,
         :invalid_return => InvalidReturnChannel,
@@ -51,15 +52,6 @@ module Channel9
       }
     end
 
-    def special_channel(name)
-      @special_channels[name]
-    end
-
-    def register_special_channel(name, channel)
-      @special_channels[name] = channel
-    end
-
-    # TODO: Do away with this. Channel_send should cause this to happen as a matter of course.
     def run(context)
       @context = context
       if (!@running)
