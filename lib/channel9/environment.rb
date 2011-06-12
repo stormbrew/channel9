@@ -37,9 +37,11 @@ module Channel9
   class Environment
     attr :context
     attr :debug, true
+    attr :running
 
     def initialize(debug = false)
       @context = nil
+      @running = false
       @debug = debug
       @special_channels = {
         :clean_exit => CleanExitChannel,
@@ -47,10 +49,6 @@ module Channel9
         :invalid_return => InvalidReturnChannel,
         :stdout => StdoutChannel
       }
-    end
-
-    def set_context(context)
-      @context = context
     end
 
     def special_channel(name)
@@ -61,29 +59,35 @@ module Channel9
       @special_channels[name] = channel
     end
 
-    def run(initial_context, value = nil, ret = CleanExitChannel)
-      @context = initial_context
-      @context.push(value.to_c9)
-      @context.push(ret)
-      while (instruction = @context.next)
-        current_context = @context
-        sp = @context.stack.length
-          pp(:instruction => {:ip => @context.pos - 1, :instruction => instruction.debug_info}) if @debug
-          pp(:before => @context.debug_info) if @debug
-        instruction.run(self)
-          pp(:orig_after_jump => current_context.debug_info) if @debug && current_context != @context
-          pp(:after => @context.debug_info) if @debug
-        puts("--------------") if @debug
-        stack_should = (sp - instruction.stack_input + instruction.stack_output)
-        if (current_context.stack.length != stack_should)
-          raise "Stack error: Expected stack depth to be #{stack_should}, was actually #{current_context.stack.length}"
+    # TODO: Do away with this. Channel_send should cause this to happen as a matter of course.
+    def run(context)
+      @context = context
+      if (!@running)
+        @running = true
+        begin
+          while (instruction = @context.next)
+            current_context = @context
+            sp = @context.stack.length
+              pp(:instruction => {:ip => @context.pos - 1, :instruction => instruction.debug_info}) if @debug
+              pp(:before => @context.debug_info) if @debug
+            instruction.run(self)
+              pp(:orig_after_jump => current_context.debug_info) if @debug && current_context != @context
+              pp(:after => @context.debug_info) if @debug
+            puts("--------------") if @debug
+            stack_should = (sp - instruction.stack_input + instruction.stack_output)
+            if (current_context.stack.length != stack_should)
+              raise "Stack error: Expected stack depth to be #{stack_should}, was actually #{current_context.stack.length}"
+            end
+          end
+          if (@debug)
+            require 'pp'
+            pp(
+              :final_state => @context.debug_info
+            )
+          end
+        ensure
+          @running = false
         end
-      end
-      if (@debug)
-        require 'pp'
-        pp(
-          :final_state => @context.debug_info
-        )
       end
     end
   end
