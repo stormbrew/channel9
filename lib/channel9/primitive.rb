@@ -1,10 +1,10 @@
 module Channel9
   module Primitive
     class Base
-      def channel_send(environment, val, ret)
+      def channel_send(val, ret)
         if (val.kind_of? Message)
           result = self.send(:"c9_#{val.name}", *val.positional)
-          ret.channel_send(environment, result.to_c9, InvalidReturnChannel)
+          ret.channel_send(result.to_c9, InvalidReturnChannel)
         else
           raise "Primitive method error"
         end

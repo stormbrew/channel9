@@ -3,16 +3,16 @@ require 'pp'
 module Channel9
   # Exits with a status code of 0 regardless of what's passed to it.
   module CleanExitChannel
-    def self.channel_send(environment, val, ret)
-      pp(:clean_exit => val) if environment.debug
+    def self.channel_send(val, ret)
+      pp(:clean_exit => val)
       exit(0)
     end
   end
 
   # Exits with the status code passed to it.
   module ExitChannel
-    def self.channel_send(environment, val, ret)
-      pp(:exit => val.to_i) if environment.debug
+    def self.channel_send(val, ret)
+      pp(:exit => val.to_i)
       exit(val.to_i)
     end
   end
@@ -20,7 +20,7 @@ module Channel9
   # Used as a guard when a sender does not expect to be returned to.
   # Just blows things up.
   module InvalidReturnChannel
-    def self.channel_send(environment, val, ret)
+    def self.channel_send(val, ret)
       raise "Invalid Return, exiting"
     end
   end
@@ -28,9 +28,9 @@ module Channel9
   # Used to output information to stdout. Prints whatever's
   # passed to it.
   module StdoutChannel
-    def self.channel_send(environment, val, ret)
+    def self.channel_send(val, ret)
       $stdout.puts(val)
-      ret.channel_send(environment, val, InvalidReturnChannel)
+      ret.channel_send(val, InvalidReturnChannel)
     end
   end
 
@@ -38,8 +38,8 @@ module Channel9
     attr :context
     attr :debug, true
 
-    def initialize(initial_context, debug = false)
-      @context = initial_context
+    def initialize(debug = false)
+      @context = nil
       @debug = debug
       @special_channels = {
         :clean_exit => CleanExitChannel,
@@ -61,7 +61,8 @@ module Channel9
       @special_channels[name] = channel
     end
 
-    def run(value = nil, ret = CleanExitChannel)
+    def run(initial_context, value = nil, ret = CleanExitChannel)
+      @context = initial_context
       @context.push(value.to_c9)
       @context.push(ret)
       while (instruction = @context.next)

@@ -12,8 +12,8 @@ stream = Channel9::Stream.from_json(File.read(ARGV[0]))
 if (print)
   puts stream.to_json
 else
-  context = Channel9::Context.new(stream)
-  environment = Channel9::Environment.new(context, debug)
+  environment = Channel9::Environment.new(debug)
+  context = Channel9::Context.new(environment, stream)
 
-  environment.run
+  environment.run(context)
 end
