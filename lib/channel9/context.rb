@@ -29,11 +29,11 @@ module Channel9
       return self
     end
 
-    def channel_send(val, ret)
+    def channel_send(val = nil, ret = CleanExitChannel)
       copy = self.dup
       copy.push val
       copy.push ret
-      @environment.set_context(copy)
+      @environment.run(copy)
       return self
     end
 
