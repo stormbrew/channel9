@@ -2,9 +2,15 @@ module Channel9
   # Dynamic bytecode stream builder.
   class Builder
     attr :stream
+    attr :label_counter
 
     def initialize(stream)
       @stream = stream
+      @label_counter = 0
+    end
+
+    def make_label(prefix)
+      "#{prefix}.#{@label_counter += 1}"
     end
 
     def set_label(name)
