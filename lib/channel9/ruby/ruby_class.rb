@@ -20,6 +20,11 @@ module Channel9
             })
           })
         end
+        klass.add_method(:define_method) do |msg, ret|
+          elf, name, channel = msg.positional
+          elf.add_method(name, channel)
+          ret.channel_send(nil.to_c9, InvalidReturnChannel)
+        end
       end
 
       def initialize(env, name, superclass)
@@ -49,6 +54,7 @@ module Channel9
       end
 
       def lookup(name)
+        name = name.to_c9
         [self, *@included.reverse].each do |mod|
           res = mod.instance_methods[name]
           return res if res

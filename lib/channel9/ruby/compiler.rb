@@ -42,6 +42,44 @@ module Channel9
         builder.set_label(done_label)
       end
 
+      def self.transform_args(builder, *args)
+        # TODO: Support splats and such.
+        builder.message_unpack(args.count + 1, 0, 0)
+        builder.pop # message stays on stack for further manipulation, we're done with it.
+        args.reverse.each do |arg|
+          builder.local_set(arg)
+        end
+        builder.local_set("self")
+      end
+
+      def self.transform_scope(builder, block)
+        transform(builder, block)
+      end
+
+      def self.transform_defn(builder, name, args, code)
+        label_prefix = "method:#{name}"
+        method_label = builder.make_label(label_prefix + ".body")
+        method_done_label = builder.make_label(label_prefix + ".done")
+
+        builder.jmp(method_done_label)
+        builder.set_label(method_label)
+        builder.local_clean_scope
+        builder.local_set("return")
+        transform(builder, args)
+        transform(builder, code)
+
+        builder.local_get("return")
+        builder.swap
+        builder.channel_ret
+
+        builder.set_label(method_done_label)
+        builder.local_get("self")
+        builder.push(name)
+        builder.channel_new(method_label)
+        builder.message_new(:define_method, 2)
+        builder.channel_call
+      end
+
       def self.transform_lasgn(builder, name, val)
         transform(builder, val)
         builder.local_set(name)
