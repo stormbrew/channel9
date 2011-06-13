@@ -13,6 +13,11 @@ module Channel9
         klass.add_method(:initialize) do |msg, ret|
           ret.channel_send(msg.positional.first, InvalidReturnChannel)
         end
+        klass.add_method(:define_method) do |msg, ret|
+          elf, *args = msg.positional
+          msg = Primitive::Message.new(msg.name, args)
+          klass.channel_send(msg, ret)
+        end
       end
 
       def initialize(env, klass = nil)
@@ -54,8 +59,8 @@ module Channel9
         if (val.is_a?(Primitive::Message))
           meth = send_lookup(val.name)
           if (meth.nil?)
-            val = val.forward(:method_missing)
             orig_name = val.name
+            val = val.forward(:method_missing)
             meth = send_lookup(val.name)
             if (meth.nil?)
               raise "BOOM: No method_missing on #{self}, orig message #{orig_name}"
