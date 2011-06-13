@@ -82,8 +82,30 @@ module Channel9
 
       def self.transform_return(builder, val)
         builder.local_get("return")
-        transform(builder,val)
+        transform(builder, val)
         builder.channel_ret
+      end
+
+      def self.transform_cdecl(builder, name, val)
+        # TODO: Make this look up in full proper lexical scope.
+        # Currently just assumes Object is the static lexical scope
+        # at all times.
+        builder.channel_special(:Object)
+        builder.push(name)
+        transform(builder, val)
+        builder.message_new(:const_set, 2)
+        builder.channel_call
+        builder.pop
+      end
+      def self.transform_const(builder, name)
+        # TODO: Make this look up in full proper lexical scope.
+        # Currently just assumes Object is the static lexical scope
+        # at all times.
+        builder.channel_special(:Object)
+        builder.push(name)
+        builder.message_new(:const_get, 1)
+        builder.channel_call
+        builder.pop
       end
 
       def self.transform_lasgn(builder, name, val)

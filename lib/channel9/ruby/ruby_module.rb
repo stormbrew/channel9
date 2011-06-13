@@ -7,6 +7,16 @@ module Channel9
       attr :constant
 
       def self.module_klass(klass)
+        klass.add_method(:const_set) do |msg, ret|
+          elf, name, val = msg.positional
+          elf.constant[name.to_c9] = val
+          ret.channel_send(val, InvalidReturnChannel)
+        end
+        klass.add_method(:const_get) do |msg, ret|
+          elf, name = msg.positional
+          val = elf.constant[name.to_c9]
+          ret.channel_send(val, InvalidReturnChannel)
+        end
       end
 
       def self.kernel_mod(mod)
@@ -23,16 +33,16 @@ module Channel9
         
         mod.add_method(:load) do |msg, ret|
           elf, path = msg.positional
-          loader = elf.env.special_channel["loader"]
+          loader = elf.env.special_channel[:loader]
           stream = loader.compile(path.to_s)
           context = Channel9::Context.new(elf.env, stream)
-          global_self = elf.env.special_channel["global_self"]
+          global_self = elf.env.special_channel[:global_self]
           context.channel_send(global_self, ret)
         end
       end
 
       def initialize(env, name)
-        super(env, env.special_channel["Module"])
+        super(env, env.special_channel[:Module])
         @name = name
         @instance_methods = {}
         @included = []
