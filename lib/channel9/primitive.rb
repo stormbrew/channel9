@@ -6,7 +6,7 @@ module Channel9
           result = self.send(:"c9_#{val.name}", *val.positional)
           ret.channel_send(result.to_c9, InvalidReturnChannel)
         else
-          raise "Primitive method error"
+          raise "Primitive method error: #{val}"
         end
       end
 
