@@ -9,7 +9,7 @@ module Channel9
         builder.push literal
       end
       def self.transform_str(builder, str)
-        builder.push str
+        builder.push str.intern # TODO: make this build a ruby string class instead
       end
 
       def self.transform_dstr(builder, *args)

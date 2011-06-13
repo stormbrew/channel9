@@ -8,11 +8,11 @@ module Channel9
       attr :constant
 
       def self.class_klass(klass)
-        klass.add_method("allocate") do |msg, ret|
+        klass.add_method(:allocate) do |msg, ret|
           elf = msg.positional.first
           ret.channel_send(RubyObject.new(elf.env, elf), InvalidReturnChannel)
         end
-        klass.add_method("new") do |msg, ret|
+        klass.add_method(:new) do |msg, ret|
           elf, *args = msg.positional
           elf.channel_send(Primitive::Message.new("allocate", [elf]), CallbackChannel.new {|obj, iret|
             obj.channel_send(Primitive::Message.new("initialize", args), CallbackChannel.new {|x, iret|
