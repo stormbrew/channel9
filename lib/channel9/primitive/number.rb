@@ -54,6 +54,23 @@ module Channel9
         return @real_num % Number.coerce(other).real_num
       end
       alias_method :"c9_%", :c9_mod
+
+      def c9_lt(other)
+        return @real_num < Number.coerce(other).real_num
+      end
+      alias_method :"c9_<", :c9_lt
+      def c9_gt(other)
+        return @real_num > Number.coerce(other).real_num
+      end
+      alias_method :"c9_>", :c9_gt
+      def c9_equal(other)
+        return @real_num == Number.coerce(other).real_num
+      end
+      alias_method :"c9_==", :c9_equal
+      def c9_notequal(other)
+        return @real_num != Number.coerce(other).real_num
+      end
+      alias_method :"c9_!=", :c9_notequal
     end
   end
 end
