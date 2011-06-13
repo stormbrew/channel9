@@ -15,6 +15,10 @@ module Channel9
         Message.new(name, [@name, *@positional])
       end
 
+      def prefix(*args)
+        Message.new(@name, args + @positional)
+      end
+
       def to_s
         "<Channel9::Primitive::Message #{@name}(#{@positional.collect {|x| x.to_s }.join(', ')})>"
       end
