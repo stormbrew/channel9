@@ -80,6 +80,12 @@ module Channel9
         builder.channel_call
       end
 
+      def self.transform_return(builder, val)
+        builder.local_get("return")
+        transform(builder,val)
+        builder.channel_ret
+      end
+
       def self.transform_lasgn(builder, name, val)
         transform(builder, val)
         builder.local_set(name)
