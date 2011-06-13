@@ -3,7 +3,7 @@ module Channel9
     class String < Base
       attr :real_str
       def initialize(str)
-        @real_str = str.dup.intern
+        @real_str = str.dup.freeze
       end
 
       def self.coerce(other)
@@ -17,7 +17,8 @@ module Channel9
       end        
 
       def ==(other)
-        other.is_a?(String) && @real_str == other.real_str
+        other.is_a?(String) && @real_str == other.real_str ||
+        other.is_a?(Symbol) && @real_str == other.to_s
       end
       alias_method :eql?, :==
       def hash
@@ -42,11 +43,10 @@ module Channel9
   end
 end
 
-class String
-  def to_c9
-    Channel9::Primitive::String.new(self)
-  end
-end
+# Note: C9 uses immutable strings, so it doesn't make
+# sense to provide to_c9 for String, since such a thing
+# would probably interfere with langauge's attempts to
+# provide a mutable string object.
 class Symbol
   def to_c9
     Channel9::Primitive::String.new(self.to_s)
