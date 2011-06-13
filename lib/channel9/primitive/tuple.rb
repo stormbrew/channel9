@@ -16,6 +16,10 @@ module Channel9
       def ==(other)
         other.is_a?(Tuple) && @real_ary == other.real_ary
       end
+      alias_method :eql?, :==
+      def hash
+        @real_ary.hash
+      end
     end
   end
 end

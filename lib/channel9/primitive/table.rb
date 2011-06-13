@@ -16,6 +16,10 @@ module Channel9
       def ==(other)
         other.is_a?(Table) && @real_hash == other.real_hash
       end
+      alias_method :eql?, :==
+      def hash
+        @real_hash.hash
+      end
     end
   end
 end

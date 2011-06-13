@@ -19,6 +19,10 @@ module Channel9
       def ==(other)
         other.is_a?(String) && @real_str == other.real_str
       end
+      alias_method :eql?, :==
+      def hash
+        @real_str.hash
+      end
 
       def to_s
         @real_str.to_s
@@ -41,5 +45,10 @@ end
 class String
   def to_c9
     Channel9::Primitive::String.new(self)
+  end
+end
+class Symbol
+  def to_c9
+    Channel9::Primitive::String.new(self.to_s)
   end
 end

@@ -18,6 +18,10 @@ module Channel9
       def ==(other)
         other.is_a?(Number) && @real_num == other.real_num
       end
+      alias_method :eql?, :==
+      def hash
+        @real_num.hash
+      end
 
       def to_s
         @real_num.to_s
@@ -33,18 +37,23 @@ module Channel9
       def c9_plus(other)
         return @real_num + Number.coerce(other).real_num
       end
+      alias_method :"c9_+", :c9_plus
       def c9_minus(other)
         return @real_num - Number.coerce(other).real_num
       end
+      alias_method :"c9_minus", :c9_minus
       def c9_mul(other)
         return @real_num * Number.coerce(other).real_num
       end
+      alias_method :"c9_*", :c9_mul
       def c9_div(other)
         return @real_num / Number.coerce(other).real_num
       end
+      alias_method :"c9_/", :c9_div
       def c9_mod(other)
         return @real_num % Number.coerce(other).real_num
       end
+      alias_method :"c9_%", :c9_mod
     end
   end
 end
