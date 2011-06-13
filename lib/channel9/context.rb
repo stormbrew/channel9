@@ -65,6 +65,9 @@ module Channel9
     def set_local(name, val)
       @local_variables[@instruction_stream.local(name)] = val
     end
+    def clean_scope
+      @local_variables = {}
+    end
 
     def next
       n = @instruction_stream.instructions[@pos]
