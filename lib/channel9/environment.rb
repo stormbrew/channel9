@@ -4,7 +4,6 @@ module Channel9
   # Exits with a status code of 0 regardless of what's passed to it.
   module CleanExitChannel
     def self.channel_send(val, ret)
-      pp(:clean_exit => val)
       exit(0)
     end
   end
@@ -12,7 +11,6 @@ module Channel9
   # Exits with the status code passed to it.
   module ExitChannel
     def self.channel_send(val, ret)
-      pp(:exit => val.to_i)
       exit(val.to_i)
     end
   end
