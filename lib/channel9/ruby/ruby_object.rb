@@ -7,10 +7,10 @@ module Channel9
       attr :ivars
 
       def self.object_klass(klass)
-        klass.add_method("method_missing") do |msg, ret|
+        klass.add_method(:method_missing) do |msg, ret|
           raise "BOOM: Method missing: #{msg.positional[1]}"
         end
-        klass.add_method("initialize") do |msg, ret|
+        klass.add_method(:initialize) do |msg, ret|
           ret.channel_send(msg.positional.first, InvalidReturnChannel)
         end
       end
@@ -54,7 +54,7 @@ module Channel9
         if (val.is_a?(Primitive::Message))
           meth = send_lookup(val.name)
           if (meth.nil?)
-            val = val.forward("method_missing".to_c9)
+            val = val.forward(:method_missing)
             orig_name = val.name
             meth = send_lookup(val.name)
             if (meth.nil?)

@@ -10,21 +10,21 @@ module Channel9
       end
 
       def self.kernel_mod(mod)
-        mod.add_method("special_channel") do |msg, ret|
+        mod.add_method(:special_channel) do |msg, ret|
           elf, name = msg.positional
           ret.channel_send(env.special_channel[name], InvalidReturnChannel)
         end
 
-        mod.add_method("puts") do |msg, ret|
+        mod.add_method(:puts) do |msg, ret|
           elf, *strings = msg.positional
           puts(*strings)
           ret.channel_send(nil.to_c9, InvalidReturnChannel)
         end
         
-        mod.add_method("load") do |msg, ret|
+        mod.add_method(:load) do |msg, ret|
           elf, path = msg.positional
           loader = elf.env.special_channel["loader"]
-          stream = loader.compile(path.real_str.to_s)
+          stream = loader.compile(path.to_s)
           context = Channel9::Context.new(elf.env, stream)
           global_self = elf.env.special_channel["global_self"]
           context.channel_send(global_self, ret)
