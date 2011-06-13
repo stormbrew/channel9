@@ -12,7 +12,7 @@ module Channel9
         @env = Channel9::Environment.new(debug)
 
         object_klass = Channel9::Ruby::RubyClass.new(env, "Object", nil)
-        env.special_channel["Object"] = object_klass
+        env.special_channel[:Object] = object_klass
         Channel9::Ruby::RubyObject.object_klass(object_klass)
 
         module_klass = Channel9::Ruby::RubyClass.new(env, "Module", object_klass)
@@ -20,23 +20,23 @@ module Channel9
         class_klass = Channel9::Ruby::RubyClass.new(env, "Class", module_klass)
         Channel9::Ruby::RubyClass.class_klass(class_klass)
 
-        env.special_channel["Class"] = class_klass
+        env.special_channel[:Class] = class_klass
         object_klass.rebind(class_klass)
         module_klass.rebind(class_klass)
         class_klass.rebind(class_klass)
 
         kernel_mod = Channel9::Ruby::RubyModule.new(env, "Kernel")
-        env.special_channel["Kernel"] = kernel_mod
+        env.special_channel[:Kernel] = kernel_mod
         Channel9::Ruby::RubyModule.kernel_mod(kernel_mod)
         object_klass.include(kernel_mod)
 
-        env.special_channel["loader"] = self
-        env.special_channel["global_self"] = Channel9::Ruby::RubyObject.new(env)
+        env.special_channel[:loader] = self
+        env.special_channel[:global_self] = Channel9::Ruby::RubyObject.new(env)
 
-        object_klass.constant["Object"] = object_klass
-        object_klass.constant["Module"] = module_klass
-        object_klass.constant["Class"] = class_klass
-        object_klass.constant["Kernel"] = kernel_mod
+        object_klass.constant[:Object] = object_klass
+        object_klass.constant[:Module] = module_klass
+        object_klass.constant[:Class] = class_klass
+        object_klass.constant[:Kernel] = kernel_mod
       end
 
       def channel_send(msg, ret)

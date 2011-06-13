@@ -22,7 +22,7 @@ module Channel9
 
       def initialize(env, klass = nil)
         @env = env
-        @klass = klass || env.special_channel["Object"]
+        @klass = klass || env.special_channel[:Object]
         @singleton = nil
         @ivars = {}
       end

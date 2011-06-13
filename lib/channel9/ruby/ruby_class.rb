@@ -28,7 +28,7 @@ module Channel9
       end
 
       def initialize(env, name, superclass)
-        super(env, env.special_channel["Class"])
+        super(env, env.special_channel[:Class])
         @name = name
         @superclass = superclass
         @instance_methods = {}
