@@ -12,6 +12,20 @@ module Channel9
         builder.push str.intern # TODO: make this build a ruby string class instead
       end
 
+      def self.transform_while(builder, condition, body, unk)
+        begin_label = builder.make_label("while.begin")
+        done_label = builder.make_label("while.done")
+
+        builder.set_label(begin_label)
+        transform(builder, condition)
+        builder.jmp_if_not(done_label)
+        
+        transform(builder, body)
+
+        builder.jmp(begin_label)
+        builder.set_label(done_label)
+      end
+
       def self.transform_lasgn(builder, name, val)
         transform(builder, val)
         builder.local_set(name)
