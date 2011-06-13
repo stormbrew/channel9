@@ -19,10 +19,26 @@ module Channel9
         builder.set_label(begin_label)
         transform(builder, condition)
         builder.jmp_if_not(done_label)
-        
+
         transform(builder, body)
 
         builder.jmp(begin_label)
+        builder.set_label(done_label)
+      end
+
+      def self.transform_if(builder, cond, truthy, falsy)
+        falsy_label = builder.make_label("if.falsy")
+        done_label = builder.make_label("if.done")
+
+        transform(builder, cond)
+        builder.jmp_if_not(falsy_label)
+
+        transform(builder, truthy)
+        builder.jmp(done_label)
+
+        builder.set_label(falsy_label)
+        transform(builder, falsy) if (falsy)
+
         builder.set_label(done_label)
       end
 
