@@ -12,10 +12,6 @@ module Channel9
         builder.push str.intern # TODO: make this build a ruby string class instead
       end
 
-      def self.transform_dstr(builder, *args)
-        pp args
-      end
-
       def self.transform_lasgn(builder, name, val)
         transform(builder, val)
         builder.local_set(name)
