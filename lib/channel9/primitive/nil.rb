@@ -10,6 +10,9 @@ module Channel9
       def to_json(*a)
         nil.to_json(*a)
       end
+      def nil?
+        true
+      end
     end
     Nil = NilC.new.freeze
   end
