@@ -10,12 +10,12 @@ module Channel9
         klass.add_method(:const_set) do |msg, ret|
           elf, name, val = msg.positional
           elf.constant[name.to_c9] = val
-          ret.channel_send(val, InvalidReturnChannel)
+          ret.channel_send(val.to_c9, InvalidReturnChannel)
         end
         klass.add_method(:const_get) do |msg, ret|
           elf, name = msg.positional
           val = elf.constant[name.to_c9]
-          ret.channel_send(val, InvalidReturnChannel)
+          ret.channel_send(val.to_c9, InvalidReturnChannel)
         end
       end
 
