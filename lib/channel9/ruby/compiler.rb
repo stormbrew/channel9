@@ -78,12 +78,68 @@ module Channel9
         builder.channel_new(method_label)
         builder.message_new(:define_method, 2)
         builder.channel_call
+        builder.pop
       end
 
       def self.transform_return(builder, val)
         builder.local_get("return")
         transform(builder, val)
         builder.channel_ret
+      end
+
+      def self.transform_class(builder, name, superclass, body)
+        label_prefix = "Class:#{name}"
+        body_label = builder.make_label(label_prefix + ".body")
+        done_label = builder.make_label(label_prefix + ".done")
+
+        # See if it's already there
+        builder.channel_special(:Object)
+        builder.push(name)
+        builder.message_new(:const_get, 1)
+        builder.channel_call
+        builder.pop
+        builder.jmp_if(done_label)
+
+        # If it's not, make a new class and set it.
+        builder.channel_special(:Object)
+        builder.push(name)
+        
+        builder.channel_special(:Class)
+        transform(builder, superclass)
+        builder.push(name)
+        builder.message_new(:new, 2)
+        builder.channel_call
+        builder.pop
+
+        builder.message_new(:const_set, 2)
+        builder.channel_call
+        builder.pop
+        builder.jmp(done_label)
+
+        builder.set_label(body_label)
+        builder.local_clean_scope
+        builder.local_set("return")
+        builder.message_unpack(1, 0, 0)
+        builder.pop
+        builder.local_set("self")
+        transform(builder, body)
+        builder.local_get("return")
+        builder.swap
+        builder.channel_ret
+
+        builder.set_label(done_label)
+
+        builder.dup_top
+        builder.push(:__body__)
+        builder.channel_new(body_label)
+        builder.message_new(:define_singleton_method, 2)
+        builder.channel_call
+        builder.pop
+        builder.pop
+
+        builder.message_new(:__body__, 0)
+        builder.channel_call
+        builder.pop
       end
 
       def self.transform_cdecl(builder, name, val)

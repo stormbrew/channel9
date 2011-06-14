@@ -22,7 +22,7 @@ module Channel9
 
       def initialize(env, klass = nil)
         @env = env
-        @klass = klass || env.special_channel[:Object]
+        @klass = klass.nil? ? env.special_channel[:Object] : klass
         @singleton = nil
         @ivars = {}
       end
@@ -40,7 +40,7 @@ module Channel9
       end
 
       def singleton!
-        @singleton ||= RubyClass.new(@env)
+        @singleton ||= RubyClass.new(@env, self.to_s, nil)
       end
 
       def send_lookup(name)
