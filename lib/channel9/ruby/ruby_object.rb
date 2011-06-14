@@ -71,6 +71,10 @@ module Channel9
           raise "BOOM: Ruby object received unknown message #{val}."
         end
       end
+
+      def truthy?
+        true
+      end
     end
   end
 end

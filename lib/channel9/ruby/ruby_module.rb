@@ -17,6 +17,11 @@ module Channel9
           val = elf.constant[name.to_c9]
           ret.channel_send(val.to_c9, InvalidReturnChannel)
         end
+        klass.add_method(:include) do |msg, ret|
+          elf, mod = msg.positional
+          elf.include(mod)
+          ret.channel_send(mod, InvalidReturnChannel)
+        end
         klass.add_method(:define_method) do |msg, ret|
           elf, name, channel = msg.positional
           elf.add_method(name, channel)
