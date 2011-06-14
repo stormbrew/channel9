@@ -24,6 +24,7 @@ module Channel9
 
         builder.jmp(begin_label)
         builder.set_label(done_label)
+        builder.push(nil.to_c9)
       end
 
       def self.transform_if(builder, cond, truthy, falsy)
@@ -37,7 +38,11 @@ module Channel9
         builder.jmp(done_label)
 
         builder.set_label(falsy_label)
-        transform(builder, falsy) if (falsy)
+        if (falsy)
+          transform(builder, falsy)
+        else
+          builder.push(nil)
+        end
 
         builder.set_label(done_label)
       end
@@ -102,6 +107,7 @@ module Channel9
         builder.jmp_if(done_label)
 
         # If it's not, make a new class and set it.
+        builder.pop
         builder.channel_special(:Object)
         builder.push(name)
         
@@ -162,6 +168,7 @@ module Channel9
         builder.jmp_if(done_label)
 
         # If it's not, make a new module and set it.
+        builder.pop
         builder.channel_special(:Object)
         builder.push(name)
         
@@ -226,6 +233,7 @@ module Channel9
 
       def self.transform_lasgn(builder, name, val)
         transform(builder, val)
+        builder.dup_top
         builder.local_set(name)
       end
       def self.transform_lvar(builder, name)
@@ -233,8 +241,10 @@ module Channel9
       end
 
       def self.transform_block(builder, *lines)
-        lines.each do |line|
+        count = lines.length
+        lines.each_with_index do |line, idx|
           transform(builder, line)
+          builder.pop if (count != idx + 1)
         end
       end
 
