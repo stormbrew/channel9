@@ -1,4 +1,4 @@
-class X < Object
+class X
   puts "hi!"
   def stuff(a)
     puts a

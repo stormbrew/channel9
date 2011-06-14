@@ -14,16 +14,21 @@ module Channel9
         end
         klass.add_method(:new) do |msg, ret|
           elf, *args = msg.positional
-          if (elf != elf.env.special_channel[:Class])
+          case elf
+          when elf.env.special_channel[:Class]
+            # special case for creating new classes.
+            superklass, name = args
+            ret.channel_send(RubyClass.new(elf.env, name, superklass), InvalidReturnChannel)
+          when elf.env.special_channel[:Module]
+            # special case for creating new classes.
+            name = args.first
+            ret.channel_send(RubyModule.new(elf.env, name), InvalidReturnChannel)
+          else
             elf.channel_send(Primitive::Message.new(:allocate, [elf]), CallbackChannel.new {|obj, iret|
               obj.channel_send(Primitive::Message.new(:initialize, args), CallbackChannel.new {|x, iret|
                 ret.channel_send(obj, InvalidReturnChannel)
               })
             })
-          else
-            # special case for creating new classes.
-            superklass, name = args
-            ret.channel_send(RubyClass.new(elf.env, name, superklass), InvalidReturnChannel)
           end
         end
       end
