@@ -1,6 +1,6 @@
 module Channel9
   module Instruction
-    # dup
+    # dup_top
     # ---
     # Pushes the top of the stack twice.
     #
@@ -8,7 +8,7 @@ module Channel9
     #  SP -> input
     # Leaves it on the stack twice
     #  SP -> input -> input
-    class DUP < Base
+    class DUP_TOP < Base
       def initialize(stream)
         super(stream, 1, 2)
       end
