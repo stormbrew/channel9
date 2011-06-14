@@ -26,16 +26,6 @@ module Channel9
             ret.channel_send(RubyClass.new(elf.env, name, superklass), InvalidReturnChannel)
           end
         end
-        klass.add_method(:define_method) do |msg, ret|
-          elf, name, channel = msg.positional
-          elf.add_method(name, channel)
-          ret.channel_send(nil.to_c9, InvalidReturnChannel)
-        end
-        klass.add_method(:define_singleton_method) do |msg, ret|
-          elf, name, channel = msg.positional
-          elf.singleton!.add_method(name, channel)
-          ret.channel_send(nil.to_c9, InvalidReturnChannel)
-        end
       end
 
       def initialize(env, name, superclass)
