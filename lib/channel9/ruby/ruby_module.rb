@@ -17,6 +17,16 @@ module Channel9
           val = elf.constant[name.to_c9]
           ret.channel_send(val.to_c9, InvalidReturnChannel)
         end
+        klass.add_method(:define_method) do |msg, ret|
+          elf, name, channel = msg.positional
+          elf.add_method(name, channel)
+          ret.channel_send(nil.to_c9, InvalidReturnChannel)
+        end
+        klass.add_method(:define_singleton_method) do |msg, ret|
+          elf, name, channel = msg.positional
+          elf.singleton!.add_method(name, channel)
+          ret.channel_send(nil.to_c9, InvalidReturnChannel)
+        end
       end
 
       def self.kernel_mod(mod)
