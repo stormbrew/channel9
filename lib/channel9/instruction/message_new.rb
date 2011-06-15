@@ -17,20 +17,23 @@ module Channel9
     # All objects in channel9 are channels, and messages are the
     # primative by which they communicate.
     class MESSAGE_NEW < Base
-      def initialize(stream, name, count)
-        super(stream, count, 1)
+      def initialize(stream, name, sys_count, count)
+        super(stream, sys_count + count, 1)
         @name = name
+        @sys_count = sys_count
         @count = count
       end
 
       def arguments
-        [@name, @count]
+        [@name, @sys_count, @count]
       end
 
       def run(env)
+        sys_args = []
         args = []
+        @sys_count.times { sys_args.unshift(env.context.pop) }
         @count.times { args.unshift(env.context.pop) }
-        message = Primitive::Message.new(@name, args)
+        message = Primitive::Message.new(@name, sys_args, args)
         env.context.push(message)
       end
     end
