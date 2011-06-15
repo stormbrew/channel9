@@ -11,11 +11,12 @@ module Channel9
     #  SP -> name -> message
     class MESSAGE_NAME < Base
       def initialize(stream)
-        super(stream, 0, 1)
+        super(stream, 1, 2)
       end
 
       def run(env)
         message = env.context.pop
+        env.context.push(message)
         env.context.push(message.name)
       end
     end
