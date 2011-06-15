@@ -15,7 +15,7 @@ module Channel9
         end
         klass.add_method(:define_method) do |msg, ret|
           elf, *args = msg.positional
-          msg = Primitive::Message.new(msg.name, args)
+          msg = Primitive::Message.new(msg.name, [], args)
           klass.channel_send(msg, ret)
         end
       end
