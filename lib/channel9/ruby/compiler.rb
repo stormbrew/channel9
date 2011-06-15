@@ -11,6 +11,15 @@ module Channel9
       def self.transform_str(builder, str)
         builder.push str.intern # TODO: make this build a ruby string class instead
       end
+      def self.transform_nil(builder)
+        builder.push nil.to_c9
+      end
+      def self.transform_true(builder)
+        builder.push true.to_c9
+      end
+      def self.transform_false(builder)
+        builder.push false.to_c9
+      end
 
       def self.transform_while(builder, condition, body, unk)
         begin_label = builder.make_label("while.begin")
