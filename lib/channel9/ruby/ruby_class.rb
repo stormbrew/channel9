@@ -24,8 +24,8 @@ module Channel9
             name = args.first
             ret.channel_send(RubyModule.new(elf.env, name), InvalidReturnChannel)
           else
-            elf.channel_send(Primitive::Message.new(:allocate, [elf]), CallbackChannel.new {|obj, iret|
-              obj.channel_send(Primitive::Message.new(:initialize, args), CallbackChannel.new {|x, iret|
+            elf.channel_send(Primitive::Message.new(:allocate, [], [elf]), CallbackChannel.new {|obj, iret|
+              obj.channel_send(Primitive::Message.new(:initialize, [], args), CallbackChannel.new {|x, iret|
                 ret.channel_send(obj, InvalidReturnChannel)
               })
             })
