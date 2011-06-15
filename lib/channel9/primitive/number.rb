@@ -41,7 +41,7 @@ module Channel9
       def c9_minus(other)
         return @real_num - Number.coerce(other).real_num
       end
-      alias_method :"c9_minus", :c9_minus
+      alias_method :"c9_-", :c9_minus
       def c9_mul(other)
         return @real_num * Number.coerce(other).real_num
       end
