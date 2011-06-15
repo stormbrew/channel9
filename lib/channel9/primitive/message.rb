@@ -3,20 +3,20 @@ module Channel9
     class Message < Base
       attr :name
       attr :positional
-      attr :named
+      attr :system
 
-      def initialize(name, positional)
+      def initialize(name, system, positional)
         @name = name
+        @system = system
         @positional = positional
-        @named = {}
       end
 
       def forward(name)
-        Message.new(name, [@name, *@positional])
+        Message.new(name, @system, [@name, *@positional])
       end
 
       def prefix(*args)
-        Message.new(@name, args + @positional)
+        Message.new(@name, @system, args + @positional)
       end
 
       def to_s

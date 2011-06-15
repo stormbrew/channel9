@@ -14,7 +14,7 @@
 		["local_get", "output"],
 		["local_get", "value"],
 		["push", 1],
-		["message_new", "plus", 1],
+		["message_new", "plus", 0, 1],
 		["channel_call"],
 		["pop"],
 		["channel_ret"],
@@ -22,7 +22,7 @@
 
 		["local_get", "plus1"],
 		["push", 1],
-		["message_new", "plus1", 1],
+		["message_new", "plus1", 0, 1],
 		["channel_call"],
 		["pop"],
 		["local_set", "x"],
