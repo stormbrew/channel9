@@ -264,6 +264,29 @@ module Channel9
         builder.local_get(name)
       end
 
+      def self.transform_gasgn(builder, name, val = nil)
+        if (val.nil?)
+          builder.channel_special(:Object)
+          builder.swap
+          builder.push(name)
+          builder.swap
+        else
+          builder.channel_special(:Object)
+          builder.push(name)
+          transform(builder, val) if !val.nil?
+        end
+        builder.message_new(:global_set, 0, 2)
+        builder.channel_call
+        builder.pop
+      end
+      def self.transform_gvar(builder, name)
+        builder.channel_special(:Object)
+        builder.push(name)
+        builder.message_new(:global_get, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+
       def self.transform_block(builder, *lines)
         count = lines.length
         lines.each_with_index do |line, idx|
@@ -300,7 +323,7 @@ module Channel9
       # the iterator, so we build the iterator and then push it
       # onto the stack, then flag the upcoming call sexp so that it
       # swaps it in to the correct place.
-      def self.transform_iter(builder, call, args, block)
+      def self.transform_iter(builder, call, args, block = nil)
         call = call.dup
         call << true
 
@@ -316,7 +339,7 @@ module Channel9
           # no args, pop the message off the stack.
           builder.pop
         else
-          if (args[0] == :lasgn)
+          if (args[0] == :lasgn || args[0] == :gasgn)
             # Ruby's behaviour on a single arg block is ugly.
             # If it takes one argument, but is given multiple,
             # it's as if it were a single arg splat. Otherwise,
@@ -337,7 +360,11 @@ module Channel9
           builder.pop
         end
 
-        transform(builder, block)
+        if (block.nil?)
+          transform_nil(builder)
+        else
+          transform(builder, block)
+        end
 
         builder.local_get(label_prefix + ".ret")
         builder.swap

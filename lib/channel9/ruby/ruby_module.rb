@@ -54,6 +54,18 @@ module Channel9
           global_self = elf.env.special_channel[:global_self]
           context.channel_send(global_self, ret)
         end
+
+        mod.add_method(:global_get) do |msg, ret|
+          elf, name = msg.positional
+          globals = elf.env.special_channel[:globals]
+          ret.channel_send(globals[name].to_c9, InvalidReturnChannel)
+        end
+        mod.add_method(:global_set) do |msg, ret|
+          elf, name, val = msg.positional
+          globals = elf.env.special_channel[:globals]
+          globals[name] = val
+          ret.channel_send(val, InvalidReturnChannel)
+        end
       end
 
       def initialize(env, name)
