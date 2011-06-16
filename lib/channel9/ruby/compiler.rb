@@ -11,6 +11,20 @@ module Channel9
       def self.transform_str(builder, str)
         builder.push str.intern # TODO: make this build a ruby string class instead
       end
+      def self.transform_evstr(builder, ev)
+        transform(builder, ev)
+      end
+      def self.transform_dstr(builder, initial, *strings)
+        strings.reverse.each do |str|
+          transform(builder, str)
+        end
+        if (initial.length > 0)
+          transform_str(builder, initial)
+          builder.string_new(:to_s, 1 + strings.length)
+        else
+          builder.string_new(:to_s, strings.length)
+        end
+      end
       def self.transform_nil(builder)
         builder.push nil.to_c9
       end
@@ -380,7 +394,7 @@ module Channel9
       def self.transform_file(builder, body)
         builder.local_set("return")
         builder.local_set("self")
-        transform(builder, body)
+        transform(builder, body) if (!body.nil?)
         builder.local_get("return")
         builder.local_get("self")
         builder.channel_ret
