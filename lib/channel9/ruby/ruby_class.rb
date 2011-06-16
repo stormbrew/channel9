@@ -8,25 +8,25 @@ module Channel9
       attr :constant
 
       def self.class_klass(klass)
-        klass.add_method(:allocate) do |msg, ret|
+        klass.add_method(:allocate) do |cenv, msg, ret|
           elf = msg.positional.first
-          ret.channel_send(RubyObject.new(elf.env, elf), InvalidReturnChannel)
+          ret.channel_send(elf.env, RubyObject.new(elf.env, elf), InvalidReturnChannel)
         end
-        klass.add_method(:new) do |msg, ret|
+        klass.add_method(:new) do |cenv, msg, ret|
           elf, *args = msg.positional
           case elf
           when elf.env.special_channel[:Class]
             # special case for creating new classes.
             superklass, name = args
-            ret.channel_send(RubyClass.new(elf.env, name, superklass), InvalidReturnChannel)
+            ret.channel_send(elf.env, RubyClass.new(elf.env, name, superklass), InvalidReturnChannel)
           when elf.env.special_channel[:Module]
             # special case for creating new classes.
             name = args.first
-            ret.channel_send(RubyModule.new(elf.env, name), InvalidReturnChannel)
+            ret.channel_send(elf.env, RubyModule.new(elf.env, name), InvalidReturnChannel)
           else
-            elf.channel_send(Primitive::Message.new(:allocate, [], [elf]), CallbackChannel.new {|obj, iret|
-              obj.channel_send(Primitive::Message.new(:initialize, [], args), CallbackChannel.new {|x, iret|
-                ret.channel_send(obj, InvalidReturnChannel)
+            elf.channel_send(elf.env, Primitive::Message.new(:allocate, [], [elf]), CallbackChannel.new {|cenv, obj, iret|
+              obj.channel_send(elf.env, Primitive::Message.new(:initialize, [], args), CallbackChannel.new {|cenv, x, iret|
+                ret.channel_send(elf.env, obj, InvalidReturnChannel)
               })
             })
           end

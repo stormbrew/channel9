@@ -43,17 +43,17 @@ module Channel9
         object_klass.constant[:Class] = class_klass
         object_klass.constant[:Kernel] = kernel_mod
 
-        object_klass.channel_send(
+        object_klass.channel_send(env,
           Primitive::Message.new(:load, [], ["boot.rb"]),
           CallbackChannel.new {}
         )
       end
 
-      def channel_send(msg, ret)
+      def channel_send(cenv, msg, ret)
         case msg.name
         when "compile"
           compile(msg.positional.first)
-          ret.channel_send(true, InvalidReturnChannel)
+          ret.channel_send(env, true, InvalidReturnChannel)
         else
           raise "BOOM: Unknown message for loader: #{msg.name}."
         end
