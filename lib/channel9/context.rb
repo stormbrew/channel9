@@ -4,8 +4,8 @@ module Channel9
       @callback = cb
     end
     def to_c9; self; end
-    def channel_send(val, ret)
-      @callback.call(val, ret)
+    def channel_send(env, val, ret)
+      @callback.call(env, val, ret)
     end
   end
 
@@ -39,7 +39,7 @@ module Channel9
       return self
     end
 
-    def channel_send(val = nil, ret = CleanExitChannel)
+    def channel_send(env, val = nil, ret = CleanExitChannel)
       copy = self.dup
       copy.push val
       copy.push ret
