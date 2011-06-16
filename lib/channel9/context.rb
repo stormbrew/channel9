@@ -24,6 +24,10 @@ module Channel9
       @stack = []
     end
 
+    def truthy?
+      true
+    end
+
     def initialize_copy(other)
       super
       @stack = @stack.dup
