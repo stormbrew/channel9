@@ -3,14 +3,14 @@ require 'pp'
 module Channel9
   # Exits with a status code of 0 regardless of what's passed to it.
   module CleanExitChannel
-    def self.channel_send(val, ret)
+    def self.channel_send(env, val, ret)
       exit(0)
     end
   end
 
   # Exits with the status code passed to it.
   module ExitChannel
-    def self.channel_send(val, ret)
+    def self.channel_send(env, val, ret)
       exit(val.to_i)
     end
   end
@@ -18,7 +18,7 @@ module Channel9
   # Used as a guard when a sender does not expect to be returned to.
   # Just blows things up.
   module InvalidReturnChannel
-    def self.channel_send(val, ret)
+    def self.channel_send(env, val, ret)
       raise "Invalid Return, exiting"
     end
   end
@@ -26,9 +26,9 @@ module Channel9
   # Used to output information to stdout. Prints whatever's
   # passed to it.
   module StdoutChannel
-    def self.channel_send(val, ret)
+    def self.channel_send(env, val, ret)
       $stdout.puts(val)
-      ret.channel_send(val, InvalidReturnChannel)
+      ret.channel_send(env, val, InvalidReturnChannel)
     end
   end
 

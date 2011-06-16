@@ -29,7 +29,7 @@ module Channel9
             str << i.real_str
           else
             env.save_context do
-              i.channel_send(Primitive::Message.new(@coerce, [], []), CallbackChannel.new {|val, ret|
+              i.channel_send(env, Primitive::Message.new(@coerce, [], []), CallbackChannel.new {|cenv, val, ret|
                 str << val.real_str
                 throw :end_save
               })

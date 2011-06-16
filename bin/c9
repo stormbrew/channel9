@@ -14,5 +14,5 @@ if (print)
 else
   environment = Channel9::Environment.new(debug)
   context = Channel9::Context.new(environment, stream)
-  context.channel_send
+  context.channel_send(environment)
 end
