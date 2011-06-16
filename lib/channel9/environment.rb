@@ -50,6 +50,26 @@ module Channel9
       }
     end
 
+    # stores the context for the duration of a block and then
+    # restores it when done. Used for instructions that need
+    # to call back into the environment. (eg. string_new).
+    # in most cases, you will probably need to indicate when to
+    # exit the sub-state by throwing :end_save.
+    def save_context
+      catch (:end_save) do
+        begin
+          prev_context = @context
+          prev_running = @running
+          @context = nil
+          @running = false
+          yield
+        ensure
+          @running = true
+          @context = prev_context
+        end
+      end
+    end
+
     def run(context)
       @context = context
       if (!@running)

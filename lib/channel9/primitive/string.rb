@@ -39,6 +39,7 @@ module Channel9
       def c9_plus(other)
         return @real_str + String.coerce(other).real_str
       end
+      alias_method :"c9_+", :c9_plus
     end
   end
 end
