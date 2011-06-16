@@ -38,6 +38,23 @@ module Channel9
           :"$LOAD_PATH" => ["environment/kernel", "environment/lib", "."]
         }
 
+        # Builtin special types:
+        [
+          ["Fixnum", "Number"],
+          ["Symbol", "String"],
+          ["Tuple", "Tuple"],
+          ["Table", "Table"],
+          ["Message", "Message"],
+          ["TrueClass", "TrueC"],
+          ["FalseClass", "FalseC"],
+          ["NilClass", "NilC"],
+          ["UndefClass", "UndefC"]
+        ].each do |ruby_name, c9_name|
+          klass = Channel9::Ruby::RubyClass.new(env, ruby_name, object_klass)
+          env.special_channel["Channel9::Primitive::#{c9_name}"] = klass
+          object_klass.constant[ruby_name.to_sym] = klass
+        end
+        
         object_klass.constant[:Object] = object_klass
         object_klass.constant[:Module] = module_klass
         object_klass.constant[:Class] = class_klass
