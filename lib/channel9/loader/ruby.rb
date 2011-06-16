@@ -34,12 +34,19 @@ module Channel9
 
         env.special_channel[:loader] = self
         env.special_channel[:global_self] = Channel9::Ruby::RubyObject.new(env)
-        env.special_channel[:globals] = {}
+        env.special_channel[:globals] = {
+          :"$LOAD_PATH" => ["environment/kernel", "environment/lib", "."]
+        }
 
         object_klass.constant[:Object] = object_klass
         object_klass.constant[:Module] = module_klass
         object_klass.constant[:Class] = class_klass
         object_klass.constant[:Kernel] = kernel_mod
+
+        object_klass.channel_send(
+          Primitive::Message.new(:load, [], ["boot.rb"]),
+          CallbackChannel.new {}
+        )
       end
 
       def channel_send(msg, ret)
@@ -53,15 +60,21 @@ module Channel9
       end
 
       def compile(filename)
-        File.open(filename, "r") do |f|
-          stream = Channel9::Stream.new
-          stream.build do |builder|
-            tree = RubyParser.new.parse(f.read)
-            tree = [:file, tree]
-            Channel9::Ruby::Compiler.transform(builder, tree)
+        env.special_channel[:globals][:"$LOAD_PATH"].each do |path|
+          begin
+            File.open("#{path}/#{filename}", "r") do |f|
+              stream = Channel9::Stream.new
+              stream.build do |builder|
+                tree = RubyParser.new.parse(f.read)
+                tree = [:file, tree]
+                Channel9::Ruby::Compiler.transform(builder, tree)
+              end
+              return stream
+            end
+          rescue Errno::ENOENT
           end
-          return stream
         end
+        raise LoadError, "Could not find #{filename} in $LOAD_PATH"
       end
     end
   end
