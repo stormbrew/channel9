@@ -34,6 +34,7 @@ module Channel9
 
         env.special_channel[:loader] = self
         env.special_channel[:global_self] = Channel9::Ruby::RubyObject.new(env)
+        env.special_channel[:globals] = {}
 
         object_klass.constant[:Object] = object_klass
         object_klass.constant[:Module] = module_klass
