@@ -56,7 +56,7 @@ module Channel9
         return nil
       end
 
-      def channel_send(cenv, val, ret)
+      def channel_send_with(elf, cenv, val, ret)
         if (val.is_a?(Primitive::Message))
           meth = send_lookup(val.name)
           if (meth.nil?)
@@ -64,13 +64,16 @@ module Channel9
             val = val.forward(:method_missing)
             meth = send_lookup(val.name)
             if (meth.nil?)
-              raise "BOOM: No method_missing on #{self}, orig message #{orig_name}"
+              raise "BOOM: No method_missing on #{elf}, orig message #{orig_name}"
             end
           end
-          meth.channel_send(env, val.prefix(self), ret)
+          meth.channel_send(env, val.prefix(elf), ret)
         else
           raise "BOOM: Ruby object received unknown message #{val}."
         end
+      end
+      def channel_send(cenv, val, ret)
+        channel_send_with(self, cenv, val, ret)
       end
 
       def truthy?

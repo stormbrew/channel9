@@ -31,6 +31,12 @@ module Channel9
             })
           end
         end
+        klass.add_method(:__c9_primitive_call__) do |cenv, msg, ret|
+          elf, name, instance, *args = msg.positional
+          imsg = Primitive::Message.new(name, msg.system, args)
+          elf.channel_send_with(instance, elf.env, imsg, ret)
+        end
+
       end
 
       def initialize(env, name, superclass)
