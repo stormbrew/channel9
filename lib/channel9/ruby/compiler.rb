@@ -1,68 +1,84 @@
 module Channel9
   module Ruby
-    module Compiler
-      def self.transform_self(builder)
+    class Compiler
+      attr :builder
+      def initialize(builder)
+        @builder = builder
+        @state = {}
+      end
+
+      def with_state(hash)
+        begin
+          old = @state.dup
+          @state.merge!(hash)
+          yield
+        ensure
+          @state = old
+        end
+      end
+
+      def transform_self()
         builder.local_get("self")
       end
 
-      def self.transform_lit(builder, literal)
+      def transform_lit(literal)
         builder.push literal
       end
-      def self.transform_str(builder, str)
+      def transform_str(str)
         builder.push str.intern # TODO: make this build a ruby string class instead
       end
-      def self.transform_evstr(builder, ev)
-        transform(builder, ev)
+      def transform_evstr(ev)
+        transform(ev)
       end
-      def self.transform_dstr(builder, initial, *strings)
+      def transform_dstr(initial, *strings)
         strings.reverse.each do |str|
-          transform(builder, str)
+          transform(str)
         end
         if (initial.length > 0)
-          transform_str(builder, initial)
+          transform_str(initial)
           builder.string_new(:to_s, 1 + strings.length)
         else
           builder.string_new(:to_s, strings.length)
         end
       end
-      def self.transform_nil(builder)
+      def transform_nil()
         builder.push nil.to_c9
       end
-      def self.transform_true(builder)
+      def transform_true()
         builder.push true.to_c9
       end
-      def self.transform_false(builder)
+      def transform_false()
         builder.push false.to_c9
       end
 
-      def self.transform_while(builder, condition, body, unk)
+      def transform_while(condition, body, unk)
         begin_label = builder.make_label("while.begin")
         done_label = builder.make_label("while.done")
 
         builder.set_label(begin_label)
-        transform(builder, condition)
+        transform(condition)
         builder.jmp_if_not(done_label)
 
-        transform(builder, body)
+        transform(body)
 
         builder.jmp(begin_label)
         builder.set_label(done_label)
         builder.push(nil.to_c9)
       end
 
-      def self.transform_if(builder, cond, truthy, falsy)
+      def transform_if(cond, truthy, falsy)
         falsy_label = builder.make_label("if.falsy")
         done_label = builder.make_label("if.done")
 
-        transform(builder, cond)
+        transform(cond)
         builder.jmp_if_not(falsy_label)
 
-        transform(builder, truthy)
+        transform(truthy)
         builder.jmp(done_label)
 
         builder.set_label(falsy_label)
         if (falsy)
-          transform(builder, falsy)
+          transform(falsy)
         else
           builder.push(nil)
         end
@@ -70,7 +86,7 @@ module Channel9
         builder.set_label(done_label)
       end
 
-      def self.transform_args(builder, *args)
+      def transform_args(*args)
         # TODO: Support splats and such.
         builder.message_unpack(args.count + 1, 0, 0)
         builder.pop # message stays on stack for further manipulation, we're done with it.
@@ -80,15 +96,15 @@ module Channel9
         builder.local_set("self")
       end
 
-      def self.transform_scope(builder, block = nil)
+      def transform_scope(block = nil)
         if (block.nil?)
-          transform_nil(builder)
+          transform_nil()
         else
-          transform(builder, block)
+          transform(block)
         end
       end
 
-      def self.transform_defn(builder, name, args, code)
+      def transform_defn(name, args, code)
         label_prefix = "method:#{name}"
         method_label = builder.make_label(label_prefix + ".body")
         method_done_label = builder.make_label(label_prefix + ".done")
@@ -98,9 +114,9 @@ module Channel9
         builder.local_clean_scope
         builder.local_set("return")
         builder.message_sys_unpack(1)
-        transform(builder, args)
+        transform(args)
         builder.local_set("yield")
-        transform(builder, code)
+        transform(code)
 
         builder.local_get("return")
         builder.swap
@@ -115,24 +131,31 @@ module Channel9
         builder.pop
       end
 
-      def self.transform_yield(builder, *args)
+      def transform_yield(*args)
         builder.local_get("yield")
 
         args.each do |arg|
-          transform(builder, arg)
+          transform(arg)
         end
         builder.message_new(:call, 0, args.length)
         builder.channel_call
         builder.pop
       end
 
-      def self.transform_return(builder, val)
-        builder.local_get("return")
-        transform(builder, val)
-        builder.channel_ret
+      def transform_return(val)
+        if (@state[:ensure])
+          builder.local_get(@state[:ensure])
+          builder.local_get("return")
+          transform(val)
+          builder.channel_send
+        else
+          builder.local_get("return")
+          transform(val)
+          builder.channel_ret
+        end
       end
 
-      def self.transform_class(builder, name, superclass, body)
+      def transform_class(name, superclass, body)
         label_prefix = "Class:#{name}"
         body_label = builder.make_label(label_prefix + ".body")
         done_label = builder.make_label(label_prefix + ".done")
@@ -155,7 +178,7 @@ module Channel9
         if (superclass.nil?)
           builder.channel_special(:Object)
         else
-          transform(builder, superclass)
+          transform(superclass)
         end
         builder.push(name)
         builder.message_new(:new, 0, 2)
@@ -173,7 +196,7 @@ module Channel9
         builder.message_unpack(1, 0, 0)
         builder.pop
         builder.local_set("self")
-        transform(builder, body)
+        transform(body)
         builder.local_get("return")
         builder.swap
         builder.channel_ret
@@ -193,7 +216,7 @@ module Channel9
         builder.pop
       end
 
-      def self.transform_module(builder, name, body)
+      def transform_module(name, body)
         label_prefix = "Module:#{name}"
         body_label = builder.make_label(label_prefix + ".body")
         done_label = builder.make_label(label_prefix + ".done")
@@ -229,7 +252,7 @@ module Channel9
         builder.message_unpack(1, 0, 0)
         builder.pop
         builder.local_set("self")
-        transform(builder, body)
+        transform(body)
         builder.local_get("return")
         builder.swap
         builder.channel_ret
@@ -249,18 +272,18 @@ module Channel9
         builder.pop
       end
 
-      def self.transform_cdecl(builder, name, val)
+      def transform_cdecl(name, val)
         # TODO: Make this look up in full proper lexical scope.
         # Currently just assumes Object is the static lexical scope
         # at all times.
         builder.channel_special(:Object)
         builder.push(name)
-        transform(builder, val)
+        transform(val)
         builder.message_new(:const_set, 0, 2)
         builder.channel_call
         builder.pop
       end
-      def self.transform_const(builder, name)
+      def transform_const(name)
         # TODO: Make this look up in full proper lexical scope.
         # Currently just assumes Object is the static lexical scope
         # at all times.
@@ -273,16 +296,16 @@ module Channel9
 
       # If given a nil value, assumes the rhs is
       # already on the stack.
-      def self.transform_lasgn(builder, name, val = nil)
-        transform(builder, val) if !val.nil?
+      def transform_lasgn(name, val = nil)
+        transform(val) if !val.nil?
         builder.dup_top
         builder.local_set(name)
       end
-      def self.transform_lvar(builder, name)
+      def transform_lvar(name)
         builder.local_get(name)
       end
 
-      def self.transform_gasgn(builder, name, val = nil)
+      def transform_gasgn(name, val = nil)
         if (val.nil?)
           builder.channel_special(:Object)
           builder.swap
@@ -291,13 +314,13 @@ module Channel9
         else
           builder.channel_special(:Object)
           builder.push(name)
-          transform(builder, val)
+          transform(val)
         end
         builder.message_new(:global_set, 0, 2)
         builder.channel_call
         builder.pop
       end
-      def self.transform_gvar(builder, name)
+      def transform_gvar(name)
         builder.channel_special(:Object)
         builder.push(name)
         builder.message_new(:global_get, 0, 1)
@@ -305,7 +328,7 @@ module Channel9
         builder.pop
       end
 
-      def self.transform_iasgn(builder, name, val = nil)
+      def transform_iasgn(name, val = nil)
         if (val.nil?)
           builder.local_get("self")
           builder.swap
@@ -314,13 +337,13 @@ module Channel9
         else
           builder.local_get("self")
           builder.push(name)
-          transform(builder, val)
+          transform(val)
         end
         builder.message_new(:instance_variable_set, 0, 2)
         builder.channel_call
         builder.pop
       end
-      def self.transform_ivar(builder, name)
+      def transform_ivar(name)
         builder.local_get("self")
         builder.push(name)
         builder.message_new(:instance_variable_get, 0, 1)
@@ -328,19 +351,19 @@ module Channel9
         builder.pop
       end
 
-      def self.transform_block(builder, *lines)
+      def transform_block(*lines)
         count = lines.length
         lines.each_with_index do |line, idx|
-          transform(builder, line)
+          transform(line)
           builder.pop if (count != idx + 1)
         end
       end
 
-      def self.transform_call(builder, target, method, arglist, has_iter = false)
+      def transform_call(target, method, arglist, has_iter = false)
         if (target.nil?)
-          transform_self(builder)
+          transform_self()
         else
-          transform(builder, target)
+          transform(target)
         end
 
         if (has_iter)
@@ -352,7 +375,7 @@ module Channel9
 
         _, *arglist = arglist
         arglist.each do |arg|
-          transform(builder, arg)
+          transform(arg)
         end
 
         builder.message_new(method.to_c9, has_iter ? 1 : 0, arglist.length)
@@ -364,7 +387,7 @@ module Channel9
       # the iterator, so we build the iterator and then push it
       # onto the stack, then flag the upcoming call sexp so that it
       # swaps it in to the correct place.
-      def self.transform_iter(builder, call, args, block = nil)
+      def transform_iter(call, args, block = nil)
         call = call.dup
         call << true
 
@@ -397,14 +420,14 @@ module Channel9
             builder.message_unpack(0, 1, 0) # splat it all for the masgn
           end
           builder.pop
-          transform(builder, args) # comes in as an lasgn or masgn
+          transform(args) # comes in as an lasgn or masgn
           builder.pop
         end
 
         if (block.nil?)
-          transform_nil(builder)
+          transform_nil()
         else
-          transform(builder, block)
+          transform(block)
         end
 
         builder.local_get(label_prefix + ".ret")
@@ -415,21 +438,59 @@ module Channel9
 
         builder.channel_new(body_label)
 
-        transform(builder, call)
+        transform(call)
       end
 
-      def self.transform_file(builder, body)
+      def transform_ensure(body, ens)
+        ens_label = builder.make_label("ensure")
+        done_label = builder.make_label("ensure.done")
+
+        builder.channel_new(ens_label)
+        builder.local_set(ens_label)
+        with_state(:ensure => ens_label) do
+          transform(body)
+        end
+        # if the body executes correctly, we push
+        # nil onto the stack so that the ensure 'channel'
+        # picks that up as the return path. If it
+        # does, when it goes to return, it will just
+        # jmp to the done label rather than jumping
+        # to the final place.
+        builder.push(nil.to_c9)
+
+        builder.set_label(ens_label)
+        builder.local_set("#{ens_label}.done")
+        builder.local_set("#{ens_label}.result")
+        transform(ens)
+        builder.local_get("#{ens_label}.done")
+        builder.jmp_if_not(done_label)
+        if (@state[:ensure].nil?)
+          builder.local_get("#{ens_label}.done")
+          builder.local_get("#{ens_label}.result")
+          builder.channel_ret
+        else
+          outer = @state[:ensure]
+          builder.local_get(outer)
+          builder.local_get("#{ens_label}.done")
+          builder.local_get("#{ens_label}.result")
+          builder.channel_send
+        end
+
+        builder.set_label(done_label)
+      end
+
+      def transform_file(body)
         builder.local_set("return")
         builder.local_set("self")
-        transform(builder, body) if (!body.nil?)
+        transform(body) if (!body.nil?)
         builder.local_get("return")
         builder.local_get("self")
         builder.channel_ret
       end
 
-      def self.transform(builder, tree)
+      def transform(tree)
         name, *info = tree
-        send(:"transform_#{name}", builder, *info)
+        send(:"transform_#{name}", *info)
       end
     end
   end
