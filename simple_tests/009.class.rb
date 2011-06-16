@@ -1,7 +1,11 @@
 class X
+  def initialize(x)
+    @x = x
+  end
+
   puts "hi!"
   def stuff(a)
-    puts a
+    puts @x, a
   end
 end
-X.new.stuff(1)
+X.new(1).stuff(2)

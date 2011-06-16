@@ -80,8 +80,12 @@ module Channel9
         builder.local_set("self")
       end
 
-      def self.transform_scope(builder, block)
-        transform(builder, block)
+      def self.transform_scope(builder, block = nil)
+        if (block.nil?)
+          transform_nil(builder)
+        else
+          transform(builder, block)
+        end
       end
 
       def self.transform_defn(builder, name, args, code)
@@ -287,7 +291,7 @@ module Channel9
         else
           builder.channel_special(:Object)
           builder.push(name)
-          transform(builder, val) if !val.nil?
+          transform(builder, val)
         end
         builder.message_new(:global_set, 0, 2)
         builder.channel_call
@@ -297,6 +301,29 @@ module Channel9
         builder.channel_special(:Object)
         builder.push(name)
         builder.message_new(:global_get, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+
+      def self.transform_iasgn(builder, name, val = nil)
+        if (val.nil?)
+          builder.local_get("self")
+          builder.swap
+          builder.push(name)
+          builder.swap
+        else
+          builder.local_get("self")
+          builder.push(name)
+          transform(builder, val)
+        end
+        builder.message_new(:instance_variable_set, 0, 2)
+        builder.channel_call
+        builder.pop
+      end
+      def self.transform_ivar(builder, name)
+        builder.local_get("self")
+        builder.push(name)
+        builder.message_new(:instance_variable_get, 0, 1)
         builder.channel_call
         builder.pop
       end
