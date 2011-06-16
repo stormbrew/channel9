@@ -19,6 +19,14 @@ module Channel9
           msg = Primitive::Message.new(msg.name, [], args)
           klass.channel_send(elf.env, msg, ret)
         end
+        klass.add_method(:instance_variable_get) do |cenv, msg, ret|
+          elf, name = msg.positional
+          ret.channel_send(elf.env, elf.ivars[name], InvalidReturnChannel)
+        end
+        klass.add_method(:instance_variable_set) do |cenv, msg, ret|
+          elf, name, val = msg.positional
+          ret.channel_send(elf.env, elf.ivars[name] = val, InvalidReturnChannel)
+        end
       end
 
       def initialize(env, klass = nil)
