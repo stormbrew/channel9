@@ -19,5 +19,5 @@ if (print)
 else
   context = Channel9::Context.new(loader.env, stream)
   global_self = loader.env.special_channel[:global_self]
-  context.channel_send(global_self, Channel9::CleanExitChannel)
+  context.channel_send(loader.env, global_self, Channel9::CleanExitChannel)
 end

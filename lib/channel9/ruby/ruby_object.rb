@@ -7,16 +7,17 @@ module Channel9
       attr :ivars
 
       def self.object_klass(klass)
-        klass.add_method(:method_missing) do |msg, ret|
+        klass.add_method(:method_missing) do |cenv, msg, ret|
           raise "BOOM: Method missing: #{msg.positional[1]}"
         end
-        klass.add_method(:initialize) do |msg, ret|
-          ret.channel_send(msg.positional.first, InvalidReturnChannel)
+        klass.add_method(:initialize) do |cenv, msg, ret|
+          elf = msg.positional.first
+          ret.channel_send(elf.env, elf, InvalidReturnChannel)
         end
-        klass.add_method(:define_method) do |msg, ret|
+        klass.add_method(:define_method) do |cenv, msg, ret|
           elf, *args = msg.positional
           msg = Primitive::Message.new(msg.name, [], args)
-          klass.channel_send(msg, ret)
+          klass.channel_send(elf.env, msg, ret)
         end
       end
 
@@ -55,7 +56,7 @@ module Channel9
         return nil
       end
 
-      def channel_send(val, ret)
+      def channel_send(cenv, val, ret)
         if (val.is_a?(Primitive::Message))
           meth = send_lookup(val.name)
           if (meth.nil?)
@@ -66,7 +67,7 @@ module Channel9
               raise "BOOM: No method_missing on #{self}, orig message #{orig_name}"
             end
           end
-          meth.channel_send(val.prefix(self), ret)
+          meth.channel_send(env, val.prefix(self), ret)
         else
           raise "BOOM: Ruby object received unknown message #{val}."
         end
