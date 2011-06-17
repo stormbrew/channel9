@@ -6,6 +6,7 @@ module Channel9
     def self.channel_send(env, val, ret)
       exit(0)
     end
+    def self.truthy?; true; end
   end
 
   # Exits with the status code passed to it.
@@ -13,6 +14,7 @@ module Channel9
     def self.channel_send(env, val, ret)
       exit(val.to_i)
     end
+    def self.truthy?; true; end
   end
 
   # Used as a guard when a sender does not expect to be returned to.
@@ -21,6 +23,7 @@ module Channel9
     def self.channel_send(env, val, ret)
       raise "Invalid Return, exiting"
     end
+    def self.truthy?; true; end
   end
 
   # Used to output information to stdout. Prints whatever's
@@ -30,6 +33,7 @@ module Channel9
       $stdout.puts(val)
       ret.channel_send(env, val, InvalidReturnChannel)
     end
+    def self.truthy?; true; end
   end
 
   class Environment
