@@ -119,8 +119,6 @@ module Channel9
         
         builder.channel_special(:unwinder)
         builder.channel_new(method_lret_label)
-        builder.dup_top
-        builder.local_set("long_return")
         builder.channel_call
         builder.pop
         builder.local_set("long_return_next")
