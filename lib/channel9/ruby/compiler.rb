@@ -116,22 +116,23 @@ module Channel9
         builder.set_label(method_label)
         builder.local_clean_scope
         builder.local_set("return")
+        
         builder.channel_special(:unwinder)
         builder.channel_new(method_lret_label)
         builder.dup_top
         builder.local_set("long_return")
-        builder.message_new(:set, 0, 1)
         builder.channel_call
         builder.pop
         builder.local_set("long_return_next")
+        
         builder.message_sys_unpack(1)
         transform(args)
         builder.local_set("yield")
+        
         transform(code)
 
         builder.channel_special(:unwinder)
         builder.local_get("long_return_next")
-        builder.message_new(:set, 0, 1)
         builder.channel_call
         builder.pop
         builder.pop
@@ -147,7 +148,6 @@ module Channel9
         # clear the unwinder.
         builder.channel_special(:unwinder)
         builder.local_get("long_return_next")
-        builder.message_new(:set, 0, 1)
         builder.channel_call
         builder.pop
         builder.pop
@@ -198,7 +198,7 @@ module Channel9
       def transform_return(val)
         if (@state[:ensure] || @state[:block])
           builder.channel_special(:unwinder)
-          builder.message_new(:get,0,0)
+          builder.push(nil.to_c9)
           builder.channel_call
           builder.pop
 
@@ -210,7 +210,6 @@ module Channel9
         else
           builder.channel_special(:unwinder)
           builder.local_get("long_return_next")
-          builder.message_new(:set, 0, 1)
           builder.channel_call
           builder.local_get("return")
           builder.pop
@@ -514,7 +513,6 @@ module Channel9
 
         builder.channel_special(:unwinder)
         builder.channel_new(ens_label)
-        builder.message_new(:set, 0, 1)
         builder.channel_call
         builder.pop
         builder.local_set(ens_label + ".next")
@@ -534,7 +532,6 @@ module Channel9
         # clear the unwinder
         builder.channel_special(:unwinder)
         builder.local_get("#{ens_label}.next")
-        builder.message_new(:set, 0, 1)
         builder.channel_call
         builder.pop
         builder.pop
