@@ -37,6 +37,11 @@ module Channel9
         value = environment.context.pop
         channel = environment.context.pop
 
+        if (environment.context.stack.length > 0)
+          $stderr.puts("Warning: channel_ret with left-over stack")
+          PP.pp(environment.context.debug_info, $stderr)
+        end
+
         channel.channel_send(environment, value, InvalidReturnChannel)
       end
     end
