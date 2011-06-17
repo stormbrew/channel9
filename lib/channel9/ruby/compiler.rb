@@ -128,6 +128,13 @@ module Channel9
         builder.local_set("yield")
         transform(code)
 
+        builder.channel_special(:unwinder)
+        builder.local_get("long_return_next")
+        builder.message_new(:set, 0, 1)
+        builder.channel_call
+        builder.pop
+        builder.pop
+
         builder.local_get("return")
         builder.swap
         builder.channel_ret
@@ -200,7 +207,13 @@ module Channel9
 
           builder.channel_ret
         else
+          builder.channel_special(:unwinder)
+          builder.local_get("long_return_next")
+          builder.message_new(:set, 0, 1)
+          builder.channel_call
           builder.local_get("return")
+          builder.pop
+          builder.pop
           transform(val)
           builder.channel_ret
         end
