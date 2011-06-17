@@ -3,19 +3,19 @@
 
 def with_ensure
   begin
-    puts "a"
+    "a"
   ensure
     puts "b"
   end
 end
 
-with_ensure
+puts with_ensure
 puts "-"
 
 def with_multiple_ensure
   begin
     begin
-      puts "a"
+      "a"
     ensure
       puts "b"
     end
@@ -24,7 +24,7 @@ def with_multiple_ensure
   end
 end
 
-with_multiple_ensure
+puts with_multiple_ensure
 puts "-"
 
 def with_ensure_and_return

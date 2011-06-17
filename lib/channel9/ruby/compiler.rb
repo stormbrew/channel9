@@ -60,6 +60,7 @@ module Channel9
         builder.jmp_if_not(done_label)
 
         transform(body)
+        builder.pop
 
         builder.jmp(begin_label)
         builder.set_label(done_label)
@@ -525,8 +526,8 @@ module Channel9
         # nil onto the stack so that the ensure 'channel'
         # picks that up as the return path. If it
         # does, when it goes to return, it will just
-        # jmp to the done label rather than jumping
-        # to the final place.
+        # jmp to the done label rather than calling
+        # the next handler.
         builder.push(nil.to_c9)
 
         builder.set_label(ens_label)
@@ -538,13 +539,16 @@ module Channel9
         builder.pop
         builder.pop
 
-        builder.swap
-        builder.local_set("#{ens_label}.msg")
+        # run the ensure block
         transform(ens)
-        builder.swap
+        builder.pop
+
+        # if we came here via a call (non-nil return path),
+        # pass on to the next unwind handler rather than
+        # leaving by the done label.
         builder.jmp_if_not(done_label)
         builder.local_get("#{ens_label}.next")
-        builder.local_get("#{ens_label}.msg")
+        builder.swap
         builder.channel_ret
 
         builder.set_label(done_label)
@@ -553,9 +557,13 @@ module Channel9
       def transform_file(body)
         builder.local_set("return")
         builder.local_set("self")
-        transform(body) if (!body.nil?)
+        if (!body.nil?)
+          transform(body)
+        else
+          transform_nil
+        end
         builder.local_get("return")
-        builder.local_get("self")
+        builder.swap
         builder.channel_ret
       end
 
