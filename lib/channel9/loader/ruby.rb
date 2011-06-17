@@ -37,6 +37,7 @@ module Channel9
         env.special_channel[:globals] = {
           :"$LOAD_PATH" => ["environment/kernel", "environment/lib", "."]
         }
+        env.special_channel[:unwinder] = Channel9::Ruby::Unwinder.new(env)
 
         # Builtin special types:
         [
@@ -60,10 +61,13 @@ module Channel9
         object_klass.constant[:Class] = class_klass
         object_klass.constant[:Kernel] = kernel_mod
 
+        dbg_set = env.debug
+        env.debug = false
         object_klass.channel_send(env,
           Primitive::Message.new(:load, [], ["boot.rb"]),
           CallbackChannel.new {}
         )
+        env.debug = dbg_set
       end
 
       def channel_send(cenv, msg, ret)

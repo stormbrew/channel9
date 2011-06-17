@@ -52,3 +52,18 @@ end
 
 puts with_multiple_ensure_and_return
 puts "-"
+
+def through_block
+  begin
+    yield
+  ensure
+    puts "a"
+  end
+end
+
+def block_method
+  through_block do
+    return "b"
+  end
+end
+puts block_method
