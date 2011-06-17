@@ -12,15 +12,13 @@ module Channel9
         @cur_handler = TerminalUnwinder
       end
 
-      def channel_send(cenv, msg, ret)
-        if (msg.name == :get)
+      def channel_send(cenv, set, ret)
+        if (set.nil?)
           ret.channel_send(@env, @cur_handler, InvalidReturnChannel)
-        elsif (msg.name == :set)
-          old_handler = @cur_handler
-          @cur_handler = msg.positional.first
-          ret.channel_send(@env, old_handler, InvalidReturnChannel)
         else
-          raise "BOOM: Unknown method on Unwinder #{msg.name}."
+          old_handler = @cur_handler
+          @cur_handler = set
+          ret.channel_send(@env, old_handler, InvalidReturnChannel)
         end
       end
     end
