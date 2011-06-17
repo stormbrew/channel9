@@ -107,12 +107,22 @@ module Channel9
       def transform_defn(name, args, code)
         label_prefix = "method:#{name}"
         method_label = builder.make_label(label_prefix + ".body")
+        method_lret_label = builder.make_label(label_prefix + ".long_return")
+        method_lret_pass = builder.make_label(label_prefix + ".long_return_pass")
         method_done_label = builder.make_label(label_prefix + ".done")
 
         builder.jmp(method_done_label)
         builder.set_label(method_label)
         builder.local_clean_scope
         builder.local_set("return")
+        builder.channel_special(:unwinder)
+        builder.channel_new(method_lret_label)
+        builder.dup_top
+        builder.local_set("long_return")
+        builder.message_new(:set, 0, 1)
+        builder.channel_call
+        builder.pop
+        builder.local_set("long_return_next")
         builder.message_sys_unpack(1)
         transform(args)
         builder.local_set("yield")
@@ -120,6 +130,41 @@ module Channel9
 
         builder.local_get("return")
         builder.swap
+        builder.channel_ret
+
+        # TODO: Only generate a long return when the method
+        # body actually has ensure blocks or a return
+        # from within a block.
+        builder.set_label(method_lret_label)
+        # clear the unwinder.
+        builder.channel_special(:unwinder)
+        builder.local_get("long_return_next")
+        builder.message_new(:set, 0, 1)
+        builder.channel_call
+        builder.pop
+        builder.pop
+        # stack is SP -> ret -> unwind_message
+        # we want to see if the unwind_message is 
+        # our return message. If so, we want to return from
+        # this method. Otherwise, just move on to the next
+        # unwind handler.
+        builder.pop # -> unwind_message
+        builder.message_name # -> name -> um
+        builder.is(:long_return) # -> is -> um
+        builder.jmp_if_not(method_lret_pass) # -> um
+        builder.dup # -> um -> um
+        builder.message_unpack(1, 0, 0) # -> um -> return_chan
+        builder.swap # -> return_chan -> um
+        builder.local_get("return") # -> lvar_return -> return_chan -> um
+        builder.is_eq # -> is -> um
+        builder.jmp_if_not(method_lret_pass) # -> um
+        builder.message_unpack(2, 0, 0) # -> um -> ret_val -> return_chan
+        builder.pop # -> ret_val -> return_chan
+        builder.channel_ret
+
+        builder.set_label(method_lret_pass) # (from jmps above) -> um
+        builder.local_get("long_return_next") # -> lrn -> um
+        builder.swap # -> um -> lrn
         builder.channel_ret
 
         builder.set_label(method_done_label)
@@ -143,11 +188,17 @@ module Channel9
       end
 
       def transform_return(val)
-        if (@state[:ensure])
-          builder.local_get(@state[:ensure])
+        if (@state[:ensure] || @state[:block])
+          builder.channel_special(:unwinder)
+          builder.message_new(:get,0,0)
+          builder.channel_call
+          builder.pop
+
           builder.local_get("return")
           transform(val)
-          builder.channel_send
+          builder.message_new(:long_return, 0, 2)
+
+          builder.channel_ret
         else
           builder.local_get("return")
           transform(val)
@@ -427,7 +478,9 @@ module Channel9
         if (block.nil?)
           transform_nil()
         else
-          transform(block)
+          with_state(:block => true) do
+            transform(block)
+          end
         end
 
         builder.local_get(label_prefix + ".ret")
@@ -445,8 +498,13 @@ module Channel9
         ens_label = builder.make_label("ensure")
         done_label = builder.make_label("ensure.done")
 
+        builder.channel_special(:unwinder)
         builder.channel_new(ens_label)
-        builder.local_set(ens_label)
+        builder.message_new(:set, 0, 1)
+        builder.channel_call
+        builder.pop
+        builder.local_set(ens_label + ".next")
+
         with_state(:ensure => ens_label) do
           transform(body)
         end
@@ -459,22 +517,22 @@ module Channel9
         builder.push(nil.to_c9)
 
         builder.set_label(ens_label)
-        builder.local_set("#{ens_label}.done")
-        builder.local_set("#{ens_label}.result")
+        # clear the unwinder
+        builder.channel_special(:unwinder)
+        builder.local_get("#{ens_label}.next")
+        builder.message_new(:set, 0, 1)
+        builder.channel_call
+        builder.pop
+        builder.pop
+
+        builder.swap
+        builder.local_set("#{ens_label}.msg")
         transform(ens)
-        builder.local_get("#{ens_label}.done")
+        builder.swap
         builder.jmp_if_not(done_label)
-        if (@state[:ensure].nil?)
-          builder.local_get("#{ens_label}.done")
-          builder.local_get("#{ens_label}.result")
-          builder.channel_ret
-        else
-          outer = @state[:ensure]
-          builder.local_get(outer)
-          builder.local_get("#{ens_label}.done")
-          builder.local_get("#{ens_label}.result")
-          builder.channel_send
-        end
+        builder.local_get("#{ens_label}.next")
+        builder.local_get("#{ens_label}.msg")
+        builder.channel_ret
 
         builder.set_label(done_label)
       end
