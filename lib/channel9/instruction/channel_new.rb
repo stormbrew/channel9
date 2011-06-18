@@ -24,7 +24,7 @@ module Channel9
       end
 
       def run(environment)
-        channel = environment.context.dup.set_pos(@label).reset_stack
+        channel = environment.context.callable(@label)
         
         environment.context.push(channel)
       end

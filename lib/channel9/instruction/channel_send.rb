@@ -19,7 +19,10 @@ module Channel9
     # on to its stack in order to send back.
     class CHANNEL_SEND < Base
       def initialize(stream)
-        super(stream, 3, 0)
+        # after value is only checked if the channel was special and immediately pushed
+        # back to the original context, in which case it will have the return info
+        # on the stack.
+        super(stream, 3, 2)
       end
 
       def run(environment)

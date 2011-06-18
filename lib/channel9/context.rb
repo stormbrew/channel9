@@ -16,11 +16,11 @@ module Channel9
     attr :local_variables
     attr :stack
 
-    def initialize(environment, stream)
+    def initialize(environment, stream, pos = 0, locals = nil)
       @environment = environment
       @instruction_stream = stream
-      @pos = 0
-      @local_variables = Array.new(@instruction_stream.locals.length)
+      @pos = pos
+      @local_variables = locals ? locals.dup : Array.new(@instruction_stream.locals.length)
       @stack = []
     end
 
@@ -31,6 +31,11 @@ module Channel9
     def initialize_copy(other)
       super
       @stack = @stack.dup
+    end
+
+    def callable(pos)
+      CallableContext.new(@environment, @instruction_stream, 
+        @instruction_stream.label(pos), @local_variables)
     end
 
     def set_pos(pos)
@@ -44,10 +49,9 @@ module Channel9
     end
 
     def channel_send(env, val = nil, ret = CleanExitChannel)
-      copy = self.dup
-      copy.push val
-      copy.push ret
-      @environment.run(copy)
+      push val
+      push ret
+      @environment.run(self)
       return self
     end
 
@@ -80,12 +84,26 @@ module Channel9
     end
 
     def debug_info
+      k = 0
       {
         :is => @instruction_stream.to_s, 
         :ip => @pos, 
-        :locals => Hash[@local_variables.collect {|k,v| [@instruction_stream.local_name(k), v.to_s] }], 
+        :locals => Hash[@local_variables.collect {|v| k += 1; [@instruction_stream.local_name(k-1), v.to_s] }], 
         :stack => @stack.collect {|x| x.to_s } 
       }
+    end
+  end
+
+  class CallableContext
+    def initialize(env, stream, pos, locals)
+      @env = env
+      @stream = stream
+      @pos = pos
+      @locals = locals
+    end
+
+    def channel_send(cenv, val, ret)
+      Context.new(@env, @stream, @pos, @locals).channel_send(cenv, val, ret)
     end
   end
 end
