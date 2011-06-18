@@ -105,6 +105,24 @@ module Channel9
         end
       end
 
+      def need_return_unwind(code)
+        # to determine if the function body
+        # requires a return unwind handler, we
+        # compile the body just to find out if
+        # there's a return inside an ensure
+        # or a block. If there is, we know 
+        # the function will need an unwind
+        # handler.
+        stream = Stream.new
+        builder = Builder.new(stream)
+        compiler = Compiler.new(builder)
+        need_info = [false]
+        compiler.with_state(:need_long_return => need_info) do
+          compiler.transform(code)
+          return need_info[0]
+        end
+      end
+
       def transform_defn(name, args, code)
         label_prefix = "method:#{name}"
         method_label = builder.make_label(label_prefix + ".body")
@@ -117,67 +135,71 @@ module Channel9
         builder.local_clean_scope
         builder.frame_set("return")
         
-        builder.channel_special(:unwinder)
-        builder.dup_top
-        builder.push(nil.to_c9)
-        builder.channel_call
-        builder.pop
-        builder.frame_set("long_return.next")
-        builder.channel_new(method_lret_label)
-        builder.channel_call
-        builder.pop
-        builder.pop
+        if (nru = need_return_unwind(code))
+          builder.channel_special(:unwinder)
+          builder.dup_top
+          builder.push(nil.to_c9)
+          builder.channel_call
+          builder.pop
+          builder.frame_set("long_return.next")
+          builder.channel_new(method_lret_label)
+          builder.channel_call
+          builder.pop
+          builder.pop
+        end
         
         builder.message_sys_unpack(1)
         transform(args)
         builder.frame_set("yield")
-        
-        transform(code)
 
-        builder.channel_special(:unwinder)
-        builder.frame_get("long_return.next")
-        builder.channel_call
-        builder.pop
-        builder.pop
+        with_state(:has_long_return => nru) do
+          transform(code)
+        end
+
+        if (nru)
+          builder.channel_special(:unwinder)
+          builder.frame_get("long_return.next")
+          builder.channel_call
+          builder.pop
+          builder.pop
+        end
 
         builder.frame_get("return")
         builder.swap
         builder.channel_ret
 
-        # TODO: Only generate a long return when the method
-        # body actually has ensure blocks or a return
-        # from within a block.
-        builder.set_label(method_lret_label)
-        # clear the unwinder.
-        builder.channel_special(:unwinder)
-        builder.frame_get("long_return.next")
-        builder.channel_call
-        builder.pop
-        builder.pop
-        # stack is SP -> ret -> unwind_message
-        # we want to see if the unwind_message is 
-        # our return message. If so, we want to return from
-        # this method. Otherwise, just move on to the next
-        # unwind handler.
-        builder.pop # -> unwind_message
-        builder.message_name # -> name -> um
-        builder.is(:long_return) # -> is -> um
-        builder.jmp_if_not(method_lret_pass) # -> um
-        builder.dup # -> um -> um
-        builder.message_unpack(1, 0, 0) # -> um -> return_chan
-        builder.swap # -> return_chan -> um
-        builder.frame_get("return") # -> lvar_return -> return_chan -> um
-        builder.is_eq # -> is -> um
-        builder.jmp_if_not(method_lret_pass) # -> um
-        builder.message_unpack(2, 0, 0) # -> um -> ret_val -> return_chan
-        builder.pop # -> ret_val -> return_chan
-        builder.channel_ret
+        if (nru)
+          builder.set_label(method_lret_label)
+          # clear the unwinder.
+          builder.channel_special(:unwinder)
+          builder.frame_get("long_return.next")
+          builder.channel_call
+          builder.pop
+          builder.pop
+          # stack is SP -> ret -> unwind_message
+          # we want to see if the unwind_message is 
+          # our return message. If so, we want to return from
+          # this method. Otherwise, just move on to the next
+          # unwind handler.
+          builder.pop # -> unwind_message
+          builder.message_name # -> name -> um
+          builder.is(:long_return) # -> is -> um
+          builder.jmp_if_not(method_lret_pass) # -> um
+          builder.dup # -> um -> um
+          builder.message_unpack(1, 0, 0) # -> um -> return_chan
+          builder.swap # -> return_chan -> um
+          builder.frame_get("return") # -> lvar_return -> return_chan -> um
+          builder.is_eq # -> is -> um
+          builder.jmp_if_not(method_lret_pass) # -> um
+          builder.message_unpack(2, 0, 0) # -> um -> ret_val -> return_chan
+          builder.pop # -> ret_val -> return_chan
+          builder.channel_ret
 
-        builder.set_label(method_lret_pass) # (from jmps above) -> um
-        builder.frame_get("long_return.next") # -> lrn -> um
-        builder.swap # -> um -> lrn
-        builder.channel_ret
-
+          builder.set_label(method_lret_pass) # (from jmps above) -> um
+          builder.frame_get("long_return.next") # -> lrn -> um
+          builder.swap # -> um -> lrn
+          builder.channel_ret
+        end
         builder.set_label(method_done_label)
         builder.frame_get("self")
         builder.push(name)
@@ -200,6 +222,7 @@ module Channel9
 
       def transform_return(val)
         if (@state[:ensure] || @state[:block])
+          @state[:need_long_return][0] = true if @state[:need_long_return]
           builder.channel_special(:unwinder)
           builder.push(nil.to_c9)
           builder.channel_call
@@ -211,12 +234,14 @@ module Channel9
 
           builder.channel_ret
         else
-          builder.channel_special(:unwinder)
-          builder.frame_get("long_return.next")
-          builder.channel_call
-          builder.frame_get("return")
-          builder.pop
-          builder.pop
+          if (@state[:has_long_return])
+            builder.channel_special(:unwinder)
+            builder.frame_get("long_return.next")
+            builder.channel_call
+            builder.frame_get("return")
+            builder.pop
+            builder.pop
+          end
           transform(val)
           builder.channel_ret
         end
