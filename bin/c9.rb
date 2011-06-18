@@ -9,6 +9,8 @@ require 'channel9/loader/ruby'
 
 debug = ARGV.include?("-d")
 ARGV.delete("-d")
+debug = ARGV.include?("-dd") ? :detail : debug
+ARGV.delete("-dd")
 print = ARGV.include?("-p")
 ARGV.delete("-p")
 
