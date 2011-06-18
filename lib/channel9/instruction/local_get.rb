@@ -14,13 +14,14 @@ module Channel9
       def initialize(stream, name)
         super(stream, 0, 1)
         @name = name
+        @id = stream.local(name)
       end
 
       def arguments
         [@name]
       end
       def run(environment)
-        val = environment.context.get_local(@name)
+        val = environment.context.get_local(@id)
         environment.context.push(val)
       end
     end

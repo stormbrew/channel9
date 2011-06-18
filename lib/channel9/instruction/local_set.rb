@@ -24,7 +24,7 @@ module Channel9
 
       def run(environment)
         val = environment.context.pop
-        environment.context.set_local(local_name, val)
+        environment.context.set_local(@local, val)
       end
     end
   end
