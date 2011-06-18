@@ -74,7 +74,7 @@ module Channel9
       end
     end
 
-    def run(context)
+    def run_debug(context)
       @context = context
       if (!@running)
         @running = true
@@ -82,23 +82,43 @@ module Channel9
           while (instruction = @context.next)
             current_context = @context
             sp = @context.stack.length
-              pp(:instruction => {:ip => @context.pos - 1, :instruction => instruction.debug_info}) if @debug
-              pp(:before => @context.debug_info) if @debug
+            if (@debug == :detail)
+              pp(:instruction => {:ip => @context.pos - 1, :instruction => instruction.debug_info})
+              pp(:before => @context.debug_info)
+            end
             instruction.run(self)
-              pp(:orig_after_jump => current_context.debug_info) if @debug && current_context != @context
-              pp(:after => @context.debug_info) if @debug
-            puts("--------------") if @debug
+            if (@debug == :detail)
+              pp(:orig_after_jump => current_context.debug_info) if current_context != @context
+              pp(:after => @context.debug_info)
+              puts("--------------")
+            end
             stack_should = (sp - instruction.stack_input + instruction.stack_output)
             if (current_context == @context &&
                 current_context.stack.length != stack_should)
               raise "Stack error: Expected stack depth to be #{stack_should}, was actually #{current_context.stack.length}"
             end
           end
-          if (@debug)
-            require 'pp'
+          if (@debug == :detail)
             pp(
               :final_state => @context.debug_info
             )
+          end
+        ensure
+          @running = false
+        end
+      end
+    end
+
+    def run(context)
+      return run_debug(context) if @debug
+      @context = context
+      if (!@running)
+        @running = true
+        begin
+          while (instruction = @context.next)
+            current_context = @context
+            sp = @context.stack.length
+            instruction.run(self)
           end
         ensure
           @running = false
