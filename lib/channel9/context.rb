@@ -20,7 +20,7 @@ module Channel9
       @environment = environment
       @instruction_stream = stream
       @pos = 0
-      @local_variables = {}
+      @local_variables = Array.new(@instruction_stream.locals.length)
       @stack = []
     end
 
@@ -63,14 +63,14 @@ module Channel9
       @stack.pop
     end
 
-    def get_local(name)
-      @local_variables[@instruction_stream.local(name)]
+    def get_local(id)
+      @local_variables[id]
     end
-    def set_local(name, val)
-      @local_variables[@instruction_stream.local(name)] = val
+    def set_local(id, val)
+      @local_variables[id] = val
     end
     def clean_scope
-      @local_variables = {}
+      @local_variables = Array.new(@instruction_stream.locals.length)
     end
 
     def next
