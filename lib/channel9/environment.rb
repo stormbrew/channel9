@@ -89,7 +89,8 @@ module Channel9
               pp(:after => @context.debug_info) if @debug
             puts("--------------") if @debug
             stack_should = (sp - instruction.stack_input + instruction.stack_output)
-            if (current_context.stack.length != stack_should)
+            if (current_context == @context &&
+                current_context.stack.length != stack_should)
               raise "Stack error: Expected stack depth to be #{stack_should}, was actually #{current_context.stack.length}"
             end
           end
