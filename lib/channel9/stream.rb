@@ -7,11 +7,13 @@ module Channel9
     attr :instructions
     attr :labels
     attr :locals
+    attr :framevars
 
     def initialize()
       @instructions = []
       @labels = {}
       @locals = {}
+      @framevars = {}
       @pos = 0
     end
 
@@ -55,6 +57,12 @@ module Channel9
     end
     def local_name(id)
       @locals.invert[id]
+    end
+    def framevar(name)
+      @framevars[name] ||= @framevars.length
+    end
+    def framevar_name(id)
+      @framevars.invert[id]
     end
 
     def each(from = 0)

@@ -14,13 +14,15 @@ module Channel9
     attr :instruction_stream
     attr :pos
     attr :local_variables
+    attr :frame_variables
     attr :stack
 
-    def initialize(environment, stream, pos = 0, locals = nil)
+    def initialize(environment, stream, pos = 0, locals = nil, framevars = nil)
       @environment = environment
       @instruction_stream = stream
       @pos = pos
-      @local_variables = locals ? locals.dup : Array.new(@instruction_stream.locals.length)
+      @local_variables = locals ? locals : Array.new(@instruction_stream.locals.length)
+      @frame_variables = framevars ? framevars.dup : Array.new(@instruction_stream.framevars.length)
       @stack = []
     end
 
@@ -35,7 +37,7 @@ module Channel9
 
     def callable(pos)
       CallableContext.new(@environment, @instruction_stream, 
-        @instruction_stream.label(pos), @local_variables)
+        @instruction_stream.label(pos), @local_variables, @frame_variables)
     end
 
     def set_pos(pos)
@@ -77,6 +79,13 @@ module Channel9
       @local_variables = Array.new(@instruction_stream.locals.length)
     end
 
+    def get_framevar(id)
+      @frame_variables[id]
+    end
+    def set_framevar(id, val)
+      @frame_variables[id] = val
+    end
+
     def next
       n = @instruction_stream.instructions[@pos]
       @pos += 1 if n
@@ -84,26 +93,28 @@ module Channel9
     end
 
     def debug_info
-      k = 0
+      j, k = 0, 0
       {
         :is => @instruction_stream.to_s, 
         :ip => @pos, 
-        :locals => Hash[@local_variables.collect {|v| k += 1; [@instruction_stream.local_name(k-1), v.to_s] }], 
+        :locals => Hash[@local_variables.collect {|v| j += 1; [@instruction_stream.local_name(j-1), v.to_s] }], 
+        :frame => Hash[@frame_variables.collect {|v| k += 1; [@instruction_stream.framevar_name(k-1), v.to_s] }], 
         :stack => @stack.collect {|x| x.to_s } 
       }
     end
   end
 
   class CallableContext
-    def initialize(env, stream, pos, locals)
+    def initialize(env, stream, pos, locals, framevars)
       @env = env
       @stream = stream
       @pos = pos
       @locals = locals
+      @framevars = framevars.dup
     end
 
     def channel_send(cenv, val, ret)
-      Context.new(@env, @stream, @pos, @locals).channel_send(cenv, val, ret)
+      Context.new(@env, @stream, @pos, @locals, @framevars).channel_send(cenv, val, ret)
     end
   end
 end
