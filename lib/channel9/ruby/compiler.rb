@@ -18,7 +18,7 @@ module Channel9
       end
 
       def transform_self()
-        builder.local_get("self")
+        builder.frame_get("self")
       end
 
       def transform_lit(literal)
@@ -94,7 +94,7 @@ module Channel9
         args.reverse.each do |arg|
           builder.local_set(arg)
         end
-        builder.local_set("self")
+        builder.frame_set("self")
       end
 
       def transform_scope(block = nil)
@@ -115,27 +115,32 @@ module Channel9
         builder.jmp(method_done_label)
         builder.set_label(method_label)
         builder.local_clean_scope
-        builder.local_set("return")
+        builder.frame_set("return")
         
         builder.channel_special(:unwinder)
+        builder.dup_top
+        builder.push(nil.to_c9)
+        builder.channel_call
+        builder.pop
+        builder.frame_set("long_return.next")
         builder.channel_new(method_lret_label)
         builder.channel_call
         builder.pop
-        builder.local_set("long_return_next")
+        builder.pop
         
         builder.message_sys_unpack(1)
         transform(args)
-        builder.local_set("yield")
+        builder.frame_set("yield")
         
         transform(code)
 
         builder.channel_special(:unwinder)
-        builder.local_get("long_return_next")
+        builder.frame_get("long_return.next")
         builder.channel_call
         builder.pop
         builder.pop
 
-        builder.local_get("return")
+        builder.frame_get("return")
         builder.swap
         builder.channel_ret
 
@@ -145,7 +150,7 @@ module Channel9
         builder.set_label(method_lret_label)
         # clear the unwinder.
         builder.channel_special(:unwinder)
-        builder.local_get("long_return_next")
+        builder.frame_get("long_return.next")
         builder.channel_call
         builder.pop
         builder.pop
@@ -161,7 +166,7 @@ module Channel9
         builder.dup # -> um -> um
         builder.message_unpack(1, 0, 0) # -> um -> return_chan
         builder.swap # -> return_chan -> um
-        builder.local_get("return") # -> lvar_return -> return_chan -> um
+        builder.frame_get("return") # -> lvar_return -> return_chan -> um
         builder.is_eq # -> is -> um
         builder.jmp_if_not(method_lret_pass) # -> um
         builder.message_unpack(2, 0, 0) # -> um -> ret_val -> return_chan
@@ -169,12 +174,12 @@ module Channel9
         builder.channel_ret
 
         builder.set_label(method_lret_pass) # (from jmps above) -> um
-        builder.local_get("long_return_next") # -> lrn -> um
+        builder.frame_get("long_return.next") # -> lrn -> um
         builder.swap # -> um -> lrn
         builder.channel_ret
 
         builder.set_label(method_done_label)
-        builder.local_get("self")
+        builder.frame_get("self")
         builder.push(name)
         builder.channel_new(method_label)
         builder.message_new(:define_method, 0, 2)
@@ -183,7 +188,7 @@ module Channel9
       end
 
       def transform_yield(*args)
-        builder.local_get("yield")
+        builder.frame_get("yield")
 
         args.each do |arg|
           transform(arg)
@@ -200,16 +205,16 @@ module Channel9
           builder.channel_call
           builder.pop
 
-          builder.local_get("return")
+          builder.frame_get("return")
           transform(val)
           builder.message_new(:long_return, 0, 2)
 
           builder.channel_ret
         else
           builder.channel_special(:unwinder)
-          builder.local_get("long_return_next")
+          builder.frame_get("long_return.next")
           builder.channel_call
-          builder.local_get("return")
+          builder.frame_get("return")
           builder.pop
           builder.pop
           transform(val)
@@ -254,12 +259,12 @@ module Channel9
 
         builder.set_label(body_label)
         builder.local_clean_scope
-        builder.local_set("return")
+        builder.frame_set("return")
         builder.message_unpack(1, 0, 0)
         builder.pop
-        builder.local_set("self")
+        builder.frame_set("self")
         transform(body)
-        builder.local_get("return")
+        builder.frame_get("return")
         builder.swap
         builder.channel_ret
 
@@ -310,12 +315,12 @@ module Channel9
 
         builder.set_label(body_label)
         builder.local_clean_scope
-        builder.local_set("return")
+        builder.frame_set("return")
         builder.message_unpack(1, 0, 0)
         builder.pop
-        builder.local_set("self")
+        builder.frame_set("self")
         transform(body)
-        builder.local_get("return")
+        builder.frame_get("return")
         builder.swap
         builder.channel_ret
 
@@ -392,12 +397,12 @@ module Channel9
 
       def transform_iasgn(name, val = nil)
         if (val.nil?)
-          builder.local_get("self")
+          builder.frame_get("self")
           builder.swap
           builder.push(name)
           builder.swap
         else
-          builder.local_get("self")
+          builder.frame_get("self")
           builder.push(name)
           transform(val)
         end
@@ -406,7 +411,7 @@ module Channel9
         builder.pop
       end
       def transform_ivar(name)
-        builder.local_get("self")
+        builder.frame_get("self")
         builder.push(name)
         builder.message_new(:instance_variable_get, 0, 1)
         builder.channel_call
@@ -460,7 +465,7 @@ module Channel9
         builder.jmp(done_label)
 
         builder.set_label(body_label)
-        builder.local_set(label_prefix + ".ret")
+        builder.frame_set(label_prefix + ".ret")
         if (args.nil?)
           # no args, pop the message off the stack.
           builder.pop
@@ -494,7 +499,7 @@ module Channel9
           end
         end
 
-        builder.local_get(label_prefix + ".ret")
+        builder.frame_get(label_prefix + ".ret")
         builder.swap
         builder.channel_ret
 
@@ -509,11 +514,21 @@ module Channel9
         ens_label = builder.make_label("ensure")
         done_label = builder.make_label("ensure.done")
 
+        # Unfortunately, to set the next unwinder
+        # in the frame variable such that our ensure
+        # channel sees it, we have to get the old
+        # one first and then set the new one rather
+        # than getting them both at once.
         builder.channel_special(:unwinder)
+        builder.dup_top
+        builder.push(nil.to_c9)
+        builder.channel_call
+        builder.pop
+        builder.frame_set("ensure.next")
         builder.channel_new(ens_label)
         builder.channel_call
         builder.pop
-        builder.local_set(ens_label + ".next")
+        builder.pop
 
         with_state(:ensure => ens_label) do
           transform(body)
@@ -529,7 +544,7 @@ module Channel9
         builder.set_label(ens_label)
         # clear the unwinder
         builder.channel_special(:unwinder)
-        builder.local_get("#{ens_label}.next")
+        builder.frame_get("ensure.next")
         builder.channel_call
         builder.pop
         builder.pop
@@ -542,7 +557,7 @@ module Channel9
         # pass on to the next unwind handler rather than
         # leaving by the done label.
         builder.jmp_if_not(done_label)
-        builder.local_get("#{ens_label}.next")
+        builder.frame_get("ensure.next")
         builder.swap
         builder.channel_ret
 
@@ -550,14 +565,14 @@ module Channel9
       end
 
       def transform_file(body)
-        builder.local_set("return")
-        builder.local_set("self")
+        builder.frame_set("return")
+        builder.frame_set("self")
         if (!body.nil?)
           transform(body)
         else
           transform_nil
         end
-        builder.local_get("return")
+        builder.frame_get("return")
         builder.swap
         builder.channel_ret
       end
