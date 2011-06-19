@@ -38,9 +38,9 @@ module Channel9
           end
         end
 
-        pos = 0
-        @first.times do
-          env.context.push(message.positional[pos])
+        pos = 1
+        @last.times do
+          env.context.push(message.positional[@total - pos])
           pos += 1
         end
 
@@ -48,14 +48,14 @@ module Channel9
           remain = []
           remain_count = message.positional.length - @first - @last
           remain_count.times do
-            remain.push(message.positional[pos])
+            remain.push(message.positional[@total - pos])
             pos += 1
           end
           env.context.push(remain)
         end
 
-        @last.times do
-          env.context.push(message.positional[pos])
+        @first.times do
+          env.context.push(message.positional[@total - pos])
           pos += 1
         end
 
