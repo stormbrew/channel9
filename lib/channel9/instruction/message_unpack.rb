@@ -13,8 +13,8 @@ module Channel9
     # If remain is 1, pushes an array primitive of (total_count - last - first) elements from the arg list
     # If last >0, unpacks last elements from the argument list.
     #
-    # Raises an error if (first+last) > total, as it would not otherwise be able
-    # to unpack last.
+    # If the number of arguments in the message is less than requested, the remaining will
+    # be filled out with undefs.
     class MESSAGE_UNPACK < Base
       def initialize(stream, first, remain, last)
         total = first + (remain > 0? 1 : 0) + last
@@ -32,7 +32,11 @@ module Channel9
       def run(env)
         message = env.context.pop
 
-        raise "Message error: Insufficient arguments for unpack" if (message.positional.length < @first + @last)
+        if (message.positional.length < @total)
+          (@total - message.positional.length).times do
+            message.positional << Primitive::Undef
+          end
+        end
 
         pos = 0
         @first.times do
