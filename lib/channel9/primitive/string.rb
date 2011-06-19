@@ -32,10 +32,6 @@ module Channel9
         @real_str.to_json(*a)
       end
       
-      def c9_to_str
-        self
-      end
-
       def c9_plus(other)
         return @real_str + String.coerce(other).real_str
       end
