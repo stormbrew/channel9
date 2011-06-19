@@ -166,10 +166,10 @@ module Channel9
         # TODO: Support splats and such.
         builder.message_unpack(args.count + 1, 0, 0)
         builder.pop # message stays on stack for further manipulation, we're done with it.
-        args.reverse.each do |arg|
+        builder.frame_set("self")
+        args.each do |arg|
           builder.local_set(arg)
         end
-        builder.frame_set("self")
       end
 
       def transform_scope(block = nil)
@@ -251,8 +251,9 @@ module Channel9
           builder.frame_get("return") # -> lvar_return -> return_chan -> um
           builder.is_eq # -> is -> um
           builder.jmp_if_not(method_lret_pass) # -> um
-          builder.message_unpack(2, 0, 0) # -> um -> ret_val -> return_chan
-          builder.pop # -> ret_val -> return_chan
+          builder.message_unpack(2, 0, 0) # -> um -> return_chan -> ret_val
+          builder.pop # -> return_chan -> ret_val
+          builder.swap # -> ret_val -> return_chan
           builder.channel_ret
 
           builder.set_label(method_lret_pass) # (from jmps above) -> um
