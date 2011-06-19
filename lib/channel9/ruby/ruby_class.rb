@@ -31,10 +31,14 @@ module Channel9
             })
           end
         end
+        klass.add_method(:superclass) do |cenv, msg, ret|
+          elf = msg.positional.first
+          ret.channel_send(elf.env, elf.superclass, InvalidReturnChannel)
+        end
         klass.add_method(:__c9_primitive_call__) do |cenv, msg, ret|
           elf, name, instance, *args = msg.positional
           imsg = Primitive::Message.new(name, msg.system, args)
-          elf.channel_send_with(instance, elf.env, imsg, ret)
+          elf.channel_send_with(instance, nil, elf, elf.env, imsg, ret)
         end
 
       end
@@ -46,6 +50,15 @@ module Channel9
         @instance_methods = {}
         @included = []
         @constant = {}
+      end
+
+      def singleton!
+        if (self == env.special_channel[:Class])
+          @singleton ||= RubyClass.new(@env, self.to_s, self.klass)
+          @singleton.rebind_super(@singleton)
+        else
+          super
+        end
       end
 
       def to_s
@@ -67,13 +80,13 @@ module Channel9
 
       def lookup(name)
         name = name.to_c9
-        #pp(:lookup_self=>self.to_s) if env.debug
+        pp(:lookup_self=>self.to_s, :super=>@superclass.to_s) if env.debug
         [self, *@included.reverse].each do |mod|
-          #pp(:mod=>mod.to_s, :name=>name, :methods=>mod.instance_methods, :found=>mod.instance_methods[name]) if env.debug
+          pp(:mod=>mod.to_s, :name=>name, :methods=>mod.instance_methods.collect {|n, z| [n,z.to_s] }, :found=>mod.instance_methods[name].to_s) if env.debug
           res = mod.instance_methods[name]
           return res if res
         end
-        @superclass.lookup(name) if !@superclass.nil?
+        @superclass.lookup(name) if !@superclass.nil? && @superclass != self
       end
     end
   end

@@ -42,6 +42,16 @@ module Channel9
 
         mod.add_method(:puts) do |cenv, msg, ret|
           elf, *strings = msg.positional
+          env = elf.respond_to?(:env)? elf.env : cenv
+          strings.collect! do |s|
+            env.save_context do
+              s.channel_send(env, Primitive::Message.new(:to_s_prim,[],[]), CallbackChannel.new {|ienv, sval, sret|
+                s = sval
+                throw :end_save
+              })
+            end
+            s
+          end
           puts(*strings)
           ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
         end
@@ -49,7 +59,7 @@ module Channel9
         mod.add_method(:load) do |cenv, msg, ret|
           elf, path = msg.positional
           loader = elf.env.special_channel[:loader]
-          stream = loader.compile(path.to_s)
+          stream = loader.compile(path)
           context = Channel9::Context.new(elf.env, stream)
           global_self = elf.env.special_channel[:global_self]
           context.channel_send(elf.env, global_self, ret)
@@ -65,6 +75,23 @@ module Channel9
           globals = elf.env.special_channel[:globals]
           globals[name] = val
           ret.channel_send(elf.env, val, InvalidReturnChannel)
+        end
+        mod.add_method(:to_s) do |cenv, msg, ret|
+          elf = msg.positional.first
+          if (elf.respond_to?(:env))
+            ret.channel_send(elf.env, :"#<#{elf.klass.name}:#{elf.object_id}>".to_c9, InvalidReturnChannel)
+          else
+            ret.channel_send(cenv, elf.to_s.to_sym.to_c9, InvalidReturnChannel)
+          end
+        end
+        mod.add_method(:to_s_prim) do |cenv, msg, ret|
+          elf = msg.positional.first
+          env = elf.respond_to?(:env)? elf.env : cenv
+          elf.channel_send(env, Primitive::Message.new(:to_s, [], []), CallbackChannel.new {|ienv, val, iret|
+            val.channel_send(env, Primitive::Message.new(:to_primitive_str, [], []), CallbackChannel.new {|ienv, ival, iret|
+              ret.channel_send(env, ival, InvalidReturnChannel)
+            })
+          })
         end
       end
 

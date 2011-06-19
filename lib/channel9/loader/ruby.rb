@@ -38,31 +38,39 @@ module Channel9
           :"$LOAD_PATH" => ["environment/kernel", "environment/lib", "."]
         }
         env.special_channel[:unwinder] = Channel9::Ruby::Unwinder.new(env)
+        
+        object_klass.constant[:Object.to_c9] = object_klass
+        object_klass.constant[:Module.to_c9] = module_klass
+        object_klass.constant[:Class.to_c9] = class_klass
+        object_klass.constant[:Kernel.to_c9] = kernel_mod
 
         # Builtin special types:
         [
-          ["Fixnum", "Number"],
-          ["Symbol", "String"],
-          ["Tuple", "Tuple"],
-          ["Table", "Table"],
-          ["Message", "Message"],
-          ["TrueClass", "TrueC"],
-          ["FalseClass", "FalseC"],
-          ["NilClass", "NilC"],
-          ["UndefClass", "UndefC"]
+          [:Fixnum, "Number"],
+          [:Symbol, "String"],
+          [:Tuple, "Tuple"],
+          [:Table, "Table"],
+          [:Message, "Message"],
+          [:TrueClass, "TrueC"],
+          [:FalseClass, "FalseC"],
+          [:NilClass, "NilC"],
+          [:UndefClass, "UndefC"]
         ].each do |ruby_name, c9_name|
-          klass = Channel9::Ruby::RubyClass.new(env, ruby_name, object_klass)
+          klass = Channel9::Ruby::RubyClass.new(env, ruby_name.to_c9, object_klass)
           env.special_channel["Channel9::Primitive::#{c9_name}"] = klass
-          object_klass.constant[ruby_name.to_sym] = klass
+          object_klass.constant[ruby_name.to_c9] = klass
         end
-        
-        object_klass.constant[:Object] = object_klass
-        object_klass.constant[:Module] = module_klass
-        object_klass.constant[:Class] = class_klass
-        object_klass.constant[:Kernel] = kernel_mod
 
         dbg_set = env.debug
         env.debug = false
+        object_klass.channel_send(env,
+          Primitive::Message.new(:load, [], ["boot/symbol.rb"]),
+          CallbackChannel.new {}
+        )
+        object_klass.channel_send(env,
+          Primitive::Message.new(:load, [], ["boot/string.rb"]),
+          CallbackChannel.new {}
+        )
         object_klass.channel_send(env,
           Primitive::Message.new(:load, [], ["boot.rb"]),
           CallbackChannel.new {}
@@ -81,6 +89,7 @@ module Channel9
       end
 
       def compile(filename)
+        filename = filename.to_c9_str if filename.respond_to?(:to_c9_str)
         env.special_channel[:globals][:"$LOAD_PATH"].each do |path|
           begin
             File.open("#{path}/#{filename}", "r") do |f|

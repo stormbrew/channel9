@@ -25,21 +25,29 @@ module Channel9
         builder.push literal
       end
       def transform_str(str)
-        builder.push str.intern # TODO: make this build a ruby string class instead
+        transform_const(:String)
+        builder.push(str.to_sym.to_c9)
+        builder.message_new(:new, 0, 1)
+        builder.channel_call
+        builder.pop        
       end
       def transform_evstr(ev)
         transform(ev)
       end
       def transform_dstr(initial, *strings)
+        transform_const(:String)
         strings.reverse.each do |str|
           transform(str)
         end
         if (initial.length > 0)
           transform_str(initial)
-          builder.string_new(:to_s, 1 + strings.length)
+          builder.string_new(:to_s_prim, 1 + strings.length)
         else
-          builder.string_new(:to_s, strings.length)
+          builder.string_new(:to_s_prim, strings.length)
         end
+        builder.message_new(:new, 0, 1)
+        builder.channel_call
+        builder.pop
       end
       def transform_nil()
         builder.push nil.to_c9
@@ -84,6 +92,52 @@ module Channel9
           builder.push(nil)
         end
 
+        builder.set_label(done_label)
+      end
+
+      def transform_when(comparisons, body)
+        found_label = builder.make_label("when.found")
+        next_label = builder.make_label("when.next")
+        done_label = @state[:case_done]
+
+        comparisons = comparisons.dup
+        comparisons.shift
+
+        comparisons.each do |cmp|
+          builder.dup_top # value from enclosing case.
+          transform(cmp)
+          builder.swap
+          builder.message_new(:===, 0, 1)
+          builder.channel_call
+          builder.pop
+          builder.jmp_if(found_label)
+          builder.jmp(next_label)
+        end
+        builder.set_label(found_label)
+        builder.pop # value not needed anymore
+        transform(body)
+        builder.jmp(done_label)
+        builder.set_label(next_label)
+      end
+
+      def transform_case(value, *cases)
+        else_case = cases.pop
+        done_label = builder.make_label("case.done")
+
+        transform(value)
+        with_state(:case_done => done_label) do
+          cases.each do |case_i|
+            transform(case_i)
+          end
+        end
+
+        builder.pop # value not needed anymore.
+        if (else_case.nil?)
+          builder.push(nil)
+        else
+          transform(else_case)
+        end
+        
         builder.set_label(done_label)
       end
 
@@ -238,10 +292,10 @@ module Channel9
             builder.channel_special(:unwinder)
             builder.frame_get("long_return.next")
             builder.channel_call
-            builder.frame_get("return")
             builder.pop
             builder.pop
           end
+          builder.frame_get("return")
           transform(val)
           builder.channel_ret
         end
@@ -600,6 +654,14 @@ module Channel9
         builder.frame_get("return")
         builder.swap
         builder.channel_ret
+      end
+
+      def method_missing(name, *args)
+        if (match = name.to_s.match(%r{^transform_(.+)$}))
+          puts "Unknown parse tree #{match[1]}:"
+          pp args
+        end
+        super
       end
 
       def transform(tree)
