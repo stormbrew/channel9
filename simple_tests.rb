@@ -5,7 +5,7 @@ Dir["simple_tests/*.rb"].each do |test|
     name = match[2]
 
     output = `ruby -rubygems -Ilib -I../channel9/lib bin/c9.rb #{test}`
-    expected = File.read(test.gsub(%r{\.rb$}, ".out")) rescue ""
+    expected = `ruby #{test}`
     puts("#{num} #{name}: #{output == expected ? 'OK' : 'FAIL'}")
 
     if (output != expected)

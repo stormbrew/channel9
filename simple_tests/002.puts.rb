@@ -1,1 +1,1 @@
-self.puts "boom"
+puts "boom"
