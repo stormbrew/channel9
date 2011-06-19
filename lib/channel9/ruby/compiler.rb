@@ -216,11 +216,6 @@ module Channel9
         
         if (nru = need_return_unwind(code))
           builder.channel_special(:unwinder)
-          builder.dup_top
-          builder.push(nil.to_c9)
-          builder.channel_call
-          builder.pop
-          builder.frame_set("long_return.next")
           builder.channel_new(method_lret_label)
           builder.channel_call
           builder.pop
@@ -235,26 +230,12 @@ module Channel9
           transform(code)
         end
 
-        if (nru)
-          builder.channel_special(:unwinder)
-          builder.frame_get("long_return.next")
-          builder.channel_call
-          builder.pop
-          builder.pop
-        end
-
         builder.frame_get("return")
         builder.swap
         builder.channel_ret
 
         if (nru)
           builder.set_label(method_lret_label)
-          # clear the unwinder.
-          builder.channel_special(:unwinder)
-          builder.frame_get("long_return.next")
-          builder.channel_call
-          builder.pop
-          builder.pop
           # stack is SP -> ret -> unwind_message
           # we want to see if the unwind_message is 
           # our return message. If so, we want to return from
@@ -275,8 +256,8 @@ module Channel9
           builder.channel_ret
 
           builder.set_label(method_lret_pass) # (from jmps above) -> um
-          builder.frame_get("long_return.next") # -> lrn -> um
-          builder.swap # -> um -> lrn
+          builder.channel_special(:unwinder) # -> unwinder -> um
+          builder.swap # -> um -> unwinder
           builder.channel_ret
         end
         builder.set_label(method_done_label)
@@ -307,23 +288,11 @@ module Channel9
         if (@state[:ensure] || @state[:block])
           @state[:need_long_return][0] = true if @state[:need_long_return]
           builder.channel_special(:unwinder)
-          builder.push(nil.to_c9)
-          builder.channel_call
-          builder.pop
-
           builder.frame_get("return")
           transform(val)
           builder.message_new(:long_return, 0, 2)
-
           builder.channel_ret
         else
-          if (@state[:has_long_return])
-            builder.channel_special(:unwinder)
-            builder.frame_get("long_return.next")
-            builder.channel_call
-            builder.pop
-            builder.pop
-          end
           builder.frame_get("return")
           transform(val)
           builder.channel_ret
@@ -661,11 +630,6 @@ module Channel9
 
         # Set the unwinder.
         builder.channel_special(:unwinder)
-        builder.dup_top
-        builder.push(nil.to_c9)
-        builder.channel_call
-        builder.pop
-        builder.frame_set(rescue_label + ".next")
         builder.channel_new(rescue_label)
         builder.channel_call
         builder.pop
@@ -676,19 +640,13 @@ module Channel9
 
         # if we get here, unset the unwinder and jump to the end.
         builder.channel_special(:unwinder)
-        builder.frame_get(rescue_label + ".next")
+        builder.push(nil)
         builder.channel_call
         builder.pop
         builder.pop
         builder.jmp(done_label)
 
         builder.set_label(rescue_label)
-        # we're unwinding now, so unset unwind handler
-        builder.channel_special(:unwinder)
-        builder.frame_get(rescue_label + ".next")
-        builder.channel_call
-        builder.pop
-        builder.pop
 
         # pop the return handler and check the message to see
         # if this is an error or if we should just call the next
@@ -708,7 +666,7 @@ module Channel9
         end
 
         builder.set_label(not_raise_label)
-        builder.frame_get(rescue_label)
+        builder.channel_special(:unwinder)
         builder.swap
         builder.channel_ret
 
@@ -719,17 +677,7 @@ module Channel9
         ens_label = builder.make_label("ensure")
         done_label = builder.make_label("ensure.done")
 
-        # Unfortunately, to set the next unwinder
-        # in the frame variable such that our ensure
-        # channel sees it, we have to get the old
-        # one first and then set the new one rather
-        # than getting them both at once.
         builder.channel_special(:unwinder)
-        builder.dup_top
-        builder.push(nil.to_c9)
-        builder.channel_call
-        builder.pop
-        builder.frame_set("ensure.next")
         builder.channel_new(ens_label)
         builder.channel_call
         builder.pop
@@ -745,14 +693,14 @@ module Channel9
         # jmp to the done label rather than calling
         # the next handler.
         builder.push(nil.to_c9)
-
-        builder.set_label(ens_label)
         # clear the unwinder
         builder.channel_special(:unwinder)
-        builder.frame_get("ensure.next")
+        builder.push(nil)
         builder.channel_call
         builder.pop
         builder.pop
+
+        builder.set_label(ens_label)
 
         # run the ensure block
         transform(ens)
@@ -762,7 +710,7 @@ module Channel9
         # pass on to the next unwind handler rather than
         # leaving by the done label.
         builder.jmp_if_not(done_label)
-        builder.frame_get("ensure.next")
+        builder.channel_special(:unwinder)
         builder.swap
         builder.channel_ret
 
