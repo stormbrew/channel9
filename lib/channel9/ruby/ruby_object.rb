@@ -30,7 +30,7 @@ module Channel9
         klass.add_method(:define_method) do |cenv, msg, ret|
           elf, *args = msg.positional
           msg = Primitive::Message.new(msg.name, [], args)
-          klass.channel_send(elf.env, msg, ret)
+          elf.klass.channel_send(elf.env, msg, ret)
         end
         klass.add_method(:instance_variable_get) do |cenv, msg, ret|
           elf, name = msg.positional
@@ -47,6 +47,15 @@ module Channel9
           else
             ret.channel_send(cenv, (elf == other).to_c9, InvalidReturnChannel)
           end
+        end
+        klass.add_method(:singleton) do |cenv, msg, ret|
+          elf = msg.positional.first
+          ret.channel_send(elf.env, elf.singleton, InvalidReturnChannel)
+        end
+
+        klass.add_method(:singleton!) do |cenv, msg, ret|
+          elf = msg.positional.first
+          ret.channel_send(elf.env, elf.singleton!, InvalidReturnChannel)
         end
       end
 
@@ -78,7 +87,7 @@ module Channel9
       end
 
       def singleton!
-        @singleton ||= RubyClass.new(@env, self.to_s, self.klass.singleton!)
+        @singleton ||= RubyClass.new(@env, self.to_s, self.klass)
       end
 
       def send_lookup(name)
