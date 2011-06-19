@@ -53,12 +53,7 @@ module Channel9
       end
 
       def singleton!
-        if (self == env.special_channel[:Class])
-          @singleton ||= RubyClass.new(@env, self.to_s, self.klass)
-          @singleton.rebind_super(@singleton)
-        else
-          super
-        end
+        @singleton ||= RubyClass.new(@env, self.to_s, self.superclass ? self.superclass.singleton! : self.klass)
       end
 
       def to_s
