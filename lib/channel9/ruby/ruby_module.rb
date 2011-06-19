@@ -65,6 +65,32 @@ module Channel9
           context.channel_send(elf.env, global_self, ret)
         end
 
+        mod.add_method(:raise) do |cenv, msg, ret|
+          elf, exc, desc, bt = msg.positional
+          env = elf.respond_to?(:env)? elf.env : cenv
+          globals = env.special_channel[:globals]
+          constants = env.special_channel[:Object].constant
+          if (exc.nil?)
+            # re-raise current exception, or RuntimeError if none.
+            exc = globals[:'$!'.to_c9]
+            if (exc.nil?)
+              exc = constants[:RuntimeError.to_c9]
+            end
+          end
+          if (exc.kind_of?(Primitive::String) || exc.klass == constants[:String.to_c9])
+            bt = desc
+            desc = exc
+            exc = constants[:RuntimeError.to_c9]
+          end
+          raise "BOOM: No RuntimeError!" if (exc.nil?)
+
+          exc.channel_send(env, Primitive::Message.new(:exception, [], [desc].compact), CallbackChannel.new {|ienv, exc, sret|
+            handler = env.special_channel[:unwinder].cur_handler
+            globals[:"$!".to_c9] = exc
+            handler.channel_send(env, Primitive::Message.new(:raise, [], [exc]), InvalidReturnChannel)
+          })
+        end
+
         mod.add_method(:global_get) do |cenv, msg, ret|
           elf, name = msg.positional
           globals = elf.env.special_channel[:globals]

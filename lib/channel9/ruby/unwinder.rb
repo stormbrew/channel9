@@ -7,6 +7,7 @@ module Channel9
     end
 
     class Unwinder
+      attr :cur_handler
       def initialize(env)
         @env = env
         @cur_handler = TerminalUnwinder

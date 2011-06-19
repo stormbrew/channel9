@@ -1,6 +1,6 @@
 class String
   def initialize(str)
-    @str = str.to_primitive_str
+    @str = str.to_s_prim
   end
 
   def to_sym
@@ -17,12 +17,12 @@ class String
   end
 
   def ==(other)
-    @str == other.to_primitive_str
+    @str == other.to_s_prim
   end
   def eql?(other)
-    @str.eql?(other.to_primitive_str)
+    @str.eql?(other.to_s_prim)
   end
   def ===(other)
-    @str == other.to_primitive_str
+    @str == other.to_s_prim
   end
 end
