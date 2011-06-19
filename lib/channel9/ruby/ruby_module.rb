@@ -85,7 +85,7 @@ module Channel9
           raise "BOOM: No RuntimeError!" if (exc.nil?)
 
           exc.channel_send(env, Primitive::Message.new(:exception, [], [desc].compact), CallbackChannel.new {|ienv, exc, sret|
-            handler = env.special_channel[:unwinder].cur_handler
+            handler = env.special_channel[:unwinder].handlers.pop
             globals[:"$!".to_c9] = exc
             handler.channel_send(env, Primitive::Message.new(:raise, [], [exc]), InvalidReturnChannel)
           })

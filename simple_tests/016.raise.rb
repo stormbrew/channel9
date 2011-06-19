@@ -41,6 +41,7 @@ begin
   begin
     raise Stuff, "what"
   rescue
+    puts "say"
     raise
   end
 rescue Stuff
