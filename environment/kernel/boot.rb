@@ -1,5 +1,7 @@
 # symbol and string loaded by environment.
 
+load 'boot/exceptions.rb'
+
 load 'boot/kernel.rb'
 load 'boot/object.rb'
 load 'boot/class.rb'

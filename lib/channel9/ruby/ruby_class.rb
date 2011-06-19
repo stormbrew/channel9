@@ -35,6 +35,10 @@ module Channel9
           elf = msg.positional.first
           ret.channel_send(elf.env, elf.superclass, InvalidReturnChannel)
         end
+        klass.add_method(:name) do |cenv, msg, ret|
+          elf = msg.positional.first
+          ret.channel_send(elf.env, elf.name, InvalidReturnChannel)
+        end
         klass.add_method(:__c9_primitive_call__) do |cenv, msg, ret|
           elf, name, instance, *args = msg.positional
           imsg = Primitive::Message.new(name, msg.system, args)

@@ -95,6 +95,27 @@ module Channel9
         builder.set_label(done_label)
       end
 
+      def transform_or(left, right)
+        done_label = builder.make_label("or.done")
+
+        transform(left)
+        builder.dup_top
+        builder.jmp_if(done_label)
+        builder.pop
+        transform(right)
+        builder.set_label(done_label)
+      end
+      def transform_and(left, right)
+        done_label = builder.make_label("and.done")
+
+        transform(left)
+        builder.dup_top
+        builder.jmp_if_not(done_label)
+        builder.pop
+        transform(right)
+        builder.set_label(done_label)
+      end
+
       def transform_when(comparisons, body)
         found_label = builder.make_label("when.found")
         next_label = builder.make_label("when.next")
@@ -178,6 +199,10 @@ module Channel9
       end
 
       def transform_defn(name, args, code)
+        transform_defs(nil, name, args, code)
+      end
+
+      def transform_defs(on, name, args, code)
         label_prefix = "method:#{name}"
         method_label = builder.make_label(label_prefix + ".body")
         method_lret_label = builder.make_label(label_prefix + ".long_return")
@@ -255,10 +280,14 @@ module Channel9
           builder.channel_ret
         end
         builder.set_label(method_done_label)
-        builder.frame_get("self")
+        if (on.nil?)
+          builder.frame_get("self")
+        else
+          transform(on)
+        end
         builder.push(name)
         builder.channel_new(method_label)
-        builder.message_new(:define_method, 0, 2)
+        builder.message_new(on.nil? ? :define_method : :define_singleton_method, 0, 2)
         builder.channel_call
         builder.pop
       end
@@ -587,6 +616,103 @@ module Channel9
         builder.channel_new(body_label)
 
         transform(call)
+      end
+
+      def transform_resbody(comparisons, body)
+        found_label = builder.make_label("resbody.found")
+        next_label = builder.make_label("resbody.next")
+        done_label = @state[:rescue_done]
+
+        comparisons = comparisons.dup
+        comparisons.shift
+
+        err_assign = nil
+        if (comparisons.last && comparisons.last[0] == :lasgn)
+          err_assign = comparisons.pop[1]
+        end          
+
+        comparisons.each do |cmp|
+          builder.dup_top # value from enclosing case.
+          transform(cmp)
+          builder.swap
+          builder.message_new(:===, 0, 1)
+          builder.channel_call
+          builder.pop
+          builder.jmp_if(found_label)
+          builder.jmp(next_label)
+        end
+        builder.set_label(found_label)
+        if (err_assign)
+          builder.local_set(err_assign)
+        else
+          builder.pop
+        end
+
+        transform(body)
+        builder.jmp(done_label)
+        builder.set_label(next_label)
+      end
+
+      def transform_rescue(try, *handlers)
+        try_label = builder.make_label("try")
+        rescue_label = builder.make_label("rescue")
+        not_raise_label = builder.make_label("rescue.not_raise")
+        done_label = builder.make_label("rescue.done")
+
+        # Set the unwinder.
+        builder.channel_special(:unwinder)
+        builder.dup_top
+        builder.push(nil.to_c9)
+        builder.channel_call
+        builder.pop
+        builder.frame_set(rescue_label + ".next")
+        builder.channel_new(rescue_label)
+        builder.channel_call
+        builder.pop
+        builder.pop
+
+        # do the work
+        transform(try)
+
+        # if we get here, unset the unwinder and jump to the end.
+        builder.channel_special(:unwinder)
+        builder.frame_get(rescue_label + ".next")
+        builder.channel_call
+        builder.pop
+        builder.pop
+        builder.jmp(done_label)
+
+        builder.set_label(rescue_label)
+        # we're unwinding now, so unset unwind handler
+        builder.channel_special(:unwinder)
+        builder.frame_get(rescue_label + ".next")
+        builder.channel_call
+        builder.pop
+        builder.pop
+
+        # pop the return handler and check the message to see
+        # if this is an error or if we should just call the next
+        # unwinder.
+        builder.pop
+        builder.message_name
+        builder.is(:raise.to_c9)
+        builder.jmp_if_not(not_raise_label)
+
+        builder.message_unpack(1,0,0)
+        builder.pop
+
+        with_state(:rescue_done => done_label) do
+          handlers.each do |handler|
+            transform(handler)
+          end
+        end
+
+        builder.set_label(not_raise_label)
+        builder.frame_get(rescue_label)
+        builder.swap
+        builder.channel_ret
+
+        builder.set_label(done_label)
       end
 
       def transform_ensure(body, ens)
