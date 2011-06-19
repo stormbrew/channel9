@@ -7,7 +7,7 @@ module Channel9
     # Takes the message at the top of the stack
     #  SP -> message
     # Pushes the message, then first+remain+last items on to the stack (described below):
-    #  SP -> message -> first_arg1 ... -> first_argN -> remain -> last_arg1 ... -> last_argN
+    #  SP -> first_arg1 ... -> first_argN -> remain -> last_arg1 ... -> last_argN -> message
     #
     # If first is >0, unpacks first elements from the argument list
     # If remain is 1, pushes an array primitive of (total_count - last - first) elements from the arg list
@@ -30,7 +30,7 @@ module Channel9
       end
 
       def run(env)
-        message = env.context.pop
+        message = env.context.stack.last
 
         if (message.positional.length < @total)
           (@total - message.positional.length).times do
@@ -58,8 +58,6 @@ module Channel9
           env.context.push(message.positional[@total - pos])
           pos += 1
         end
-
-        env.context.push(message)
       end
     end
   end
