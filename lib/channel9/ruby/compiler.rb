@@ -163,11 +163,58 @@ module Channel9
       end
 
       def transform_args(*args)
-        # TODO: Support splats and such.
-        builder.message_unpack(args.count, 0, 0)
-        args.each do |arg|
-          builder.local_set(arg)
+        defargs = []
+        splatarg = nil
+        if (args.length > 0)
+          if (!args.last.is_a?(Symbol))
+            defargs = args.pop.dup
+            defargs.shift # get rid of the :block lead
+          end
+          if (match = args.last.to_s.match(%r{^\*(.+)}))
+            splatarg = match[1].to_sym
+            args.pop 
+          end
         end
+
+        if (defargs.length == 0)
+          builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
+          args.each do |arg|
+            builder.local_set(arg)
+          end
+        else
+          must_have = args.length - defargs.length
+          argdone_label = builder.make_label("args.done")
+          defarg_labels = (0...defargs.length).collect {|i| builder.make_label("args.default.#{i}") }
+          
+          builder.message_count
+          builder.frame_set("arg.count")
+          builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
+          i = 0
+          must_have.times do
+            builder.local_set(args[i])
+            i += 1
+          end
+
+          while (i < args.length)
+            builder.frame_get("arg.count")
+            builder.is(i)
+            builder.jmp_if(defarg_labels[i-must_have])
+            builder.local_set(args[i])
+            i += 1
+          end
+          builder.jmp(argdone_label)
+
+          defarg_labels.each do |defarg_label|
+            builder.set_label(defarg_label)
+            builder.pop # undef padding value
+            transform(defargs.shift)
+            builder.pop # result of assignment
+          end
+
+          builder.set_label(argdone_label)
+        end
+         builder.local_set(splatarg) if splatarg
+         builder.pop
       end
 
       def transform_scope(block = nil)

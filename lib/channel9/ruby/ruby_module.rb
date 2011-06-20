@@ -58,7 +58,7 @@ module Channel9
               })
             end
             s
-          end
+          end.flatten
           puts(*strings)
           ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
         end
