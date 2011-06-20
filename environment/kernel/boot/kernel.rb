@@ -1,9 +1,38 @@
 module Kernel
-  def require(name)
-    load(name + ".rb")
+  def nil?
+    false
   end
 
-  def method_missing(name) #, *args
+  def ==(other)
+    self.equal?(other)
+  end
+
+  def eql?(other)
+    self.equal?(other)
+  end
+
+  def ===(other)
+    self.equal?(other)
+  end
+
+  def load(name)
+    $LOAD_PATH.each {|path|
+      if (raw_load("#{path}/#{name}"))
+        return true
+      end
+    }
+    raise LoadError, "Could not load library #{name}"
+  end
+
+  def require(name)
+    begin
+      load(name)
+    rescue LoadError
+      load(name + ".rb")
+    end
+  end
+
+  def method_missing(name, *args)
     raise NoMethodError, "undefined method `#{name}' for #{to_s}:#{self.class}"
   end
 

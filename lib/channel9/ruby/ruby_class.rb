@@ -38,7 +38,7 @@ module Channel9
         end
         klass.add_method(:name) do |cenv, msg, ret|
           elf = msg.system.first
-          ret.channel_send(elf.env, elf.name, InvalidReturnChannel)
+          ret.channel_send(elf.env, Primitive::String.new(elf.name), InvalidReturnChannel)
         end
         klass.add_method(:__c9_primitive_call__) do |cenv, msg, ret|
           elf = msg.system.first
@@ -81,9 +81,7 @@ module Channel9
 
       def lookup(name)
         name = name.to_c9
-        pp(:lookup_self=>self.to_s, :super=>@superclass.to_s) if env.debug
         [self, *@included.reverse].each do |mod|
-          pp(:mod=>mod.to_s, :name=>name, :methods=>mod.instance_methods.collect {|n, z| [n,z.to_s] }, :found=>mod.instance_methods[name].to_s) if env.debug
           res = mod.instance_methods[name]
           return res if res
         end

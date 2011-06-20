@@ -3,9 +3,7 @@ module Channel9
     class TerminalUnwinder
       def self.channel_send(env, msg, ret)
         if (msg.name == :raise)
-          msg.positional[0].channel_send(env, Primitive::Message.new(:message,[],[]), CallbackChannel.new {|ienv, msgtext, iret|
-            raise "BOOM: Uncaught exception: #{msgtext}"
-          })
+          raise "BOOM: Uncaught exception: #{msg.positional[0]}"
         else
           raise "BOOM: Uncaught unwind of unknown kind: #{msg}."
         end

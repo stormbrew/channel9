@@ -1,19 +1,16 @@
-# symbol and string loaded by environment.
+# symbol, string, enumerable, tuple, array, and kernel loaded by environment.
 
-load 'boot/exceptions.rb'
-load 'boot/kernel.rb'
-
-load 'boot/enumerable.rb'
-load 'boot/array.rb'
+$LOAD_PATH = Array.new($LOAD_PATH)
+$: = $LOAD_PATH
 
 load 'boot/object.rb'
 load 'boot/class.rb'
 load 'boot/module.rb'
 
-load 'boot/singletons.rb'
 load 'boot/fixnum.rb'
 load 'boot/message.rb'
 load 'boot/table.rb'
-load 'boot/tuple.rb'
 
 load 'boot/hash.rb'
+
+load 'boot/file.rb'

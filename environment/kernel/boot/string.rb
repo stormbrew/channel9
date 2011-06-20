@@ -2,6 +2,10 @@ class String
   def initialize(str)
     @str = str.to_s_prim
   end
+  
+  def split(by)
+    @str.split(by.to_s_prim)
+  end
 
   def to_sym
     @str
@@ -17,10 +21,11 @@ class String
   end
 
   def +(other)
-    new(@str + other.to_s_prim)
+    String.new(@str + other.to_s_prim)
   end
   def <<(other)
     @str = @str + other.to_s_prim
+    self
   end
 
   def ==(other)
