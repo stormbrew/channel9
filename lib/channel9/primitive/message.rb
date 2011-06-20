@@ -20,7 +20,7 @@ module Channel9
       end
 
       def to_s
-        "<Channel9::Primitive::Message #{@name}(#{@positional.collect {|x| x.to_s }.join(', ')})>"
+        "<Channel9::Primitive::Message [#{@system.collect {|x| x.to_s }.join(', ')}].#{@name}(#{@positional.collect {|x| x.to_s }.join(', ')})>"
       end
     end
   end
