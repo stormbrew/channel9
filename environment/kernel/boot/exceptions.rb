@@ -1,5 +1,5 @@
 class Exception
-  def initialize(msg)
+  def initialize(msg = nil)
     if (msg.nil?)
       @msg = self.class.name
     else
@@ -7,14 +7,14 @@ class Exception
     end
   end
 
-  def self.exception(msg)
-    new(msg)
+  def self.exception(msg = nil)
+    new(msg || @msg || name)
   end
-  def exception(msg)
+  def exception(msg = nil)
     if (@msg == msg || msg.nil?)
       self
     else
-      self.class.new(msg)
+      self.class.new(msg || @msg || self.class.name)
     end
   end
 

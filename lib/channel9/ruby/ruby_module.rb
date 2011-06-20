@@ -63,14 +63,22 @@ module Channel9
           ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
         end
         
-        mod.add_method(:load) do |cenv, msg, ret|
+        mod.add_method(:raw_load) do |cenv, msg, ret|
           elf = msg.system.first
           path = msg.positional.first
           loader = elf.env.special_channel[:loader]
-          stream = loader.compile(path)
-          context = Channel9::Context.new(elf.env, stream)
-          global_self = elf.env.special_channel[:global_self]
-          context.channel_send(elf.env, global_self, ret)
+          path.channel_send(elf.env, Primitive::Message.new(:to_s_prim,[],[]), CallbackChannel.new {|ienv, sval, sret|
+            stream = loader.compile(sval.to_s)
+            if (stream)
+              context = Channel9::Context.new(elf.env, stream)
+              global_self = elf.env.special_channel[:global_self]
+              context.channel_send(elf.env, global_self, CallbackChannel.new {|ienv, imsg, iret|
+                ret.channel_send(elf.env, true.to_c9, InvalidReturnChannel)
+              })
+            else
+              ret.channel_send(elf.env, false.to_c9, InvalidReturnChannel)
+            end
+          })
         end
 
         mod.add_method(:raise) do |cenv, msg, ret|
@@ -79,6 +87,7 @@ module Channel9
           env = elf.respond_to?(:env)? elf.env : cenv
           globals = env.special_channel[:globals]
           constants = env.special_channel[:Object].constant
+
           if (exc.nil?)
             # re-raise current exception, or RuntimeError if none.
             exc = globals[:'$!'.to_c9]
@@ -86,12 +95,12 @@ module Channel9
               exc = constants[:RuntimeError.to_c9]
             end
           end
+          raise "BOOM: No RuntimeError!" if (exc.nil?)
           if (exc.kind_of?(Primitive::String) || exc.klass == constants[:String.to_c9])
             bt = desc
             desc = exc
             exc = constants[:RuntimeError.to_c9]
           end
-          raise "BOOM: No RuntimeError!" if (exc.nil?)
 
           exc.channel_send(env, Primitive::Message.new(:exception, [], [desc].compact), CallbackChannel.new {|ienv, exc, sret|
             handler = env.special_channel[:unwinder].handlers.pop
@@ -108,7 +117,7 @@ module Channel9
           else
             klass = cenv.special_channel[elf.class.name]
             ok = elf.respond_to?(:"c9_#{name}") || klass.lookup(name.to_sym)
-            ret.channel_send(cenv, ok.to_c9, InvalidReturnChannel)
+            ret.channel_send(cenv, (!ok.nil?).to_c9, InvalidReturnChannel)
           end
         end
 
@@ -130,17 +139,21 @@ module Channel9
           if (elf.respond_to?(:env))
             ret.channel_send(elf.env, :"#<#{elf.klass.name}:#{elf.object_id}>".to_c9, InvalidReturnChannel)
           else
-            ret.channel_send(cenv, elf.to_s.to_sym.to_c9, InvalidReturnChannel)
+            ret.channel_send(cenv, Primitive::String.new(elf.to_s), InvalidReturnChannel)
           end
         end
         mod.add_method(:to_s_prim) do |cenv, msg, ret|
           elf = msg.system.first
           env = elf.respond_to?(:env)? elf.env : cenv
-          elf.channel_send(env, Primitive::Message.new(:to_s, [], []), CallbackChannel.new {|ienv, val, iret|
-            val.channel_send(env, Primitive::Message.new(:to_primitive_str, [], []), CallbackChannel.new {|ienv, ival, iret|
-              ret.channel_send(env, ival, InvalidReturnChannel)
+          if (elf.is_a?(Primitive::String))
+            ret.channel_send(env, elf, InvalidReturnChannel)
+          else
+            elf.channel_send(env, Primitive::Message.new(:to_s, [], []), CallbackChannel.new {|ienv, val, iret|
+              val.channel_send(env, Primitive::Message.new(:to_primitive_str, [], []), CallbackChannel.new {|ienv, ival, iret|
+                ret.channel_send(env, ival, InvalidReturnChannel)
+              })
             })
-          })
+          end
         end
       end
 

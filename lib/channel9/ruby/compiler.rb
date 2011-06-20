@@ -146,7 +146,11 @@ module Channel9
         end
         builder.set_label(found_label)
         builder.pop # value not needed anymore
-        transform(body)
+        if (body.nil?)
+          transform_nil
+        else
+          transform(body)
+        end
         builder.jmp(done_label)
         builder.set_label(next_label)
       end

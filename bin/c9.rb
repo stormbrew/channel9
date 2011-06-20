@@ -1,7 +1,8 @@
 #!/usr/bin/env ruby
-if $0 == "bin/c9.rb"
+if $0 =~ %r{bin/c9.rb$}
   $LOAD_PATH.unshift "../channel9/lib"
-  $LOAD_PATH.unshift "lib"
+  $LOAD_PATH.unshift "../channel9.rb/lib"
+  require 'rubygems'
 end
 
 require 'channel9'
@@ -13,9 +14,14 @@ debug = ARGV.include?("-dd") ? :detail : debug
 ARGV.delete("-dd")
 print = ARGV.include?("-p")
 ARGV.delete("-p")
+if (ARGV.include?("-v"))
+  puts("Channel9.rb 0.0.0.0.1")
+  ARGV.delete("-v")
+end
 
 loader = Channel9::Loader::Ruby.new(debug)
-stream = loader.compile(ARGV[0])
+stream = loader.compile(ARGV.shift)
+loader.set_argv(ARGV)
 if (print)
   puts stream.to_json
 else

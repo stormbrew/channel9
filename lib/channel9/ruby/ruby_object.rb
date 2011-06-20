@@ -71,11 +71,8 @@ module Channel9
         # disable debugging for this call so we
         # don't infinite loop trying to to_s debug output
         # during the to_s.
-        begin
-          old_debug, env.debug = env.debug, false
-          "#<Channel9::Ruby::RubyObject: #{to_c9_str}>"
-        ensure
-          env.debug = old_debug
+        env.no_debug do
+          "#<Channel9::Ruby::RubyObject(#{@klass.name}): #{to_c9_str}>"
         end
       end
 
@@ -101,12 +98,10 @@ module Channel9
 
       def send_lookup(name)
         if (@singleton)
-          pp(:singleton=>@singleton.to_s) if (env.debug)
           res = @singleton.lookup(name)
           return res if !res.nil?
         end
 
-        pp(:klass=>@klass.to_s) if (env.debug)
         res = @klass.lookup(name)
         return res if !res.nil?
 
@@ -115,6 +110,9 @@ module Channel9
 
       def channel_send_with(elf, singleton, klass, cenv, val, ret)
         if (val.is_a?(Primitive::Message))
+          env.for_debug do
+            pp(:trace=>{:name=>val.name.to_s, :self => elf.to_s, :args => val.positional.collect {|i| i.to_s }})
+          end
           meth = (singleton && singleton.lookup(val.name)) || klass.lookup(val.name)
           if (meth.nil?)
             orig_name = val.name

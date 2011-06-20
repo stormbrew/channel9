@@ -15,8 +15,10 @@ class Array
 
   def join(sep = "")
     r = ""
-    each do |i|
-      r << i
+    l = length
+    each do |c|
+      r << c
+      r << sep if (l -= 1) > 0
     end
     r
   end
@@ -28,6 +30,14 @@ class Array
       yield @tuple.at(i)
       i += 1
     end
+  end
+  def length
+    return 0 if @tuple.nil?
+    return @tuple.length
+  end
+
+  def split(by)
+    Array.new(@tuple.split(by))
   end
 
   def push(val)

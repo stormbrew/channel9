@@ -34,9 +34,16 @@ module Channel9
 
         env.special_channel[:loader] = self
         env.special_channel[:global_self] = Channel9::Ruby::RubyObject.new(env)
-        env.special_channel[:globals] = {
-          :"$LOAD_PATH" => ["environment/kernel", "environment/lib", "."]
+        c9rb_root = File.expand_path(File.dirname(__FILE__) + "../../../..")
+        c9rb_env = c9rb_root + "/environment"
+        globals = env.special_channel[:globals] = {
+          :"$LOAD_PATH".to_c9 => [
+            :"#{c9rb_root}/environment/kernel".to_c9, 
+            :"#{c9rb_root}/environment/lib".to_c9, 
+            :".".to_c9
+          ]
         }
+        globals[:"$:".to_c9] = globals[:"$LOAD_PATH".to_c9]
         env.special_channel[:unwinder] = Channel9::Ruby::Unwinder.new(env)
         
         object_klass.constant[:Object.to_c9] = object_klass
@@ -61,21 +68,25 @@ module Channel9
           object_klass.constant[ruby_name.to_c9] = klass
         end
 
-        dbg_set = env.debug
-        env.debug = false
-        object_klass.channel_send(env,
-          Primitive::Message.new(:load, [], ["boot/symbol.rb"]),
-          CallbackChannel.new {}
-        )
-        object_klass.channel_send(env,
-          Primitive::Message.new(:load, [], ["boot/string.rb"]),
-          CallbackChannel.new {}
-        )
-        object_klass.channel_send(env,
-          Primitive::Message.new(:load, [], ["boot.rb"]),
-          CallbackChannel.new {}
-        )
-        env.debug = dbg_set
+        env.no_debug do
+          ["singletons", "kernel", "symbol", "string", "enumerable",
+           "tuple", "array", "exceptions"].each do |boot|
+            boot = :"#{c9rb_env}/kernel/boot/#{boot}.rb".to_c9
+            object_klass.channel_send(env,
+              Primitive::Message.new(:raw_load, [], [boot]),
+              CallbackChannel.new {}
+            )
+          end
+          object_klass.channel_send(env,
+            Primitive::Message.new(:raw_load, [], [:"#{c9rb_env}/kernel/boot.rb".to_c9]),
+            CallbackChannel.new {}
+          )
+        end
+      end
+
+      def set_argv(argv)
+        object_klass = env.special_channel[:Object]
+        object_klass.constant[:"ARGV".to_c9] = argv.to_c9
       end
 
       def channel_send(cenv, msg, ret)
@@ -89,23 +100,21 @@ module Channel9
       end
 
       def compile(filename)
-        filename = filename.to_c9_str if filename.respond_to?(:to_c9_str)
-        env.special_channel[:globals][:"$LOAD_PATH"].each do |path|
-          begin
-            File.open("#{path}/#{filename}", "r") do |f|
-              stream = Channel9::Stream.new
-              stream.build do |builder|
-                tree = RubyParser.new.parse(f.read)
-                tree = [:file, tree]
-                compiler = Channel9::Ruby::Compiler.new(builder)
-                compiler.transform(tree)
-              end
-              return stream
+        begin
+          File.open("#{filename}", "r") do |f|
+            stream = Channel9::Stream.new
+            stream.build do |builder|
+              parser = RubyParser.new
+              tree = parser.parse(f.read, filename)
+              tree = [:file, tree]
+              compiler = Channel9::Ruby::Compiler.new(builder)
+              compiler.transform(tree)
             end
-          rescue Errno::ENOENT
+            return stream
           end
+        rescue Errno::ENOENT, Errno::EISDIR
         end
-        raise LoadError, "Could not find #{filename} in $LOAD_PATH"
+        return nil
       end
     end
   end
