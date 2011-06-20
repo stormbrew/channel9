@@ -23,9 +23,9 @@ module Channel9
       def run(env)
         message = env.context.stack.last
 
-        pos = 0
+        pos = 1
         @count.times do
-          env.context.push(message.system[pos])
+          env.context.push(message.system[@count - pos])
           pos += 1
         end
       end
