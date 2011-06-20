@@ -16,6 +16,13 @@ class String
     self
   end
 
+  def +(other)
+    new(@str + other.to_s_prim)
+  end
+  def <<(other)
+    @str = @str + other.to_s_prim
+  end
+
   def ==(other)
     @str == other.to_s_prim
   end

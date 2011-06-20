@@ -47,3 +47,13 @@ begin
 rescue Stuff
   puts $!.message
 end
+
+begin
+  begin
+    raise Stuff, "what"
+  rescue NoMethodError
+    puts "no"
+  end
+rescue Stuff
+  puts $!.message
+end

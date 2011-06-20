@@ -26,10 +26,10 @@ class Exception
   end
 
   def to_s
-    @msg
+    @msg.to_s
   end
   def to_str
-    @msg
+    @msg.to_s
   end
   def message
     to_s

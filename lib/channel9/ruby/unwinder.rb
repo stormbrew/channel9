@@ -2,7 +2,13 @@ module Channel9
   module Ruby
     class TerminalUnwinder
       def self.channel_send(env, msg, ret)
-        raise "BOOM: Uncaught unwind: #{msg}."
+        if (msg.name == :raise)
+          msg.positional[0].channel_send(env, Primitive::Message.new(:message,[],[]), CallbackChannel.new {|ienv, msgtext, iret|
+            raise "BOOM: Uncaught exception: #{msgtext}"
+          })
+        else
+          raise "BOOM: Uncaught unwind of unknown kind: #{msg}."
+        end
       end
     end
 

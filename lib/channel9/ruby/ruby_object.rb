@@ -7,9 +7,6 @@ module Channel9
       attr :ivars
 
       def self.object_klass(klass)
-        klass.add_method(:method_missing) do |cenv, msg, ret|
-          raise "BOOM: Method missing: #{msg.positional[1]}"
-        end
         klass.add_method(:initialize) do |cenv, msg, ret|
           elf = msg.system.first
           ret.channel_send(elf.env, elf, InvalidReturnChannel)
@@ -25,7 +22,7 @@ module Channel9
         klass.add_method(:object_id) do |cenv, msg, ret|
           elf = msg.system.first
           env = elf.respond_to?(:env)? elf.env : cenv
-          ret.channel_send(env, elf.object_id, InvalidReturnChannel)
+          ret.channel_send(env, elf.object_id.to_c9, InvalidReturnChannel)
         end
         klass.add_method(:define_method) do |cenv, msg, ret|
           elf = msg.system.first
@@ -36,7 +33,7 @@ module Channel9
         klass.add_method(:instance_variable_get) do |cenv, msg, ret|
           elf = msg.system.first
           name = msg.positional.first
-          ret.channel_send(elf.env, elf.ivars[name], InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.ivars[name].to_c9, InvalidReturnChannel)
         end
         klass.add_method(:instance_variable_set) do |cenv, msg, ret|
           elf = msg.system.first
@@ -71,7 +68,15 @@ module Channel9
       end
 
       def to_s
-        "#<Channel9::Ruby::RubyObject: #{@klass.name}:#{object_id}>"
+        # disable debugging for this call so we
+        # don't infinite loop trying to to_s debug output
+        # during the to_s.
+        begin
+          old_debug, env.debug = env.debug, false
+          "#<Channel9::Ruby::RubyObject: #{to_c9_str}>"
+        ensure
+          env.debug = old_debug
+        end
       end
 
       def to_c9
