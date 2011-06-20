@@ -630,9 +630,9 @@ module Channel9
         call = call.dup
         call << true
 
-        label_prefix = "Iter:#{call[2]}"
-        body_label = builder.make_label(label_prefix + ".body")
-        done_label = builder.make_label(label_prefix + ".done")
+        label_prefix = builder.make_label("Iter:#{call[2]}")
+        body_label = label_prefix + ".body"
+        done_label = label_prefix + ".done"
 
         builder.jmp(done_label)
 
