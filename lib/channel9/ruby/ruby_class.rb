@@ -9,11 +9,12 @@ module Channel9
 
       def self.class_klass(klass)
         klass.add_method(:allocate) do |cenv, msg, ret|
-          elf = msg.positional.first
+          elf = msg.system.first
           ret.channel_send(elf.env, RubyObject.new(elf.env, elf), InvalidReturnChannel)
         end
         klass.add_method(:new) do |cenv, msg, ret|
-          elf, *args = msg.positional
+          elf = msg.system.first
+          args = msg.positional
           case elf
           when elf.env.special_channel[:Class]
             # special case for creating new classes.
@@ -32,15 +33,16 @@ module Channel9
           end
         end
         klass.add_method(:superclass) do |cenv, msg, ret|
-          elf = msg.positional.first
+          elf = msg.system.first
           ret.channel_send(elf.env, elf.superclass, InvalidReturnChannel)
         end
         klass.add_method(:name) do |cenv, msg, ret|
-          elf = msg.positional.first
+          elf = msg.system.first
           ret.channel_send(elf.env, elf.name, InvalidReturnChannel)
         end
         klass.add_method(:__c9_primitive_call__) do |cenv, msg, ret|
-          elf, name, instance, *args = msg.positional
+          elf = msg.system.first
+          name, instance, *args = msg.positional
           imsg = Primitive::Message.new(name, msg.system, args)
           elf.channel_send_with(instance, nil, elf, elf.env, imsg, ret)
         end

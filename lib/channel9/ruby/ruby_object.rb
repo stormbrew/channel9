@@ -11,11 +11,11 @@ module Channel9
           raise "BOOM: Method missing: #{msg.positional[1]}"
         end
         klass.add_method(:initialize) do |cenv, msg, ret|
-          elf = msg.positional.first
+          elf = msg.system.first
           ret.channel_send(elf.env, elf, InvalidReturnChannel)
         end
         klass.add_method(:class) do |cenv, msg, ret|
-          elf = msg.positional.first
+          elf = msg.system.first
           if (elf.respond_to?(:env))
             ret.channel_send(elf.env, elf.klass, InvalidReturnChannel)
           else
@@ -23,25 +23,29 @@ module Channel9
           end
         end
         klass.add_method(:object_id) do |cenv, msg, ret|
-          elf = msg.positional.first
+          elf = msg.system.first
           env = elf.respond_to?(:env)? elf.env : cenv
           ret.channel_send(env, elf.object_id, InvalidReturnChannel)
         end
         klass.add_method(:define_method) do |cenv, msg, ret|
-          elf, *args = msg.positional
+          elf = msg.system.first
+          args = msg.positional
           msg = Primitive::Message.new(msg.name, [], args)
           elf.klass.channel_send(elf.env, msg, ret)
         end
         klass.add_method(:instance_variable_get) do |cenv, msg, ret|
-          elf, name = msg.positional
+          elf = msg.system.first
+          name = msg.positional.first
           ret.channel_send(elf.env, elf.ivars[name], InvalidReturnChannel)
         end
         klass.add_method(:instance_variable_set) do |cenv, msg, ret|
-          elf, name, val = msg.positional
+          elf = msg.system.first
+          name, val = msg.positional
           ret.channel_send(elf.env, elf.ivars[name] = val, InvalidReturnChannel)
         end
         klass.add_method(:equal?) do |cenv, msg, ret|
-          elf, other = msg.positional
+          elf = msg.system.first
+          other = msg.positional.first
           if (elf.respond_to?(:env))
             ret.channel_send(elf.env, elf.equal?(other).to_c9, InvalidReturnChannel)
           else
@@ -49,12 +53,12 @@ module Channel9
           end
         end
         klass.add_method(:singleton) do |cenv, msg, ret|
-          elf = msg.positional.first
+          elf = msg.system.first
           ret.channel_send(elf.env, elf.singleton, InvalidReturnChannel)
         end
 
         klass.add_method(:singleton!) do |cenv, msg, ret|
-          elf = msg.positional.first
+          elf = msg.system.first
           ret.channel_send(elf.env, elf.singleton!, InvalidReturnChannel)
         end
       end
@@ -115,7 +119,8 @@ module Channel9
               raise "BOOM: No method_missing on #{elf}, orig message #{orig_name}"
             end
           end
-          meth.channel_send(env, val.prefix(elf), ret)
+          val = Primitive::Message.new(val.name, [elf] + val.system, val.positional)
+          meth.channel_send(env, val, ret)
         else
           raise "BOOM: Ruby object received unknown message #{val}."
         end
