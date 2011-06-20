@@ -8,13 +8,13 @@ module Channel9
 
       def self.coerce(other)
         if (other.kind_of? Base)
-          other = other.c9_to_str
+          other = other.to_c9_str
         else
           raise "Unimplemented: turning arbitrary values into strings"
         end
         raise "Primitive error: Not a string" if (!other.kind_of? String)
         other  
-      end        
+      end
 
       def ==(other)
         other.is_a?(String) && @real_str == other.real_str ||
@@ -28,12 +28,18 @@ module Channel9
       def to_s
         @real_str.to_s
       end
+      def to_c9_str
+        self
+      end
+      def to_sym
+        @real_str.to_sym
+      end
       def to_json(*a)
         @real_str.to_json(*a)
       end
       
       def c9_plus(other)
-        return @real_str + String.coerce(other).real_str
+        return String.new(@real_str + String.coerce(other).real_str)
       end
       alias_method :"c9_+", :c9_plus
     end

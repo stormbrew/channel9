@@ -32,6 +32,7 @@ module Channel9
       def run(env)
         message = env.context.stack.last
 
+        total_passed = message.positional.length
         if (message.positional.length < @total)
           (@total - message.positional.length).times do
             message.positional << Primitive::Undef
@@ -46,12 +47,12 @@ module Channel9
 
         if (@remain > 0)
           remain = []
-          remain_count = message.positional.length - @first - @last
+          remain_count = total_passed - @first - @last
           remain_count.times do
-            remain.push(message.positional[@total - pos])
+            remain.push(message.positional[pos - 1])
             pos += 1
           end
-          env.context.push(remain)
+          env.context.push(remain.to_c9)
         end
 
         @first.times do

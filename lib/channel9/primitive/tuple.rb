@@ -17,6 +17,44 @@ module Channel9
         other.is_a?(Tuple) && @real_ary == other.real_ary
       end
       alias_method :eql?, :==
+
+      def c9_length
+        @real_ary.length
+      end
+      def c9_join(other)
+        Tuple.new(@real_ary + other.real_ary)
+      end
+      alias_method :'c9_+', :c9_join
+      def c9_push(other)
+        Tuple.new(@real_ary + [other])
+      end
+      def c9_pop
+        n = @real_ary.dup
+        n.pop
+        Tuple.new(n)
+      end
+      def c9_front_push(other)
+        Tuple.new([other] + @real_ary)
+      end
+      def c9_front_pop
+        n = @real_ary.dup
+        n.shift
+        Tuple.new(n)
+      end
+      def c9_first
+        @real_ary.first
+      end
+      def c9_last
+        @real_ary.last
+      end
+      def c9_at(idx)
+        @real_ary[idx.real_num].to_c9
+      end
+      def c9_replace(idx, val)
+        n = @real_ary.dup
+        n[idx.real_num] = val
+        Tuple.new(n)
+      end
       def hash
         @real_ary.hash
       end
