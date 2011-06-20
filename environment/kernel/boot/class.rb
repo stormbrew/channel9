@@ -7,4 +7,8 @@ class Class
       self == other.class
     end
   end
+
+  def to_s
+    name
+  end
 end

@@ -26,7 +26,7 @@ module Channel9
       end
       def transform_str(str)
         transform_const(:String)
-        builder.push(str.to_sym.to_c9)
+        builder.push(Primitive::String.new(str))
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop        
@@ -45,6 +45,16 @@ module Channel9
         else
           builder.string_new(:to_s_prim, strings.length)
         end
+        builder.message_new(:new, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+      def transform_array(*items)
+        transform_const(:Array)
+        items.reverse.each do |item|
+          transform(item)
+        end
+        builder.tuple_new(items.length)
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop
@@ -213,8 +223,15 @@ module Channel9
 
           builder.set_label(argdone_label)
         end
-         builder.local_set(splatarg) if splatarg
-         builder.pop
+        if (splatarg)
+          transform_const(:Array)
+          builder.swap
+          builder.message_new(:new, 0, 1)
+          builder.channel_call
+          builder.pop
+          builder.local_set(splatarg)
+        end
+        builder.pop
       end
 
       def transform_scope(block = nil)
@@ -329,17 +346,25 @@ module Channel9
         builder.pop
       end
 
-      def transform_return(val)
+      def transform_return(val = nil)
         if (@state[:ensure] || @state[:block])
           @state[:need_long_return][0] = true if @state[:need_long_return]
           builder.channel_special(:unwinder)
           builder.frame_get("return")
-          transform(val)
+          if (val)
+            transform(val)
+          else
+            transform_nil
+          end
           builder.message_new(:long_return, 0, 2)
           builder.channel_ret
         else
           builder.frame_get("return")
-          transform(val)
+          if (val)
+            transform(val)
+          else
+            transform_nil
+          end
           builder.channel_ret
         end
       end
@@ -548,6 +573,13 @@ module Channel9
         end
       end
 
+      def has_splat(arglist)
+        arglist.each_with_index do |arg, idx|
+          return idx if arg.first == :splat
+        end
+        return false
+      end
+
       def transform_call(target, method, arglist, has_iter = false)
         if (target.nil?)
           transform_self()
@@ -563,13 +595,31 @@ module Channel9
         end
 
         _, *arglist = arglist
-        arglist.each do |arg|
-          transform(arg)
-        end
+        if (first_splat = has_splat(arglist))
+          i = 0
+          while (i < first_splat)
+            transform(arglist.shift)
+            i += 1
+          end
+          builder.message_new(method.to_c9, has_iter ? 1 : 0, i)
+          transform(arglist.shift[1])
+          builder.message_new(:to_tuple_prim, 0, 0)
+          builder.channel_call
+          builder.pop
+          builder.message_splat
+        else
+          arglist.each do |arg|
+            transform(arg)
+          end
 
-        builder.message_new(method.to_c9, has_iter ? 1 : 0, arglist.length)
+          builder.message_new(method.to_c9, has_iter ? 1 : 0, arglist.length)
+        end
         builder.channel_call
         builder.pop
+      end
+
+      def transform_attrasgn(target, method, arglist)
+        transform_call(target, method, arglist)
       end
 
       # The sexp for this is weird. It embeds the call into
@@ -702,8 +752,6 @@ module Channel9
         builder.jmp_if_not(not_raise_label)
 
         builder.message_unpack(1,0,0)
-        builder.swap
-        builder.pop
 
         with_state(:rescue_done => done_label) do
           handlers.each do |handler|
@@ -711,12 +759,16 @@ module Channel9
           end
         end
 
+        builder.pop
         builder.set_label(not_raise_label)
         builder.channel_special(:unwinder)
         builder.swap
         builder.channel_ret
 
         builder.set_label(done_label)
+        # get rid of the unwind message.
+        builder.swap
+        builder.pop
       end
 
       def transform_ensure(body, ens)

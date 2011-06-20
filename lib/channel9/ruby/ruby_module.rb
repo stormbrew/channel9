@@ -46,7 +46,7 @@ module Channel9
           ret.channel_send(elf.env, mod.env.special_channel[name], InvalidReturnChannel)
         end
 
-        mod.add_method(:puts) do |cenv, msg, ret|
+        mod.add_method(:print) do |cenv, msg, ret|
           elf = msg.system.first
           strings = msg.positional
           env = elf.respond_to?(:env)? elf.env : cenv
@@ -59,7 +59,7 @@ module Channel9
             end
             s
           end.flatten
-          puts(*strings)
+          print(*strings)
           ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
         end
         
@@ -98,6 +98,18 @@ module Channel9
             globals[:"$!".to_c9] = exc
             handler.channel_send(env, Primitive::Message.new(:raise, [], [exc]), InvalidReturnChannel)
           })
+        end
+
+        mod.add_method(:respond_to?) do |cenv, msg, ret|
+          elf = msg.system.first
+          name = msg.positional.first
+          if (elf.respond_to?(:env))
+            ret.channel_send(elf.env, (!elf.send_lookup(name.to_sym).nil?).to_c9, InvalidReturnChannel)
+          else
+            klass = cenv.special_channel[elf.class.name]
+            ok = elf.respond_to?(:"c9_#{name}") || klass.lookup(name.to_sym)
+            ret.channel_send(cenv, ok.to_c9, InvalidReturnChannel)
+          end
         end
 
         mod.add_method(:global_get) do |cenv, msg, ret|
