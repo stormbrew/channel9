@@ -3,7 +3,11 @@ module Channel9
     class String < Base
       attr :real_str
       def initialize(str)
-        @real_str = str.dup.freeze
+        if (str.is_a?(String))
+          @real_str = str.real_str
+        else
+          @real_str = str.dup.freeze
+        end
       end
 
       def self.coerce(other)
@@ -21,6 +25,7 @@ module Channel9
         other.is_a?(Symbol) && @real_str == other.to_s
       end
       alias_method :eql?, :==
+      alias_method :"c9_==", :==
       def hash
         @real_str.hash
       end
@@ -42,6 +47,11 @@ module Channel9
         return String.new(@real_str + String.coerce(other).real_str)
       end
       alias_method :"c9_+", :c9_plus
+
+      def c9_split(by)
+        by = String.coerce(by).real_str
+        @real_str.split(by).collect {|s| String.new(s) }.to_c9
+      end
     end
   end
 end
