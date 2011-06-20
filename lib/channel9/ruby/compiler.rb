@@ -164,9 +164,7 @@ module Channel9
 
       def transform_args(*args)
         # TODO: Support splats and such.
-        builder.message_unpack(args.count + 1, 0, 0)
-        builder.pop # message stays on stack for further manipulation, we're done with it.
-        builder.frame_set("self")
+        builder.message_unpack(args.count, 0, 0)
         args.each do |arg|
           builder.local_set(arg)
         end
@@ -222,9 +220,10 @@ module Channel9
           builder.pop
         end
         
-        builder.message_sys_unpack(1)
-        transform(args)
+        builder.message_sys_unpack(2)
+        builder.frame_set("self")
         builder.frame_set("yield")
+        transform(args)
 
         with_state(:has_long_return => nru) do
           transform(code)
@@ -246,14 +245,12 @@ module Channel9
           builder.is(:long_return) # -> is -> um
           builder.jmp_if_not(method_lret_pass) # -> um
           builder.dup # -> um -> um
-          builder.message_unpack(1, 0, 0) # -> um -> return_chan
-          builder.swap # -> return_chan -> um
+          builder.message_unpack(1, 0, 0) # -> return_chan -> um
           builder.frame_get("return") # -> lvar_return -> return_chan -> um
           builder.is_eq # -> is -> um
           builder.jmp_if_not(method_lret_pass) # -> um
-          builder.message_unpack(2, 0, 0) # -> um -> return_chan -> ret_val
-          builder.pop # -> return_chan -> ret_val
-          builder.swap # -> ret_val -> return_chan
+          builder.message_unpack(2, 0, 0) # -> return_chan -> ret_val -> um
+          builder.swap # -> ret_val -> return_chan -> um
           builder.channel_ret
 
           builder.set_label(method_lret_pass) # (from jmps above) -> um
@@ -338,9 +335,9 @@ module Channel9
         builder.set_label(body_label)
         builder.local_clean_scope
         builder.frame_set("return")
-        builder.message_unpack(1, 0, 0)
-        builder.pop
+        builder.message_sys_unpack(1)
         builder.frame_set("self")
+        builder.pop
         transform(body)
         builder.frame_get("return")
         builder.swap
@@ -394,9 +391,9 @@ module Channel9
         builder.set_label(body_label)
         builder.local_clean_scope
         builder.frame_set("return")
-        builder.message_unpack(1, 0, 0)
-        builder.pop
+        builder.message_sys_unpack(1)
         builder.frame_set("self")
+        builder.pop
         transform(body)
         builder.frame_get("return")
         builder.swap
@@ -564,8 +561,8 @@ module Channel9
           else
             builder.message_unpack(0, 1, 0) # splat it all for the masgn
           end
-          builder.pop
           transform(args) # comes in as an lasgn or masgn
+          builder.pop
           builder.pop
         end
 
@@ -658,6 +655,7 @@ module Channel9
         builder.jmp_if_not(not_raise_label)
 
         builder.message_unpack(1,0,0)
+        builder.swap
         builder.pop
 
         with_state(:rescue_done => done_label) do
