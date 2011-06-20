@@ -74,6 +74,29 @@ module Channel9
       end
     end
 
+    def no_debug
+      begin
+        @debug, debug = false, @debug
+        yield
+      ensure
+        @debug = debug
+      end
+    end
+
+    def for_debug(level = true)
+      begin
+        @debug, debug = false, @debug
+        case level
+        when true
+          yield if debug
+        when :detail
+          yield if debug == :detail
+        end
+      ensure
+        @debug = debug
+      end
+    end
+
     def run_debug(context)
       @context = context
       if (!@running)
@@ -82,12 +105,12 @@ module Channel9
           while (instruction = @context.next)
             current_context = @context
             sp = @context.stack.length
-            if (@debug == :detail)
+            for_debug(:detail) do
               pp(:instruction => {:ip => @context.pos - 1, :instruction => instruction.debug_info})
               pp(:before => @context.debug_info)
             end
             instruction.run(self)
-            if (@debug == :detail)
+            for_debug(:detail) do
               pp(:orig_after_jump => current_context.debug_info) if current_context != @context
               pp(:after => @context.debug_info)
               puts("--------------")
@@ -98,7 +121,7 @@ module Channel9
               raise "Stack error: Expected stack depth to be #{stack_should}, was actually #{current_context.stack.length}"
             end
           end
-          if (@debug == :detail)
+          for_debug(:detail) do
             pp(
               :final_state => @context.debug_info
             )
