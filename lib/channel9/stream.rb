@@ -31,8 +31,17 @@ module Channel9
     end
 
     def to_json(*a)
+      labels = @labels.invert
+      instructions = []
+      i = 0
+      while (i < @instructions.length)
+        instructions << ["set_label", labels[i]] if (labels[i])
+        instructions << @instructions[i]
+        i += 1
+      end
+
       JSON.pretty_generate(
-        "code" => @instructions
+        "code" => instructions
       )
     end
 

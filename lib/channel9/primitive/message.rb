@@ -12,11 +12,15 @@ module Channel9
       end
 
       def forward(name)
-        Message.new(name, @system, [@name, *@positional])
+        Message.new(name, @system, [@name.to_c9, *@positional])
       end
 
       def prefix(*args)
         Message.new(@name, @system, args + @positional)
+      end
+
+      def splat(ary)
+        Message.new(@name, @system, @positional + ary)
       end
 
       def to_s

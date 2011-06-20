@@ -7,7 +7,7 @@ module Channel9
       end
       def self.coerce(other)
         if (other.kind_of? Base)
-          other = other.c9_to_num
+          other = other.to_c9_num
         else
           raise "Unimplemented: turning arbitrary values into numbers"
         end
@@ -26,11 +26,12 @@ module Channel9
       def to_s
         @real_num.to_s
       end
+
       def to_json(*a)
         @real_num.to_json(*a)
       end
 
-      def c9_to_num
+      def to_c9_num
         self
       end
 
