@@ -92,7 +92,11 @@ module Channel9
         transform(cond)
         builder.jmp_if_not(falsy_label)
 
-        transform(truthy)
+        if (truthy.nil?)
+          transform_nil
+        else
+          transform(truthy)
+        end
         builder.jmp(done_label)
 
         builder.set_label(falsy_label)
