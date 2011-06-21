@@ -24,4 +24,10 @@ class File
     result = result.join('/')
     result
   end
+
+  def self.dirname(path)
+    path_parts = path.split("/")
+    path_parts.pop
+    path_parts.join("/")
+  end
 end
