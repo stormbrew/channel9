@@ -19,6 +19,22 @@ module Channel9
           val = elf.constant[name.to_c9]
           ret.channel_send(elf.env, val.to_c9, InvalidReturnChannel)
         end
+        klass.add_method(:const_get_scoped) do |cenv, msg, ret|
+          elf = msg.system.first
+          names = msg.positional.dup
+          finding = names.pop
+          last = elf
+          scopes = [elf] + names.collect do |name|
+            last.constant[name.to_c9]
+          end
+          const = nil
+          scopes.reverse.each do |scope|
+            if (const = scope && scope.constant[finding.to_c9])
+              break
+            end
+          end
+          ret.channel_send(elf.env, const.to_c9, InvalidReturnChannel)
+        end
         klass.add_method(:include) do |cenv, msg, ret|
           elf = msg.system.first
           mod = msg.positional.first
@@ -162,6 +178,7 @@ module Channel9
         @name = name
         @instance_methods = {}
         @included = []
+        @constant = {}
       end
 
       def to_s

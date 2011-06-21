@@ -10,7 +10,7 @@ module Channel9
       def with_state(hash)
         begin
           old = @state.dup
-          @state.merge!(hash)
+          @state = @state.merge(hash)
           yield
         ensure
           @state = old
@@ -258,9 +258,11 @@ module Channel9
         builder = Builder.new(stream)
         compiler = Compiler.new(builder)
         need_info = [false]
-        compiler.with_state(:need_long_return => need_info) do
-          compiler.transform(code)
-          return need_info[0]
+        compiler.with_state(@state) do
+          compiler.with_state(:need_long_return => need_info) do
+            compiler.transform(code)
+            return need_info[0]
+          end
         end
       end
 
@@ -396,18 +398,17 @@ module Channel9
         body_label = builder.make_label(label_prefix + ".body")
         done_label = builder.make_label(label_prefix + ".done")
 
+        full_name = @state[:static_scope] + [name]
+        full_name = full_name.join('::')
+
         # See if it's already there
-        builder.channel_special(:Object)
-        builder.push(name)
-        builder.message_new(:const_get, 0, 1)
-        builder.channel_call
-        builder.pop
+        transform_const(name)
         builder.dup_top
         builder.jmp_if(done_label)
 
         # If it's not, make a new class and set it.
         builder.pop
-        builder.channel_special(:Object)
+        load_static_scope
         builder.push(name)
         
         builder.channel_special(:Class)
@@ -416,7 +417,7 @@ module Channel9
         else
           transform(superclass)
         end
-        builder.push(name)
+        builder.push(full_name.to_sym)
         builder.message_new(:new, 0, 2)
         builder.channel_call
         builder.pop
@@ -432,7 +433,13 @@ module Channel9
         builder.message_sys_unpack(1)
         builder.frame_set("self")
         builder.pop
-        transform(body)
+        with_state(:static_scope => @state[:static_scope] + [name]) do
+          if (body.nil?)
+            transform_nil
+          else
+            transform(body)
+          end
+        end
         builder.frame_get("return")
         builder.swap
         builder.channel_ret
@@ -457,22 +464,21 @@ module Channel9
         body_label = builder.make_label(label_prefix + ".body")
         done_label = builder.make_label(label_prefix + ".done")
 
+        full_name = @state[:static_scope] + [name]
+        full_name = full_name.join('::')
+
         # See if it's already there
-        builder.channel_special(:Object)
-        builder.push(name)
-        builder.message_new(:const_get, 0, 1)
-        builder.channel_call
-        builder.pop
+        transform_const(name)
         builder.dup_top
         builder.jmp_if(done_label)
 
         # If it's not, make a new module and set it.
         builder.pop
-        builder.channel_special(:Object)
+        load_static_scope
         builder.push(name)
         
         builder.channel_special(:Module)
-        builder.push(name)
+        builder.push(full_name.to_sym)
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop
@@ -488,7 +494,13 @@ module Channel9
         builder.message_sys_unpack(1)
         builder.frame_set("self")
         builder.pop
-        transform(body)
+        with_state(:static_scope => @state[:static_scope] + [name]) do
+          if (body.nil?)
+            transform_nil
+          else
+            transform(body)
+          end
+        end
         builder.frame_get("return")
         builder.swap
         builder.channel_ret
@@ -508,11 +520,20 @@ module Channel9
         builder.pop
       end
 
-      def transform_cdecl(name, val)
-        # TODO: Make this look up in full proper lexical scope.
-        # Currently just assumes Object is the static lexical scope
-        # at all times.
+      def load_static_scope
         builder.channel_special(:Object)
+        if (@state[:static_scope].any?)
+          @state[:static_scope].each do |scope|
+            builder.push(scope)
+          end
+          builder.message_new(:const_get_scoped, 0, @state[:static_scope].length)
+          builder.channel_call
+          builder.pop
+        end
+      end
+
+      def transform_cdecl(name, val)
+        load_static_scope
         builder.push(name)
         transform(val)
         builder.message_new(:const_set, 0, 2)
@@ -520,10 +541,26 @@ module Channel9
         builder.pop
       end
       def transform_const(name)
-        # TODO: Make this look up in full proper lexical scope.
-        # Currently just assumes Object is the static lexical scope
-        # at all times.
         builder.channel_special(:Object)
+        @state[:static_scope].each do |scope|
+          builder.push(scope)
+        end
+        builder.push(name)
+        builder.message_new(:const_get_scoped, 0, @state[:static_scope].length + 1)
+        builder.channel_call
+        builder.pop
+      end
+
+      def transform_colon3(name)
+        builder.channel_special(:Object)
+        builder.push(name)
+        builder.message_new(:const_get, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+
+      def transform_colon2(lhs, name)
+        transform(lhs)
         builder.push(name)
         builder.message_new(:const_get, 0, 1)
         builder.channel_call
@@ -841,7 +878,9 @@ module Channel9
         builder.frame_set("return")
         builder.frame_set("self")
         if (!body.nil?)
-          transform(body)
+          with_state(:static_scope => []) do
+            transform(body)
+          end
         else
           transform_nil
         end
