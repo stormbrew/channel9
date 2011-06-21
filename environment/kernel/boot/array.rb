@@ -8,6 +8,9 @@ class Array
   def to_tuple_prim
     @tuple
   end
+  def to_a
+    self
+  end
 
   def to_s
     join

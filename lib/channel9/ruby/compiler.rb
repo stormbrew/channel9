@@ -49,12 +49,27 @@ module Channel9
         builder.channel_call
         builder.pop
       end
+
+      def transform_splat(from)
+        transform(from)
+        builder.message_new(:to_tuple_prim, 0, 0)
+        builder.channel_call
+        builder.pop
+        builder.tuple_splat
+      end
       def transform_array(*items)
+        splat = nil
+        if (items.last && items.last[0] == :splat)
+          items = items.dup
+          splat = items.pop
+        end
+
         transform_const(:Array)
         items.reverse.each do |item|
           transform(item)
         end
         builder.tuple_new(items.length)
+        transform(splat) if splat
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop
@@ -569,6 +584,53 @@ module Channel9
         builder.message_new(:const_get, 0, 1)
         builder.channel_call
         builder.pop
+      end
+
+      def transform_to_ary(val)
+        transform(val)
+        if (val[0] != :array)
+          builder.message_new(:to_a, 0, 0)
+          builder.channel_call
+          builder.pop
+        end
+      end
+
+      def transform_masgn(lhs, rhs)
+        # lhs is always an array, get rid of its
+        # prefix so we can deal with it sensibly
+        lhs = lhs.dup
+        lhs.shift
+        left_splat = nil
+
+        if (lhs.last[0] == :splat)
+          splat = lhs.pop
+        end
+
+        if (rhs[0] == :splat)
+          rhs = rhs[1]
+          transform(rhs)
+        else
+          transform(rhs)
+        end
+        builder.dup_top # so it's the result.
+        # rhs should now be an array we can convert to a tuple
+        # and unpack
+        builder.message_new(:to_tuple_prim, 0, 0)
+        builder.channel_call
+        builder.pop
+        builder.tuple_unpack(lhs.length, splat.nil? ? 0 : 1, 0)
+
+        lhs.each do |asgn|
+          transform(asgn)
+          builder.pop
+        end
+        if splat
+          builder.message_new(:to_a, 0, 0)
+          builder.channel_call
+          builder.pop
+          transform(splat[1])
+          builder.pop # don't want the result of the individual assignments.
+        end
       end
 
       # If given a nil value, assumes the rhs is
