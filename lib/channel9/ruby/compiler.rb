@@ -288,12 +288,13 @@ module Channel9
           builder.pop
         end
         
-        builder.message_sys_unpack(2)
+        builder.message_sys_unpack(3)
         builder.frame_set("self")
+        builder.frame_set("super")
         builder.frame_set("yield")
         transform(args)
 
-        with_state(:has_long_return => nru) do
+        with_state(:has_long_return => nru, :name => name) do
           transform(code)
         end
 
@@ -335,6 +336,23 @@ module Channel9
         builder.push(name)
         builder.channel_new(method_label)
         builder.message_new(on.nil? ? :define_method : :define_singleton_method, 0, 2)
+        builder.channel_call
+        builder.pop
+      end
+
+      def transform_super(*args)
+        builder.frame_get("super")
+        args.each do |arg|
+          transform(arg)
+        end
+        builder.message_new(@state[:name], 0, args.length)
+        builder.channel_call
+        builder.pop
+      end
+
+      def transform_zsuper
+        builder.frame_get("super")
+        builder.push(nil)
         builder.channel_call
         builder.pop
       end
