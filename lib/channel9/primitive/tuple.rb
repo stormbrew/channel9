@@ -7,7 +7,7 @@ module Channel9
       end
 
       def to_s
-        @real_ary.to_s
+        "#<Tuple:[#{@real_ary.join(",")}]>"
       end
       def to_json(*a)
         @real_ary.to_json(*a)
