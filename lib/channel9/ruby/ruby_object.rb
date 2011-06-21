@@ -120,7 +120,7 @@ module Channel9
           if (meth.nil?)
             orig_name = val.name
             val = val.forward(:method_missing)
-            meth = (singleton && singleton.lookup(val.name)) || klass.lookup(val.name)
+            meth, found_klass = (singleton && singleton.lookup(val.name)) || klass.lookup(val.name)
             if (meth.nil?)
               raise "BOOM: No method_missing on #{elf}, orig message #{orig_name}"
             end
