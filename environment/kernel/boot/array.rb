@@ -66,6 +66,6 @@ class Array
   end
 
   def +(other)
-    Array.new(@tuple + other.tuple)
+    Array.new(@tuple + other.to_tuple_prim)
   end
 end
