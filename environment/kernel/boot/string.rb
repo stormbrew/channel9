@@ -4,7 +4,7 @@ class String
   end
   
   def split(by)
-    @str.split(by.to_s_prim)
+    @str.split(by.to_s_prim).to_a
   end
 
   def to_sym
