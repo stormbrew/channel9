@@ -40,6 +40,8 @@ module Kernel
     args.each {|arg|
       if (arg.respond_to?(:each))
         puts(*arg)
+      elsif (arg.nil?)
+        print("nil\n")
       else
         print arg, "\n"
       end
@@ -48,6 +50,9 @@ module Kernel
 
   def to_tuple_prim
     to_a.to_tuple_prim
+  end
+  def to_a
+    [self]
   end
 
   def inspect
