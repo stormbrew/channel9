@@ -97,15 +97,18 @@ module Channel9
       end
 
       def send_lookup(name)
-        if (@singleton)
-          res = @singleton.lookup(name)
-          return res if !res.nil?
+        (@singleton && singleton.lookup(name)) || @klass.lookup(name)
+      end
+
+      def make_super(elf, klass, msg)
+        CallbackChannel.new do |ienv, imsg, iret|
+          if (imsg.nil?)
+            imsg = msg
+          else
+            msg = Primitive::Message.new(imsg.name, [imsg.system[2]], imsg.positional)
+          end
+          elf.channel_send_with(elf, nil, klass.superclass, ienv, msg, iret)
         end
-
-        res = @klass.lookup(name)
-        return res if !res.nil?
-
-        return nil
       end
 
       def channel_send_with(elf, singleton, klass, cenv, val, ret)
@@ -113,7 +116,7 @@ module Channel9
           env.for_debug do
             pp(:trace=>{:name=>val.name.to_s, :self => elf.to_s, :args => val.positional.collect {|i| i.to_s }})
           end
-          meth = (singleton && singleton.lookup(val.name)) || klass.lookup(val.name)
+          meth, found_klass = (singleton && singleton.lookup(val.name)) || klass.lookup(val.name)
           if (meth.nil?)
             orig_name = val.name
             val = val.forward(:method_missing)
@@ -122,7 +125,8 @@ module Channel9
               raise "BOOM: No method_missing on #{elf}, orig message #{orig_name}"
             end
           end
-          val = Primitive::Message.new(val.name, [elf] + val.system, val.positional)
+          super_call = make_super(elf, found_klass, val)
+          val = Primitive::Message.new(val.name, [elf, super_call] + val.system, val.positional)
           meth.channel_send(env, val, ret)
         else
           raise "BOOM: Ruby object received unknown message #{val}."

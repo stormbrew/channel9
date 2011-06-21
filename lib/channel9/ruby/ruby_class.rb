@@ -43,7 +43,7 @@ module Channel9
         klass.add_method(:__c9_primitive_call__) do |cenv, msg, ret|
           elf = msg.system.first
           name, instance, *args = msg.positional
-          imsg = Primitive::Message.new(name, [msg.system[1]], args)
+          imsg = Primitive::Message.new(name, [msg.system[2]], args)
           elf.channel_send_with(instance, nil, elf, elf.env, imsg, ret)
         end
 
@@ -83,7 +83,7 @@ module Channel9
         name = name.to_c9
         [self, *@included.reverse].each do |mod|
           res = mod.instance_methods[name]
-          return res if res
+          return res, self if res
         end
         @superclass.lookup(name) if !@superclass.nil? && @superclass != self
       end
