@@ -70,15 +70,15 @@ module Channel9
 
         env.no_debug do
           ["singletons", "kernel", "symbol", "string", "enumerable",
-           "tuple", "array", "exceptions"].each do |boot|
-            boot = :"#{c9rb_env}/kernel/boot/#{boot}.rb".to_c9
+           "tuple", "array", "exceptions"].each do |file|
+            file = :"#{c9rb_env}/kernel/alpha/#{file}.rb".to_c9
             object_klass.channel_send(env,
-              Primitive::Message.new(:raw_load, [], [boot]),
+              Primitive::Message.new(:raw_load, [], [file]),
               CallbackChannel.new {}
             )
           end
           object_klass.channel_send(env,
-            Primitive::Message.new(:raw_load, [], [:"#{c9rb_env}/kernel/boot.rb".to_c9]),
+            Primitive::Message.new(:raw_load, [], [:"#{c9rb_env}/kernel/beta.rb".to_c9]),
             CallbackChannel.new {}
           )
         end
