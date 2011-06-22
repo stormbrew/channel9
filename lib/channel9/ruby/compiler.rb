@@ -92,7 +92,14 @@ module Channel9
         transform(condition)
         builder.jmp_if_not(done_label)
 
-        transform(body)
+        linfo = {
+          :type => :while, 
+          :beg_label => begin_label, 
+          :end_label => done_label
+        }
+        with_state(:loop => linfo) do
+          transform(body)
+        end
         builder.pop
 
         builder.jmp(begin_label)
@@ -776,6 +783,18 @@ module Channel9
             builder.push nil
           end
           builder.channel_ret
+        when :while
+          builder.jmp(linfo[:beg_label])
+        else
+          raise "Invalid (or unimplemented?) location for a next"
+        end
+      end
+
+      def transform_break(val = nil)
+        linfo = @state[:loop]
+        case linfo[:type]
+        when :while
+          builder.jmp(linfo[:end_label])
         else
           raise "Invalid (or unimplemented?) location for a next"
         end
