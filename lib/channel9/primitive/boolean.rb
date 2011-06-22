@@ -3,7 +3,7 @@ module Channel9
     class Boolean < Base; end
     class TrueC < Boolean
       def to_s
-        true.to_s
+        "true"
       end
       def to_json(*a)
         true.to_json(*a)
@@ -11,7 +11,7 @@ module Channel9
     end
     class FalseC < Boolean
       def to_s
-        false.to_s
+        "false"
       end
       def to_json(*a)
         false.to_json(*a)
