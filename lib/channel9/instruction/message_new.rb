@@ -7,7 +7,7 @@ module Channel9
     # pack, along with the message name.
     #
     # Takes count inputs as well as a message name:
-    #  SP -> sys_arg1 -> sys_arg2 ... -> sys_argN ->arg1 -> arg2 ... -> argN
+    #  SP ->arg1 -> arg2 ... -> argN -> sys_arg1 -> sys_arg2 ... -> sys_argN
     # Leaves the message on the stack:
     #  SP -> message
     #
@@ -31,8 +31,8 @@ module Channel9
       def run(env)
         sys_args = []
         args = []
-        @sys_count.times { sys_args.unshift(env.context.pop) }
         @count.times { args.unshift(env.context.pop) }
+        @sys_count.times { sys_args.unshift(env.context.pop) }
         message = Primitive::Message.new(@name, sys_args, args)
         env.context.push(message)
       end
