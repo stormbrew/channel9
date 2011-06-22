@@ -1,3 +1,4 @@
+require 'set'
 module Channel9
   module Ruby
     class Compiler
@@ -15,6 +16,25 @@ module Channel9
         ensure
           @state = old
         end
+      end
+
+      def with_new_vtable(&block)
+        with_state(:vtable => [Set.new], &block)
+      end
+      def with_linked_vtable(&block)
+        parent_vtables = @state[:vtable] || []
+        with_state(:vtable => [Set.new, *parent_vtables], &block)
+      end
+      def find_local_depth(name, add = false)
+        @state[:vtable].each_with_index do |tbl, idx|
+          if tbl.include?(name.to_sym)
+            return idx 
+          end
+        end
+        if (add)
+          @state[:vtable].first << name.to_sym
+        end
+        return 0 # default to current scope.
       end
 
       def transform_self()
@@ -242,7 +262,7 @@ module Channel9
         if (defargs.length == 0)
           builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
           args.each do |arg|
-            builder.local_set(0, arg)
+            builder.local_set(find_local_depth(arg, true), arg)
           end
         else
           must_have = args.length - defargs.length
@@ -254,7 +274,7 @@ module Channel9
           builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
           i = 0
           must_have.times do
-            builder.local_set(0, args[i])
+            builder.local_set(find_local_depth(args[i], true), args[i])
             i += 1
           end
 
@@ -262,7 +282,7 @@ module Channel9
             builder.frame_get("arg.count")
             builder.is(i)
             builder.jmp_if(defarg_labels[i-must_have])
-            builder.local_set(0, args[i])
+            builder.local_set(find_local_depth(args[i], true), args[i])
             i += 1
           end
           builder.jmp(argdone_label)
@@ -282,11 +302,11 @@ module Channel9
           builder.message_new(:new, 0, 1)
           builder.channel_call
           builder.pop
-          builder.local_set(0, splatarg)
+          builder.local_set(find_local_depth(splatarg, true), splatarg)
         end
         if (blockarg)
           builder.frame_get("yield")
-          builder.local_set(0, blockarg)
+          builder.local_set(find_local_depth(blockarg, true), blockarg)
         end
         builder.pop
       end
@@ -343,14 +363,16 @@ module Channel9
           builder.pop
         end
         
-        builder.message_sys_unpack(3)
-        builder.frame_set("self")
-        builder.frame_set("super")
-        builder.frame_set("yield")
-        transform(args)
+        with_new_vtable do
+          builder.message_sys_unpack(3)
+          builder.frame_set("self")
+          builder.frame_set("super")
+          builder.frame_set("yield")
+          transform(args)
 
-        with_state(:has_long_return => nru, :name => name) do
-          transform(code)
+          with_state(:has_long_return => nru, :name => name) do
+            transform(code)
+          end
         end
 
         builder.frame_get("return")
@@ -490,7 +512,9 @@ module Channel9
           if (body.nil?)
             transform_nil
           else
-            transform(body)
+            with_new_vtable do
+              transform(body)
+            end
           end
         end
         builder.frame_get("return")
@@ -551,7 +575,9 @@ module Channel9
           if (body.nil?)
             transform_nil
           else
-            transform(body)
+            with_new_vtable do
+              transform(body)
+            end
           end
         end
         builder.frame_get("return")
@@ -674,10 +700,10 @@ module Channel9
       def transform_lasgn(name, val = nil)
         transform(val) if !val.nil?
         builder.dup_top
-        builder.local_set(0, name)
+        builder.local_set(find_local_depth(name, true), name)
       end
       def transform_lvar(name)
-        builder.local_get(0, name)
+        builder.local_get(find_local_depth(name), name)
       end
 
       def transform_gasgn(name, val = nil)
@@ -843,43 +869,47 @@ module Channel9
         builder.is(Primitive::Undef)
         builder.jmp_if(args_label)
         builder.frame_set("self")
+        builder.push(nil)
         builder.set_label(args_label)
         builder.pop
 
-        if (args.nil?)
-          # no args, pop the message off the stack.
-          builder.pop
-        else
-          if (args[0] == :lasgn || args[0] == :gasgn)
-            # Ruby's behaviour on a single arg block is ugly.
-            # If it takes one argument, but is given multiple,
-            # it's as if it were a single arg splat. Otherwise,
-            # it's like a normal method invocation.
-            builder.message_count
-            builder.is_not(1.to_c9)
-            builder.jmp_if(label_prefix + ".splatify")
-            builder.message_unpack(1, 0, 0)
-            builder.jmp(label_prefix + ".done_unpack")
-            builder.set_label(label_prefix + ".splatify")
-            builder.message_unpack(0, 1, 0)
-            builder.set_label(label_prefix + ".done_unpack")
+        with_linked_vtable do
+          builder.local_linked_scope
+          if (args.nil?)
+            # no args, pop the message off the stack.
+            builder.pop
           else
-            builder.message_unpack(0, 1, 0) # splat it all for the masgn
+            if (args[0] == :lasgn || args[0] == :gasgn)
+              # Ruby's behaviour on a single arg block is ugly.
+              # If it takes one argument, but is given multiple,
+              # it's as if it were a single arg splat. Otherwise,
+              # it's like a normal method invocation.
+              builder.message_count
+              builder.is_not(1.to_c9)
+              builder.jmp_if(label_prefix + ".splatify")
+              builder.message_unpack(1, 0, 0)
+              builder.jmp(label_prefix + ".done_unpack")
+              builder.set_label(label_prefix + ".splatify")
+              builder.message_unpack(0, 1, 0)
+              builder.set_label(label_prefix + ".done_unpack")
+            else
+              builder.message_unpack(0, 1, 0) # splat it all for the masgn
+            end
+            transform(args) # comes in as an lasgn or masgn
+            builder.pop
+            builder.pop
           end
-          transform(args) # comes in as an lasgn or masgn
-          builder.pop
-          builder.pop
-        end
 
-        if (block.nil?)
-          transform_nil()
-        else
-          linfo = {
-            :type => :block, 
-            :ret => label_prefix + ".ret"
-          }
-          with_state(:block => true, :loop => linfo) do
-            transform(block)
+          if (block.nil?)
+            transform_nil()
+          else
+            linfo = {
+              :type => :block, 
+              :ret => label_prefix + ".ret"
+            }
+            with_state(:block => true, :loop => linfo) do
+              transform(block)
+            end
           end
         end
 
@@ -919,7 +949,7 @@ module Channel9
         end
         builder.set_label(found_label)
         if (err_assign)
-          builder.local_set(0, err_assign)
+          builder.local_set(find_local_depth(err_assign, true), err_assign)
         else
           builder.pop
         end
@@ -1032,7 +1062,9 @@ module Channel9
         builder.frame_set("self")
         if (!body.nil?)
           with_state(:static_scope => []) do
-            transform(body)
+            with_new_vtable do
+              transform(body)
+            end
           end
         else
           transform_nil
@@ -1057,7 +1089,7 @@ module Channel9
           send(:"transform_#{name}", *info)
         rescue
           cur = Thread.current[:cur_sexp]
-          puts "Compile error near line #{cur.line} of #{cur.file}"
+          puts "Compile error near line #{cur.line} of #{cur.file}" if cur
           raise
         end
       end
