@@ -9,7 +9,7 @@ module Channel9
     # Pushes the message, then count items on to the stack (described below):
     #  SP -> first_sys_arg1 ... -> first_sys_argN -> message
     #
-    # If there aren't +count+ system args, fills out extras with nil.
+    # If there aren't +count+ system args, fills out extras with undef.
     class MESSAGE_SYS_UNPACK < Base
       def initialize(stream, count)
         super(stream, 1, 1 + count)
@@ -25,7 +25,11 @@ module Channel9
 
         pos = 1
         @count.times do
-          env.context.push(message.system[@count - pos])
+          if (@count - pos >= message.system.length)
+            env.context.push(Primitive::Undef)
+          else
+            env.context.push(message.system[@count - pos])
+          end
           pos += 1
         end
       end
