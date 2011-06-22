@@ -385,8 +385,8 @@ module Channel9
         else
           transform(on)
         end
-        builder.push(name)
         builder.channel_new(method_label)
+        builder.push(name)
         builder.message_new(on.nil? ? :define_method : :define_singleton_method, 1, 1)
         builder.channel_call
         builder.pop
@@ -497,8 +497,8 @@ module Channel9
         builder.set_label(done_label)
 
         builder.dup_top
-        builder.push(:__body__)
         builder.channel_new(body_label)
+        builder.push(:__body__)
         builder.message_new(:define_singleton_method, 1, 1)
         builder.channel_call
         builder.pop
@@ -558,8 +558,8 @@ module Channel9
         builder.set_label(done_label)
 
         builder.dup_top
-        builder.push(:__body__)
         builder.channel_new(body_label)
+        builder.push(:__body__)
         builder.message_new(:define_singleton_method, 1, 1)
         builder.channel_call
         builder.pop
