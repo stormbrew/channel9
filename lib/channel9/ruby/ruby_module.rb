@@ -47,12 +47,6 @@ module Channel9
           elf.add_method(name, channel)
           ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
         end
-        klass.add_method(:define_singleton_method) do |cenv, msg, ret|
-          elf = msg.system.first
-          name, channel = msg.positional
-          elf.singleton!.add_method(name, channel)
-          ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
-        end
       end
 
       def self.kernel_mod(mod)
