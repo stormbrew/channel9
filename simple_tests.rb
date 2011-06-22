@@ -5,7 +5,7 @@ Dir["simple_tests/*.rb"].each do |test|
     name = match[2]
 
     output = `ruby -rubygems -Ilib -I../channel9/lib bin/c9.rb #{test}`
-    expected = `ruby #{test}`
+    expected = `ruby #{test} 2>/dev/null`
     puts("#{num} #{name}: #{output == expected ? 'OK' : 'FAIL'}")
 
     if (output != expected)

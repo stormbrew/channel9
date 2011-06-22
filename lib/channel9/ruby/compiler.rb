@@ -765,6 +765,22 @@ module Channel9
         transform_call(target, method, arglist)
       end
 
+      def transform_next(val = nil)
+        linfo = @state[:loop]
+        case linfo[:type]
+        when :block
+          builder.frame_get(linfo[:ret])
+          if (val)
+            transform(val)
+          else
+            builder.push nil
+          end
+          builder.channel_ret
+        else
+          raise "Invalid (or unimplemented?) location for a next"
+        end
+      end
+
       # The sexp for this is weird. It embeds the call into
       # the iterator, so we build the iterator and then push it
       # onto the stack, then flag the upcoming call sexp so that it
@@ -809,7 +825,11 @@ module Channel9
         if (block.nil?)
           transform_nil()
         else
-          with_state(:block => true) do
+          linfo = {
+            :type => :block, 
+            :ret => label_prefix + ".ret"
+          }
+          with_state(:block => true, :loop => linfo) do
             transform(block)
           end
         end
