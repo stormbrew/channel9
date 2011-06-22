@@ -30,6 +30,12 @@ module Channel9
           msg = Primitive::Message.new(msg.name, [], args)
           elf.klass.channel_send(elf.env, msg, ret)
         end
+        klass.add_method(:define_singleton_method) do |cenv, msg, ret|
+          elf = msg.system.first
+          name, channel = msg.positional
+          elf.singleton!.add_method(name, channel)
+          ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
+        end
         klass.add_method(:instance_variable_get) do |cenv, msg, ret|
           elf = msg.system.first
           name = msg.positional.first
