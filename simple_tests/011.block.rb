@@ -32,6 +32,23 @@ meth2 do |i|
   puts "="
 end
 
+def meth_a
+  yield [1,2]
+  yield [3,4]
+  yield [5,6]
+end
+
+meth_a do |a,b|
+  puts a
+  puts "="
+  puts b
+end
+meth_a do |i|
+  puts i
+  puts "="
+end
+
+
 meth do |i|
   puts i
   next
@@ -49,3 +66,4 @@ saved = save do |a|
 end
 saved.call(2)
 call(&saved)
+
