@@ -42,8 +42,36 @@ module Channel9
       end
 
       def transform_lit(literal)
-        builder.push literal
+        case literal
+        when Range
+          if (literal.exclude_end?)
+            transform_dot3([:lit, literal.first], [:lit, literal.last])
+          else
+            transform_dot2([:lit, literal.first], [:lit, literal.last])
+          end
+        else
+          builder.push literal
+        end
       end
+      def transform_dot2(first, last)
+        transform_const(:Range)
+        builder.push(false)
+        transform(last)
+        transform(first)
+        builder.message_new(:new, 0, 3)
+        builder.channel_call
+        builder.pop
+      end
+      def transform_dot3(first, last)
+        transform_const(:Range)
+        builder.push(true)
+        transform(last)
+        transform(first)
+        builder.message_new(:new, 0, 3)
+        builder.channel_call
+        builder.pop
+      end
+
       def transform_str(str)
         transform_const(:String)
         builder.push(Primitive::String.new(str))
@@ -68,6 +96,16 @@ module Channel9
       def transform_dstr(initial, *strings)
         transform_const(:String)
         transform_dsym(initial, *strings)
+        builder.message_new(:new, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+      def transform_hash(*items)
+        transform_const(:Hash)
+        items.reverse.each do |item|
+          transform(item)
+        end
+        builder.tuple_new(items.length)
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop
@@ -188,6 +226,16 @@ module Channel9
         builder.jmp_if_not(done_label)
         builder.pop
         transform(right)
+        builder.set_label(done_label)
+      end
+
+      def transform_op_asgn_or(var_if, asgn)
+        done_label = builder.make_label("asgn_or.done")
+        transform(var_if)
+        builder.dup_top
+        builder.jmp_if(done_label)
+        builder.pop # get rid of the falsy left behind.
+        transform(asgn)
         builder.set_label(done_label)
       end
 
@@ -751,6 +799,29 @@ module Channel9
         builder.channel_call
         builder.pop
       end
+      def transform_cvar(name)
+        builder.frame_get("self")
+        builder.push(name)
+        builder.message_new(:class_variable_get, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+      def transform_cvdecl(name, val)
+        builder.frame_get("self")
+        builder.push(name)
+        transform(val)
+        builder.message_new(:class_variable_decl, 0, 2)
+        builder.channel_call
+        builder.pop
+      end
+      def transform_cvasgn(name, val)
+        builder.frame_get("self")
+        builder.push(name)
+        transform(val)
+        builder.message_new(:class_variable_set, 0, 2)
+        builder.channel_call
+        builder.pop
+      end
 
       def transform_block(*lines)
         count = lines.length
@@ -893,7 +964,17 @@ module Channel9
               builder.message_unpack(0, 1, 0)
               builder.set_label(label_prefix + ".done_unpack")
             else
+              builder.message_count
+              builder.is(1)
+              builder.jmp_if(label_prefix + ".arrayify")
               builder.message_unpack(0, 1, 0) # splat it all for the masgn
+              builder.jmp(label_prefix + ".done_unpack")
+              builder.set_label(label_prefix + ".arrayify")
+              builder.message_unpack(1, 0, 0)
+              builder.message_new(:to_tuple_prim, 0, 0)
+              builder.channel_call
+              builder.pop
+              builder.set_label(label_prefix + ".done_unpack")
             end
             transform(args) # comes in as an lasgn or masgn
             builder.pop

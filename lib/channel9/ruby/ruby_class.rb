@@ -34,7 +34,7 @@ module Channel9
         end
         klass.add_method(:superclass) do |cenv, msg, ret|
           elf = msg.system.first
-          ret.channel_send(elf.env, elf.superclass, InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.superclass.to_c9, InvalidReturnChannel)
         end
         klass.add_method(:name) do |cenv, msg, ret|
           elf = msg.system.first
