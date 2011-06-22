@@ -42,8 +42,8 @@ module Channel9
           ret.channel_send(elf.env, mod, InvalidReturnChannel)
         end
         klass.add_method(:define_method) do |cenv, msg, ret|
-          elf = msg.system.first
-          name, channel = msg.positional
+          elf, zuper, channel = msg.system
+          name = msg.positional.first
           elf.add_method(name, channel)
           ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
         end
