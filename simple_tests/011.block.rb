@@ -32,10 +32,8 @@ meth2 do |i|
   puts "="
 end
 
-=begin
 meth do |i|
   puts i
   next
   puts "boom"
 end
-=end
