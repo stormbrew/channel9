@@ -1,13 +1,13 @@
 module Channel9
   module Instruction
-    # message_new name, count
+    # message_new name, sys_count, count
     # ---
     # Pushes a message onto the stack, with count
     # positional arguments consumed and stored in the argument
     # pack, along with the message name.
     #
     # Takes count inputs as well as a message name:
-    #  SP -> arg1 -> arg2 ... -> argN
+    #  SP -> sys_arg1 -> sys_arg2 ... -> sys_argN ->arg1 -> arg2 ... -> argN
     # Leaves the message on the stack:
     #  SP -> message
     #
