@@ -387,7 +387,7 @@ module Channel9
         end
         builder.push(name)
         builder.channel_new(method_label)
-        builder.message_new(on.nil? ? :define_method : :define_singleton_method, 0, 2)
+        builder.message_new(on.nil? ? :define_method : :define_singleton_method, 1, 1)
         builder.channel_call
         builder.pop
       end
@@ -499,7 +499,7 @@ module Channel9
         builder.dup_top
         builder.push(:__body__)
         builder.channel_new(body_label)
-        builder.message_new(:define_singleton_method, 0, 2)
+        builder.message_new(:define_singleton_method, 1, 1)
         builder.channel_call
         builder.pop
         builder.pop
@@ -560,7 +560,7 @@ module Channel9
         builder.dup_top
         builder.push(:__body__)
         builder.channel_new(body_label)
-        builder.message_new(:define_singleton_method, 0, 2)
+        builder.message_new(:define_singleton_method, 1, 1)
         builder.channel_call
         builder.pop
         builder.pop

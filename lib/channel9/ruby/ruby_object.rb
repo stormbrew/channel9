@@ -25,14 +25,13 @@ module Channel9
           ret.channel_send(env, elf.object_id.to_c9, InvalidReturnChannel)
         end
         klass.add_method(:define_method) do |cenv, msg, ret|
-          elf = msg.system.first
-          args = msg.positional
-          msg = Primitive::Message.new(msg.name, [], args)
+          elf, zuper, *system = msg.system
+          msg = Primitive::Message.new(msg.name, system, msg.positional)
           elf.klass.channel_send(elf.env, msg, ret)
         end
         klass.add_method(:define_singleton_method) do |cenv, msg, ret|
-          elf = msg.system.first
-          name, channel = msg.positional
+          elf, zuper, channel = msg.system
+          name = msg.positional.first
           elf.singleton!.add_method(name, channel)
           ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
         end
@@ -120,7 +119,7 @@ module Channel9
       def channel_send_with(elf, singleton, klass, cenv, val, ret)
         if (val.is_a?(Primitive::Message))
           env.for_debug do
-            pp(:trace=>{:name=>val.name.to_s, :self => elf.to_s, :args => val.positional.collect {|i| i.to_s }})
+            pp(:trace=>{:name=>val.name.to_s, :self => elf.to_s, :system => val.system.collect {|i| i.to_s },:args => val.positional.collect {|i| i.to_s }})
           end
           meth, found_klass = (singleton && singleton.lookup(val.name)) || klass.lookup(val.name)
           if (meth.nil?)
