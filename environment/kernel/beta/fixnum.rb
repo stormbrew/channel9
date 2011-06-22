@@ -7,4 +7,12 @@ class Fixnum
     #end
     return false
   end
+
+  def times
+    i = 0
+    while (i < self)
+      i += 1
+      yield
+    end
+  end
 end
