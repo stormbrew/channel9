@@ -37,3 +37,15 @@ meth do |i|
   next
   puts "boom"
 end
+
+def save(&blah)
+  blah
+end
+def call(&blah)
+  blah.call(1)
+end
+saved = save do |a|
+  puts a
+end
+saved.call(2)
+call(&saved)

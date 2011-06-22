@@ -226,6 +226,10 @@ module Channel9
             defargs = args.pop.dup
             defargs.shift # get rid of the :block lead
           end
+          if (match = args.last.to_s.match(%r{^\&(.+)}))
+            blockarg = match[1].to_sym
+            args.pop
+          end
           if (match = args.last.to_s.match(%r{^\*(.+)}))
             splatarg = match[1].to_sym
             args.pop 
@@ -276,6 +280,10 @@ module Channel9
           builder.channel_call
           builder.pop
           builder.local_set(splatarg)
+        end
+        if (blockarg)
+          builder.frame_get("yield")
+          builder.local_set(blockarg)
         end
         builder.pop
       end
@@ -745,6 +753,13 @@ module Channel9
         end
 
         _, *arglist = arglist
+
+        if (arglist.last && arglist.last[0] == :block_pass)
+          block_arg = arglist.pop.dup
+          has_iter = true
+          transform(block_arg[1])
+        end
+
         if (first_splat = has_splat(arglist))
           i = 0
           while (i < first_splat)
