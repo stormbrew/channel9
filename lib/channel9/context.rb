@@ -18,12 +18,11 @@ module Channel9
     attr :frame_variables
     attr :stack
 
-    def initialize(environment, stream, pos = 0, locals = nil, parent_locals = nil, framevars = nil)
+    def initialize(environment, stream, pos = 0, locals = nil, framevars = nil)
       @environment = environment
       @instruction_stream = stream
       @pos = pos
-      @local_variables = locals ? locals : Array.new(@instruction_stream.locals.length)
-      @parent_locals = parent_locals || []
+      @local_variables = locals ? locals.dup : [Array.new(@instruction_stream.locals.length)]
       @frame_variables = framevars ? framevars.dup : Array.new(@instruction_stream.framevars.length)
       @stack = []
     end
@@ -39,7 +38,7 @@ module Channel9
 
     def callable(pos)
       CallableContext.new(@environment, @instruction_stream, 
-        @instruction_stream.label(pos), @local_variables, @parent_locals, @frame_variables)
+        @instruction_stream.label(pos), @local_variables, @frame_variables)
     end
 
     def set_pos(pos)
@@ -72,30 +71,25 @@ module Channel9
     end
 
     def get_local(depth, id)
-      if (depth == 0)
-        @local_variables[id]
-      elsif (depth < @parent_locals.length)
-        @parent_locals[-depth][id]
+      if (depth < @local_variables.length)
+        @local_variables[depth][id]
       else
         Primitive::Undef
       end
     end
 
     def set_local(depth, id, val)
-      if (depth == 0)
-        @local_variables[id] = val
-      elsif (depth < @parent_locals.length)
-        @parent_locals[-depth][id] = val
+      if (depth < @local_variables.length)
+        @local_variables[depth][id] = val
       else
         Primitive::Undef
       end
     end
     def clean_scope
-      @local_variables = Array.new(@instruction_stream.locals.length)
+      @local_variables = [Array.new(@instruction_stream.locals.length)]
     end
     def linked_scope
-      @parent_locals.push(@local_variables)
-      clean_scope
+      @local_variables.unshift(Array.new(@instruction_stream.locals.length))
     end
 
     def get_framevar(id)
@@ -116,7 +110,7 @@ module Channel9
       {
         :is => @instruction_stream.to_s, 
         :ip => @pos, 
-        :locals => Hash[@local_variables.collect {|v| j += 1; [@instruction_stream.local_name(j-1), v.to_s] }], 
+        :locals => Hash[@local_variables.collect {|l| l.collect {|v| j += 1; [@instruction_stream.local_name(j-1), v.to_s] }}], 
         :frame => Hash[@frame_variables.collect {|v| k += 1; [@instruction_stream.framevar_name(k-1), v.to_s] }], 
         :stack => @stack.collect {|x| x.to_s } 
       }
@@ -124,17 +118,16 @@ module Channel9
   end
 
   class CallableContext
-    def initialize(env, stream, pos, locals, plocals, framevars)
+    def initialize(env, stream, pos, locals, framevars)
       @env = env
       @stream = stream
       @pos = pos
       @locals = locals
-      @plocals = plocals
       @framevars = framevars.dup
     end
 
     def channel_send(cenv, val, ret)
-      Context.new(@env, @stream, @pos, @locals, @plocals, @framevars).channel_send(cenv, val, ret)
+      Context.new(@env, @stream, @pos, @locals, @framevars).channel_send(cenv, val, ret)
     end
   end
 end
