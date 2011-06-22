@@ -124,6 +124,22 @@ module Channel9
         builder.set_label(done_label)
       end
 
+      def transform_not(val)
+        # TODO? it seems a little expensive to test
+        # this with a jmp, but current instruction set
+        # doesn't provide an is_truthy kind of thing. I'm
+        # not sure if it should be added, though.
+        truthy_label = builder.make_label("not.truthy")
+        done_label = builder.make_label("not.done")
+        transform(val)
+        builder.jmp_if_not(truthy_label)
+        builder.push(false)
+        builder.jmp(done_label)
+        builder.set_label(truthy_label)
+        builder.push(true)
+        builder.set_label(done_label)
+      end
+
       def transform_or(left, right)
         done_label = builder.make_label("or.done")
 
