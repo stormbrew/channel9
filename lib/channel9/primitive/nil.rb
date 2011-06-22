@@ -2,7 +2,7 @@ module Channel9
   module Primitive
     class NilC < Base
       def to_s
-        nil.to_s
+        "nil"
       end
       def truthy?
         false
