@@ -14,3 +14,5 @@ load 'beta/table.rb'
 load 'beta/hash.rb'
 
 load 'beta/file.rb'
+
+load 'beta/comparable.rb'
