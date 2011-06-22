@@ -15,3 +15,27 @@ end
 meth do |i|
   puts i
 end
+
+def meth2
+  yield 1,2
+  yield 4,5
+  yield 5,6
+end
+
+meth2 do |a,b|
+  puts a
+  puts "="
+  puts b
+end
+meth2 do |i|
+  puts i
+  puts "="
+end
+
+=begin
+meth do |i|
+  puts i
+  next
+  puts "boom"
+end
+=end

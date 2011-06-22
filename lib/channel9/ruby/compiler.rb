@@ -611,7 +611,7 @@ module Channel9
         end
       end
 
-      def transform_masgn(lhs, rhs)
+      def transform_masgn(lhs, rhs = nil)
         # lhs is always an array, get rid of its
         # prefix so we can deal with it sensibly
         lhs = lhs.dup
@@ -622,11 +622,13 @@ module Channel9
           splat = lhs.pop
         end
 
-        if (rhs[0] == :splat)
-          rhs = rhs[1]
-          transform(rhs)
-        else
-          transform(rhs)
+        if (!rhs.nil?) # rhs already on stack?
+          if (rhs[0] == :splat)
+            rhs = rhs[1]
+            transform(rhs)
+          else
+            transform(rhs)
+          end
         end
         builder.dup_top # so it's the result.
         # rhs should now be an array we can convert to a tuple
