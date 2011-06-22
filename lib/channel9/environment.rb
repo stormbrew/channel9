@@ -46,12 +46,36 @@ module Channel9
       @context = nil
       @running = false
       @debug = debug
+      @saved_debug = debug
       @special_channel = {
         :clean_exit => CleanExitChannel,
         :exit => ExitChannel,
         :invalid_return => InvalidReturnChannel,
         :stdout => StdoutChannel
       }
+      @debug_handlers = {}
+      register_debug_handler(:print) do |env, ctx|
+        pp(:debug_print => {
+          :instruction => {:ip => ctx.pos - 1, :instruction => ctx.next.debug_info},
+          :context => ctx.debug_info}
+        )
+      end
+      register_debug_handler(:start_print_steps) do
+        @saved_debug, @debug = @debug, :detail
+      end
+      register_debug_handler(:stop_print_steps) do
+        @debug = @saved_debug
+      end
+    end
+
+    def register_debug_handler(name, &exec)
+      @debug_handlers[name.to_sym] = exec
+    end
+    def do_debug_handler(name)
+      ctx = @context
+      save_context do
+        @debug_handlers[name.to_sym].call(self, ctx)
+      end
     end
 
     # stores the context for the duration of a block and then
