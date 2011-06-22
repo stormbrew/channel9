@@ -1021,8 +1021,15 @@ module Channel9
       end
 
       def transform(tree)
-        name, *info = tree
-        send(:"transform_#{name}", *info)
+        begin
+          Thread.current[:cur_sexp] = tree if (tree.is_a? Sexp)
+          name, *info = tree
+          send(:"transform_#{name}", *info)
+        rescue
+          cur = Thread.current[:cur_sexp]
+          puts "Compile error near line #{cur.line} of #{cur.file}"
+          raise
+        end
       end
     end
   end
