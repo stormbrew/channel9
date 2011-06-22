@@ -34,8 +34,7 @@ module Channel9
       def transform_evstr(ev)
         transform(ev)
       end
-      def transform_dstr(initial, *strings)
-        transform_const(:String)
+      def transform_dsym(initial, *strings)
         strings.reverse.each do |str|
           transform(str)
         end
@@ -45,6 +44,10 @@ module Channel9
         else
           builder.string_new(:to_s_prim, strings.length)
         end
+      end
+      def transform_dstr(initial, *strings)
+        transform_const(:String)
+        transform_dsym(initial, *strings)
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop
@@ -825,12 +828,24 @@ module Channel9
 
         label_prefix = builder.make_label("Iter:#{call[2]}")
         body_label = label_prefix + ".body"
+        args_label = label_prefix + ".args"
         done_label = label_prefix + ".done"
 
         builder.jmp(done_label)
 
         builder.set_label(body_label)
         builder.frame_set(label_prefix + ".ret")
+
+        # if we got a self through the sys args, 
+        # we've been re-bound to a method so use that instead.
+        builder.message_sys_unpack(1)
+        builder.dup_top
+        builder.is(Primitive::Undef)
+        builder.jmp_if(args_label)
+        builder.frame_set("self")
+        builder.set_label(args_label)
+        builder.pop
+
         if (args.nil?)
           # no args, pop the message off the stack.
           builder.pop
