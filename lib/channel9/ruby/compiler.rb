@@ -242,7 +242,7 @@ module Channel9
         if (defargs.length == 0)
           builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
           args.each do |arg|
-            builder.local_set(arg)
+            builder.local_set(0, arg)
           end
         else
           must_have = args.length - defargs.length
@@ -254,7 +254,7 @@ module Channel9
           builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
           i = 0
           must_have.times do
-            builder.local_set(args[i])
+            builder.local_set(0, args[i])
             i += 1
           end
 
@@ -262,7 +262,7 @@ module Channel9
             builder.frame_get("arg.count")
             builder.is(i)
             builder.jmp_if(defarg_labels[i-must_have])
-            builder.local_set(args[i])
+            builder.local_set(0, args[i])
             i += 1
           end
           builder.jmp(argdone_label)
@@ -282,11 +282,11 @@ module Channel9
           builder.message_new(:new, 0, 1)
           builder.channel_call
           builder.pop
-          builder.local_set(splatarg)
+          builder.local_set(0, splatarg)
         end
         if (blockarg)
           builder.frame_get("yield")
-          builder.local_set(blockarg)
+          builder.local_set(0, blockarg)
         end
         builder.pop
       end
@@ -674,10 +674,10 @@ module Channel9
       def transform_lasgn(name, val = nil)
         transform(val) if !val.nil?
         builder.dup_top
-        builder.local_set(name)
+        builder.local_set(0, name)
       end
       def transform_lvar(name)
-        builder.local_get(name)
+        builder.local_get(0, name)
       end
 
       def transform_gasgn(name, val = nil)
@@ -919,7 +919,7 @@ module Channel9
         end
         builder.set_label(found_label)
         if (err_assign)
-          builder.local_set(err_assign)
+          builder.local_set(0, err_assign)
         else
           builder.pop
         end
