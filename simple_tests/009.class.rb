@@ -9,3 +9,11 @@ class X
   end
 end
 X.new(1).stuff(2)
+
+x = X.new
+class <<x
+  def bloop
+    puts "woot"
+  end
+end
+x.bloop
