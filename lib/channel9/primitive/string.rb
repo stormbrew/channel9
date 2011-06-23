@@ -52,6 +52,9 @@ module Channel9
         by = String.coerce(by).real_str
         @real_str.split(by).collect {|s| String.new(s) }.to_c9
       end
+      def c9_substr(first, last)
+        String.new(@real_str[first.real_num..last.real_num])
+      end
     end
   end
 end
