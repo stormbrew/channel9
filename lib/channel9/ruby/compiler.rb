@@ -1184,6 +1184,7 @@ module Channel9
       def transform_rescue(try, *handlers)
         try_label = builder.make_label("try")
         rescue_label = builder.make_label("rescue")
+        retry_label = builder.make_label("rescue.retry")
         not_raise_label = builder.make_label("rescue.not_raise")
         done_label = builder.make_label("rescue.done")
 
@@ -1195,34 +1196,37 @@ module Channel9
         builder.pop
 
         # do the work
-        transform(try)
+        builder.set_label(retry_label)
+        with_state(:loop=>{:type=>:rescue, :retry_label => retry_label}) do
+          transform(try)
 
-        # if we get here, unset the unwinder and jump to the end.
-        builder.channel_special(:unwinder)
-        builder.push(nil)
-        builder.channel_call
-        builder.pop
-        builder.pop
-        builder.jmp(done_label)
+          # if we get here, unset the unwinder and jump to the end.
+          builder.channel_special(:unwinder)
+          builder.push(nil)
+          builder.channel_call
+          builder.pop
+          builder.pop
+          builder.jmp(done_label)
 
-        builder.set_label(rescue_label)
+          builder.set_label(rescue_label)
 
-        # pop the return handler and check the message to see
-        # if this is an error or if we should just call the next
-        # unwinder.
-        builder.pop
-        builder.message_name
-        builder.is(:raise.to_c9)
-        builder.jmp_if_not(not_raise_label)
+          # pop the return handler and check the message to see
+          # if this is an error or if we should just call the next
+          # unwinder.
+          builder.pop
+          builder.message_name
+          builder.is(:raise.to_c9)
+          builder.jmp_if_not(not_raise_label)
 
-        builder.message_unpack(1,0,0)
+          builder.message_unpack(1,0,0)
 
-        with_state(:rescue_done => done_label) do
-          handlers.each do |handler|
-            transform(handler)
+          with_state(:rescue_done => done_label) do
+            handlers.each do |handler|
+              transform(handler)
+            end
           end
         end
-
+        
         builder.pop
         builder.set_label(not_raise_label)
         builder.channel_special(:unwinder)
