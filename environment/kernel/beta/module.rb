@@ -21,4 +21,20 @@ class Module
     attr_reader(name)
     attr_writer(name) if write
   end
+
+  def module_function(*names)
+    # TODO: Implement.
+  end
+  def alias_method(from, to)
+    # TODO: Implement.
+  end
+  def private_class_method(*names)
+    # TODO: Implement.
+  end
+  def private(*names)
+    # TODO: Implement.
+  end
+  def module_eval(ev)
+    # TODO: Implement (how?).
+  end
 end
