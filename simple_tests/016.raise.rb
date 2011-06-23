@@ -57,3 +57,13 @@ begin
 rescue Stuff
   puts $!.message
 end
+
+blah = false
+begin
+  raise Stuff, "who?" if !blah
+  puts "woot!"
+rescue Stuff => doop
+  puts doop.message
+  blah = true
+  retry
+end
