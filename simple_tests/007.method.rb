@@ -17,3 +17,19 @@ def ret(i)
   puts "NOOOOooooooooo!"
 end
 puts(5)
+
+def mret_simple
+  return 1,2
+end
+a, b = mret_simple
+puts(a, '==', b)
+
+def mret_splat_single
+  return *ident(1)
+end
+a = mret_splat_single
+puts(a, a.class)
+
+def mret_splat_multi
+  return *ident([1,2,3])
+end
