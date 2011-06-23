@@ -20,8 +20,7 @@ class Hash
     @vals.push([name, val])
   end
   def [](name)
-    @vals.each do |a|
-      k, v = a
+    @vals.each do |k,v|
       if (name.eql?(k))
         return v
       end
@@ -29,8 +28,7 @@ class Hash
     nil
   end
   def include?(name)
-    @vals.each do |a|
-      k, v = a
+    @vals.each do |k,v|
       if (name.eql?(k))
         return true
       end
