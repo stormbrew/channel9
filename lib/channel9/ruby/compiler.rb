@@ -292,6 +292,15 @@ module Channel9
         transform(asgn)
         builder.set_label(done_label)
       end
+      def transform_op_asgn_and(var_if, asgn)
+        done_label = builder.make_label("asgn_and.done")
+        transform(var_if)
+        builder.dup_top
+        builder.jmp_if_not(done_label)
+        builder.pop # get rid of the falsy left behind.
+        transform(asgn)
+        builder.set_label(done_label)
+      end
 
       def transform_op_asgn1(var_if, args, op, val)
         done_label = builder.make_label("asgn1.done")
