@@ -662,6 +662,9 @@ module Channel9
         done_label = builder.make_label(label_prefix + ".done")
 
         transform(obj)
+        builder.message_new(:singleton!, 0, 0)
+        builder.channel_call
+        builder.pop
         builder.jmp(done_label)
 
         builder.set_label(body_label)
