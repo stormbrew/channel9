@@ -303,21 +303,53 @@ module Channel9
       end
 
       def transform_op_asgn1(var_if, args, op, val)
-        done_label = builder.make_label("asgn1.done")
-        transform_call(var_if, :[], args)
-        builder.dup_top
         case op
-        when :'||'
-          builder.jmp_if(done_label)
-        when :'&&'
-          builder.jmp_if_not(done_label)
+        when :'||', :'&&'
+          done_label = builder.make_label("asgn1.done")
+          transform_call(var_if, :[], args)
+          builder.dup_top
+          case op
+          when :'||'
+            builder.jmp_if(done_label)
+          when :'&&'
+            builder.jmp_if_not(done_label)
+          end
+          builder.pop
+          asgn_args = args + s(val)
+          transform_call(var_if, :[]=, asgn_args)
+          builder.set_label(done_label)
         else
-          raise "Unknown operator #{op}"
+          transform(var_if) # -> var
+          builder.dup_top # -> var -> var
+          builder.dup_top # -> var -> var -> var
+          _, *args = args
+          args.reverse.each do |arg|
+            transform(arg)
+          end # -> args... -> var -> var -> var
+          builder.tuple_new(args.length) # -> args -> var -> var -> var
+          builder.dup_top # -> args -> args -> var -> var -> var
+          builder.frame_set("asgn1.tuple") # -> args -> var -> var -> var
+          builder.message_new(:[], 0, 0) # -> []msg -> args -> var -> var -> var
+          builder.swap # -> args -> msg -> var -> var -> var
+          builder.message_splat # -> msg -> var -> var -> var
+          builder.channel_call 
+          builder.pop # -> orig -> var -> var
+
+          transform(val) # -> opvar -> orig -> var -> var
+          builder.swap # -> orig -> opvar -> var -> var
+          builder.message_new(op, 0, 1) # -> msg -> var -> var
+          builder.channel_call 
+          builder.pop # -> opres -> var
+
+          builder.tuple_new(1) # -> restuple -> var
+          builder.message_new(:[]=, 0, 0) # -> msg -> restuple -> var
+          builder.frame_get("asgn1.tuple") # -> args -> msg -> restuple -> var
+          builder.message_splat # -> msg -> restuple -> var
+          builder.swap # -> restuple -> msg -> var
+          builder.message_splat # -> msg -> var
+          builder.channel_call
+          builder.pop # -> res
         end
-        builder.pop
-        asgn_args = args + s(val)
-        transform_call(var_if, :[]=, asgn_args)
-        builder.set_label(done_label)
       end
 
       def transform_when(comparisons, body)
