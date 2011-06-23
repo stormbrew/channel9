@@ -33,3 +33,11 @@ end
   v.second_a = "storff"
   v.third_a = "woop"
 end
+
+class Y
+  class <<self
+    attr_accessor :boom
+  end
+  self.boom = 1
+  puts self.boom
+end

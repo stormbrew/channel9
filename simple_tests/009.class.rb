@@ -10,7 +10,7 @@ class X
 end
 X.new(1).stuff(2)
 
-x = X.new
+x = X.new(2)
 class <<x
   def bloop
     puts "woot"
