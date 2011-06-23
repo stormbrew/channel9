@@ -819,6 +819,7 @@ module Channel9
       end
 
       def transform_alias(first, second)
+        builder.frame_get("self")
         transform(first)
         transform(second)
         builder.message_new(:alias_method, 0, 2)

@@ -1,4 +1,6 @@
 class Hash
+  include Enumerable
+
   def initialize(tuple)
     @vals = []
     key = nil
@@ -26,6 +28,9 @@ class Hash
       end
     end
     nil
+  end
+  def keys
+    @vals.collect {|k,v| k }
   end
   def include?(name)
     @vals.each do |k,v|

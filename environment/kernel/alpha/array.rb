@@ -47,6 +47,10 @@ class Array
     @tuple = @tuple.push(val)
     val
   end
+  def <<(val)
+    @tuple = @tuple.push(val)
+    self
+  end
   def unshift(val)
     @tuple = @tuple.front_push(val)
     val
@@ -70,5 +74,12 @@ class Array
 
   def +(other)
     Array.new(@tuple + other.to_tuple_prim)
+  end
+  def -(other)
+    n = []
+    each do |i|
+      n << i if !other.include?(i)
+    end
+    n
   end
 end
