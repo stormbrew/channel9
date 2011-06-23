@@ -582,41 +582,41 @@ module Channel9
         builder.pop
       end
 
+      def transform_svalue(splat)
+        # basic effect of a single splatted value
+        # in a return statement is to turn no or
+        # one value into unpacking the first value
+        # from the tuple, otherwise just return the tuple.
+        splat_done = builder.make_label("splat.done")
+        splat_to_a = builder.make_label("splat.to_a")
+        transform(splat[1])
+        builder.message_new(:to_tuple_prim, 0, 0)
+        builder.channel_call
+        builder.pop
+        builder.dup_top
+        builder.message_new(:length, 0, 0)
+        builder.channel_call
+        builder.pop
+        builder.push(2)
+        builder.message_new(:<, 0, 1)
+        builder.channel_call
+        builder.pop
+        builder.jmp_if_not(splat_to_a)
+        builder.tuple_unpack(1,0,0)
+        builder.swap
+        builder.pop
+        builder.jmp(splat_done)
+        builder.set_label(splat_to_a)
+        builder.message_new(:to_a, 0, 1)
+        builder.channel_call
+        builder.pop
+        builder.set_label(splat_done)
+      end
+
       def transform_return_vals(vals)
         if (vals.any?)
           if (vals.length == 1)
-            if (vals[0][0] == :svalue)
-              # basic effect of a single splatted value
-              # in a return statement is to turn no or
-              # one value into unpacking the first value
-              # from the tuple, otherwise just return the tuple.
-              splat_done = builder.make_label("return.splat.done")
-              splat_to_a = builder.make_label("return.splat.to_a")
-              transform(vals[0][1][1]) # there's a :splat node in here too.
-              builder.message_new(:to_tuple_prim, 0, 0)
-              builder.channel_call
-              builder.pop
-              builder.dup_top
-              builder.message_new(:length, 0, 0)
-              builder.channel_call
-              builder.pop
-              builder.push(2)
-              builder.message_new(:<, 0, 1)
-              builder.channel_call
-              builder.pop
-              builder.jmp_if_not(splat_to_a)
-              builder.tuple_unpack(1,0,0)
-              builder.swap
-              builder.pop
-              builder.jmp(splat_done)
-              builder.set_label(splat_to_a)
-              builder.message_new(:to_a, 0, 1)
-              builder.channel_call
-              builder.pop
-              builder.set_label(splat_done)
-            else
-              transform(vals[0])
-            end
+            transform(vals[0])
           else
             splat = nil
             if (vals.last[0] == :svalue)
