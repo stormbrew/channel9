@@ -1339,6 +1339,19 @@ module Channel9
         builder.set_label(done_label)
       end
 
+      def transform_defined(val)
+        case val[0]
+        when :const
+          done_label = builder.make_label("defined.const.done")
+          transform(val)
+          builder.jmp_if_not(done_label)
+          builder.push(:constant)
+          builder.set_label(done_label)
+        else
+          raise "Unknown defined? type."
+        end
+      end
+
       def transform_file(body)
         builder.frame_set("return")
         builder.frame_set("self")
