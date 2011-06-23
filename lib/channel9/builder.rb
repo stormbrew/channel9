@@ -17,8 +17,8 @@ module Channel9
       @stream.set_label(name)
     end
 
-    def line(*args); 
-      @stream.line(*args)
+    def line(filename, line, pos = nil)
+      @stream.line(filename, line, pos = nil)
     end
 
     # generate methods based on instruction names

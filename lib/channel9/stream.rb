@@ -7,12 +7,14 @@ module Channel9
     attr :instructions
     attr :labels
     attr :locals
+    attr :line_info
     attr :framevars
 
     def initialize()
       @instructions = []
       @labels = {}
       @locals = {}
+      @line_info = []
       @framevars = {}
       @pos = 0
     end
@@ -36,6 +38,7 @@ module Channel9
       i = 0
       while (i < @instructions.length)
         instructions << ["set_label", labels[i]] if (labels[i])
+        instructions << ["line", *line_info[i]] if (line_info[i])
         instructions << @instructions[i]
         i += 1
       end
@@ -59,7 +62,12 @@ module Channel9
       @labels[name_or_ip] || name_or_ip
     end
 
-    def line(*args); end
+    def line(file, line, fpos = nil)
+      while (@line_info.length <= @pos)
+        @line_info << nil
+      end
+      @line_info[@pos] = file, line, fpos
+    end
 
     def local(name)
       @locals[name] ||= @locals.length
