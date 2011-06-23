@@ -20,20 +20,12 @@ module Kernel
   end
 
   def load(name)
-    $LOAD_PATH.each {|path|
+    $LOAD_PATH.reverse.each {|path|
       if (raw_load("#{path}/#{name}"))
         return true
       end
     }
     raise LoadError, "Could not load library #{name}"
-  end
-
-  def require(name)
-    begin
-      load(name)
-    rescue LoadError
-      load(name + ".rb")
-    end
   end
 
   def method_missing(name, *args)

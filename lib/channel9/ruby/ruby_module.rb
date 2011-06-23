@@ -35,6 +35,12 @@ module Channel9
           end
           ret.channel_send(elf.env, const.to_c9, InvalidReturnChannel)
         end
+        klass.add_method(:const_defined?) do |cenv, msg, ret|
+          elf = msg.system.first
+          name = msg.positional.first
+          val = elf.constant[name.to_c9] ? true : false
+          ret.channel_send(elf.env, val.to_c9, InvalidReturnChannel)
+        end
         klass.add_method(:include) do |cenv, msg, ret|
           elf = msg.system.first
           mod = msg.positional.first

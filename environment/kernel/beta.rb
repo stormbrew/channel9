@@ -2,7 +2,9 @@
 # tuple it started as.
 $LOAD_PATH = Array.new($LOAD_PATH)
 $: = $LOAD_PATH
+$LOADED_FEATURES = []
 
+load 'beta/kernel.rb'
 load 'beta/object.rb'
 load 'beta/class.rb'
 load 'beta/module.rb'

@@ -39,7 +39,8 @@ module Channel9
         globals = env.special_channel[:globals] = {
           :"$LOAD_PATH".to_c9 => [
             :"#{c9rb_root}/environment/kernel".to_c9, 
-            :"#{c9rb_root}/environment/lib".to_c9, 
+            :"#{c9rb_root}/environment/lib".to_c9,
+            :"#{c9rb_root}/environment/site-lib".to_c9,
             :".".to_c9
           ]
         }
