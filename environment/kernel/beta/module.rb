@@ -34,6 +34,9 @@ class Module
   def private(*names)
     # TODO: Implement.
   end
+  def protected(*names)
+    # TODO: Implement.
+  end
   def module_eval(ev)
     # TODO: Implement (how?).
   end
