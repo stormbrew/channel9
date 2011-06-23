@@ -60,10 +60,18 @@ module Channel9
         return @real_num < Number.coerce(other).real_num
       end
       alias_method :"c9_<", :c9_lt
+      def c9_lte(other)
+        return @real_num <= Number.coerce(other).real_num
+      end
+      alias_method :"c9_<=", :c9_lte
       def c9_gt(other)
         return @real_num > Number.coerce(other).real_num
       end
       alias_method :"c9_>", :c9_gt
+      def c9_gte(other)
+        return @real_num >= Number.coerce(other).real_num
+      end
+      alias_method :"c9_>=", :c9_gte
       def c9_equal(other)
         return @real_num == Number.coerce(other).real_num
       end
