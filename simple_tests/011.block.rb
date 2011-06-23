@@ -70,6 +70,6 @@ call(&saved)
 puts "==="
 $z = 0
 meth do |i|
-  retry if ($z += 1) < 2
+  redo if ($z += 1) < 2
   puts i, $z
 end
