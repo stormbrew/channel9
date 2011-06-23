@@ -123,11 +123,12 @@ module Channel9
             desc = exc
             exc = constants[:RuntimeError.to_c9]
           end
-
+          if (bt.nil?)
+            bt = make_backtrace(env.context).to_c9
+          end
+          
           exc.channel_send(env, Primitive::Message.new(:exception, [], [desc].compact), CallbackChannel.new {|ienv, exc, sret|
-            handler = env.special_channel[:unwinder].handlers.pop
-            globals[:"$!".to_c9] = exc
-            handler.channel_send(env, Primitive::Message.new(:raise, [], [exc]), InvalidReturnChannel)
+            raise_exception(env, exc, bt)
           })
         end
 
@@ -177,6 +178,12 @@ module Channel9
             })
           end
         end
+
+        mod.add_method(:caller) do |cenv, msg, ret|
+          ctx = cenv.context
+          bt = make_backtrace(ctx)
+          ret.channel_send(cenv, bt, InvalidReturnChannel)
+        end
       end
 
       def initialize(env, name)
@@ -189,6 +196,24 @@ module Channel9
 
       def to_s
         "#<Channel9::Ruby::RubyModule: #{name}>"
+      end
+
+      def self.make_backtrace(ctx)
+        bt = []
+        while (!ctx.nil?)
+          bt.unshift(Primitive::String.new(ctx.line_info.join(":")))
+
+          ctx = ctx.caller
+        end
+        bt
+      end
+      def self.raise_exception(env, exc, bt)
+        globals = env.special_channel[:globals]
+        handler = env.special_channel[:unwinder].handlers.pop
+        globals[:"$!".to_c9] = exc
+        exc.channel_send(env, Primitive::Message.new(:set_backtrace, [], [bt]), CallbackChannel.new {
+          handler.channel_send(env, Primitive::Message.new(:raise, [], [exc]), InvalidReturnChannel)
+        })
       end
 
       def include(mod)
