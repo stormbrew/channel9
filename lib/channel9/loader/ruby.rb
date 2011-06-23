@@ -107,7 +107,9 @@ module Channel9
             stream.build do |builder|
               parser = RubyParser.new
               tree = parser.parse(f.read, filename)
-              tree = [:file, tree]
+              tree = s(:file, tree)
+              tree.file = filename.to_s
+              tree.pos = 1
               compiler = Channel9::Ruby::Compiler.new(builder)
               compiler.transform(tree)
             end
