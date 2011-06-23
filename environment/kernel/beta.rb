@@ -21,3 +21,5 @@ load 'beta/dir.rb'
 load 'beta/comparable.rb'
 
 load 'beta/regexp.rb'
+
+ENV = {} # TODO: Make this not a stub.
