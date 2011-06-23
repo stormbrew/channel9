@@ -53,6 +53,12 @@ module Channel9
           elf.add_method(name, channel)
           ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
         end
+        klass.add_method(:method_defined?) do |cenv, msg, ret|
+          elf = msg.system.first
+          name = msg.positional.first
+          defined = elf.instance_methods[name] ? true : false
+          ret.channel_send(elf.env, defined.to_c9, InvalidReturnChannel)
+        end
       end
 
       def self.kernel_mod(mod)
