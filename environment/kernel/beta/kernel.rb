@@ -13,4 +13,8 @@ module Kernel
       return true
     end
   end
+
+  def at_exit(&block)
+    # TODO: Make not a stub.
+  end
 end
