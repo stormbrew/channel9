@@ -160,7 +160,7 @@ module Channel9
 
       def transform_while(condition, body, unk)
         begin_label = builder.make_label("while.begin")
-        retry_label = builder.make_label("while.retry")
+        redo_label = builder.make_label("while.redo")
         done_label = builder.make_label("while.done")
 
         builder.set_label(begin_label)
@@ -171,10 +171,12 @@ module Channel9
           :type => :while, 
           :beg_label => begin_label, 
           :end_label => done_label,
-          :retry_label => retry_label,
+          :retry_label => begin_label,
+          :next_label => begin_label,
+          :redo_label => redo_label,
         }
         with_state(:loop => linfo) do
-          builder.set_label(retry_label)
+          builder.set_label(redo_label)
           transform(body)
         end
         builder.pop
@@ -185,7 +187,7 @@ module Channel9
       end
       def transform_until(condition, body, unk)
         begin_label = builder.make_label("until.begin")
-        retry_label = builder.make_label("until.retry")
+        redo_label = builder.make_label("until.redo")
         done_label = builder.make_label("until.done")
 
         builder.set_label(begin_label)
@@ -193,13 +195,15 @@ module Channel9
         builder.jmp_if(done_label)
 
         linfo = {
-          :type => :while, # same semantics as while.
+          :type => :while, 
           :beg_label => begin_label, 
           :end_label => done_label,
-          :retry_label => retry_label,
+          :retry_label => begin_label,
+          :next_label => begin_label,
+          :redo_label => redo_label,
         }
         with_state(:loop => linfo) do
-          builder.set_label(retry_label)
+          builder.set_label(redo_label)
           transform(body)
         end
         builder.pop
@@ -1036,7 +1040,7 @@ module Channel9
         when :while
           builder.jmp(linfo[:beg_label])
         else
-          raise "Invalid (or unimplemented?) location for a next"
+          raise "Invalid (or unimplemented?) location for a next: #{linfo[:type]}"
         end
       end
 
@@ -1046,12 +1050,19 @@ module Channel9
         when :while
           builder.jmp(linfo[:end_label])
         else
-          raise "Invalid (or unimplemented?) location for a next"
+          raise "Invalid (or unimplemented?) location for a break"
         end
       end
-      def transform_retry
+      def transform_redo
         linfo = @state[:loop]
-        builder.jmp(linfo[:retry_label])
+        builder.jmp(linfo[:redo_label])
+      end
+      def transform_retry
+        if (@state[:rescue_retry])
+          builder.jmp(@state[:rescue_retry])
+        else
+          raise "Invalid (or unimplemented?) location for a retry"
+        end
       end
 
       # The sexp for this is weird. It embeds the call into
@@ -1126,7 +1137,7 @@ module Channel9
             linfo = {
               :type => :block, 
               :ret => label_prefix + ".ret",
-              :retry_label => label_prefix + ".retry",
+              :redo_label => label_prefix + ".retry",
             }
             with_state(:block => true, :loop => linfo) do
               builder.set_label(label_prefix + ".retry")
@@ -1197,7 +1208,7 @@ module Channel9
 
         # do the work
         builder.set_label(retry_label)
-        with_state(:loop=>{:type=>:rescue, :retry_label => retry_label}) do
+        with_state(:rescue_retry=>retry_label) do
           transform(try)
 
           # if we get here, unset the unwinder and jump to the end.
@@ -1226,7 +1237,7 @@ module Channel9
             end
           end
         end
-        
+
         builder.pop
         builder.set_label(not_raise_label)
         builder.channel_special(:unwinder)
