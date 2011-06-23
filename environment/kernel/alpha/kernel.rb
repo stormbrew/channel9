@@ -15,6 +15,10 @@ module Kernel
     self.equal?(other)
   end
 
+  def =~(other)
+    nil
+  end
+
   def load(name)
     $LOAD_PATH.each {|path|
       if (raw_load("#{path}/#{name}"))

@@ -49,6 +49,12 @@ module Channel9
           else
             transform_dot2([:lit, literal.first], [:lit, literal.last])
           end
+        when Regexp
+          transform_const(:Regexp)
+          builder.push(Primitive::String.new(literal.to_s))
+          builder.message_new(:new, 0, 1)
+          builder.channel_call
+          builder.pop
         else
           builder.push literal
         end
@@ -95,6 +101,13 @@ module Channel9
       end
       def transform_dstr(initial, *strings)
         transform_const(:String)
+        transform_dsym(initial, *strings)
+        builder.message_new(:new, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+      def transform_dregx(initial, *strings)
+        transform_const(:Regexp)
         transform_dsym(initial, *strings)
         builder.message_new(:new, 0, 1)
         builder.channel_call
@@ -229,6 +242,15 @@ module Channel9
         builder.set_label(done_label)
       end
 
+      def transform_match3(val, cmp)
+        transform(val)
+        transform(cmp)
+        builder.message_new(:=~, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+      alias_method :transform_match2, :transform_match3
+
       def transform_op_asgn_or(var_if, asgn)
         done_label = builder.make_label("asgn_or.done")
         transform(var_if)
@@ -236,6 +258,24 @@ module Channel9
         builder.jmp_if(done_label)
         builder.pop # get rid of the falsy left behind.
         transform(asgn)
+        builder.set_label(done_label)
+      end
+
+      def transform_op_asgn1(var_if, args, op, val)
+        done_label = builder.make_label("asgn1.done")
+        transform_call(var_if, :[], args)
+        builder.dup_top
+        case op
+        when :'||'
+          builder.jmp_if(done_label)
+        when :'&&'
+          builder.jmp_if_not(done_label)
+        else
+          raise "Unknown operator #{op}"
+        end
+        builder.pop
+        asgn_args = args + s(val)
+        transform_call(var_if, :[]=, asgn_args)
         builder.set_label(done_label)
       end
 
@@ -493,25 +533,76 @@ module Channel9
         builder.pop
       end
 
-      def transform_return(val = nil)
+      def transform_return_vals(vals)
+        if (vals.any?)
+          if (vals.length == 1)
+            if (vals[0][0] == :svalue)
+              # basic effect of a single splatted value
+              # in a return statement is to turn no or
+              # one value into unpacking the first value
+              # from the tuple, otherwise just return the tuple.
+              splat_done = builder.make_label("return.splat.done")
+              splat_to_a = builder.make_label("return.splat.to_a")
+              transform(vals[0][1][1]) # there's a :splat node in here too.
+              builder.message_new(:to_tuple_prim, 0, 0)
+              builder.channel_call
+              builder.pop
+              builder.dup_top
+              builder.message_new(:length, 0, 0)
+              builder.channel_call
+              builder.pop
+              builder.push(2)
+              builder.message_new(:<, 0, 1)
+              builder.channel_call
+              builder.pop
+              builder.jmp_if_not(splat_to_a)
+              builder.tuple_unpack(1,0,0)
+              builder.swap
+              builder.pop
+              builder.jmp(splat_done)
+              builder.set_label(splat_to_a)
+              builder.message_new(:to_a, 0, 1)
+              builder.channel_call
+              builder.pop
+              builder.set_label(splat_done)
+            else
+              transform(vals[0])
+            end
+          else
+            splat = nil
+            if (vals.last[0] == :svalue)
+              splat = vals.pop
+            end
+            vals.reverse.each do |val|
+              transform(val)
+            end
+            builder.tuple_new(vals.length)
+            if (splat)
+              transform(splat[1])
+              builder.tuple_new(1)
+              builder.tuple_splat
+            end
+          end
+        else
+          transform_nil
+        end
+      end
+
+      def transform_return(*vals)
         if (@state[:ensure] || @state[:block])
           @state[:need_long_return][0] = true if @state[:need_long_return]
           builder.channel_special(:unwinder)
           builder.frame_get("return")
-          if (val)
-            transform(val)
-          else
-            transform_nil
-          end
+
+          transform_return_vals(vals)
+
           builder.message_new(:long_return, 0, 2)
           builder.channel_ret
         else
           builder.frame_get("return")
-          if (val)
-            transform(val)
-          else
-            transform_nil
-          end
+
+          transform_return_vals(vals)
+
           builder.channel_ret
         end
       end
@@ -643,6 +734,14 @@ module Channel9
         builder.pop
 
         builder.message_new(:__body__, 0, 0)
+        builder.channel_call
+        builder.pop
+      end
+
+      def transform_alias(first, second)
+        transform(first)
+        transform(second)
+        builder.message_new(:alias_method, 0, 2)
         builder.channel_call
         builder.pop
       end
