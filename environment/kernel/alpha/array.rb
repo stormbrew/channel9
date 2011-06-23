@@ -43,6 +43,16 @@ class Array
     Array.new(@tuple.split(by))
   end
 
+  def reverse
+    r = []
+    i = length - 1
+    while (i >= 0)
+      r << self[i]
+      i -= 1
+    end
+    r
+  end
+
   def push(val)
     @tuple = @tuple.push(val)
     val
