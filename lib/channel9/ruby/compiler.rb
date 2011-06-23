@@ -968,6 +968,15 @@ module Channel9
         builder.channel_call
         builder.pop
       end
+      def transform_nth_ref(num)
+        # TODO: This is a very bad stub. Fix me.
+        if (num == 0)
+          builder.push('bin/c9.rb')
+        else
+          # Totally wrong. Needs to pull from regex state.
+          transform_gvar(:"$#{num}")
+        end
+      end
 
       def transform_iasgn(name, val = nil)
         if (val.nil?)
