@@ -1187,7 +1187,11 @@ module Channel9
           builder.pop
         end
 
-        transform(body)
+        if (body.nil?)
+          transform_nil
+        else
+          transform(body)
+        end
         builder.jmp(done_label)
         builder.set_label(next_label)
       end
