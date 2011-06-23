@@ -18,3 +18,26 @@ when 1
 else
   puts "gump"
 end
+
+case
+when false
+  puts "zorp"
+when true
+  puts "x"
+end
+
+case
+when nil
+  puts "zoop"
+when 1
+  puts "y"
+end
+
+case
+when nil
+  puts "zero"
+when false
+  puts "stuff"
+else
+  puts "z"
+end

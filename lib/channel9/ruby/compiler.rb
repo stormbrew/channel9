@@ -160,6 +160,7 @@ module Channel9
 
       def transform_while(condition, body, unk)
         begin_label = builder.make_label("while.begin")
+        retry_label = builder.make_label("while.retry")
         done_label = builder.make_label("while.done")
 
         builder.set_label(begin_label)
@@ -169,9 +170,36 @@ module Channel9
         linfo = {
           :type => :while, 
           :beg_label => begin_label, 
-          :end_label => done_label
+          :end_label => done_label,
+          :retry_label => retry_label,
         }
         with_state(:loop => linfo) do
+          builder.set_label(retry_label)
+          transform(body)
+        end
+        builder.pop
+
+        builder.jmp(begin_label)
+        builder.set_label(done_label)
+        builder.push(nil.to_c9)
+      end
+      def transform_until(condition, body, unk)
+        begin_label = builder.make_label("until.begin")
+        retry_label = builder.make_label("until.retry")
+        done_label = builder.make_label("until.done")
+
+        builder.set_label(begin_label)
+        transform(condition)
+        builder.jmp_if(done_label)
+
+        linfo = {
+          :type => :while, # same semantics as while.
+          :beg_label => begin_label, 
+          :end_label => done_label,
+          :retry_label => retry_label,
+        }
+        with_state(:loop => linfo) do
+          builder.set_label(retry_label)
           transform(body)
         end
         builder.pop
@@ -288,17 +316,23 @@ module Channel9
         comparisons.shift
 
         comparisons.each do |cmp|
-          builder.dup_top # value from enclosing case.
-          transform(cmp)
-          builder.swap
-          builder.message_new(:===, 0, 1)
-          builder.channel_call
-          builder.pop
-          builder.jmp_if(found_label)
-          builder.jmp(next_label)
+          if (@state[:if_case])
+            transform(cmp)
+            builder.jmp_if(found_label)
+            builder.jmp(next_label)
+          else
+            builder.dup_top # value from enclosing case.
+            transform(cmp)
+            builder.swap
+            builder.message_new(:===, 0, 1)
+            builder.channel_call
+            builder.pop
+            builder.jmp_if(found_label)
+            builder.jmp(next_label)
+          end
         end
         builder.set_label(found_label)
-        builder.pop # value not needed anymore
+        builder.pop if (!@state[:if_case])# value not needed anymore
         if (body.nil?)
           transform_nil
         else
@@ -312,8 +346,10 @@ module Channel9
         else_case = cases.pop
         done_label = builder.make_label("case.done")
 
-        transform(value)
-        with_state(:case_done => done_label) do
+        if (value)
+          transform(value)
+        end
+        with_state(:case_done => done_label, :if_case => value.nil?) do
           cases.each do |case_i|
             transform(case_i)
           end
@@ -1013,6 +1049,10 @@ module Channel9
           raise "Invalid (or unimplemented?) location for a next"
         end
       end
+      def transform_retry
+        linfo = @state[:loop]
+        builder.jmp(linfo[:retry_label])
+      end
 
       # The sexp for this is weird. It embeds the call into
       # the iterator, so we build the iterator and then push it
@@ -1085,9 +1125,11 @@ module Channel9
           else
             linfo = {
               :type => :block, 
-              :ret => label_prefix + ".ret"
+              :ret => label_prefix + ".ret",
+              :retry_label => label_prefix + ".retry",
             }
             with_state(:block => true, :loop => linfo) do
+              builder.set_label(label_prefix + ".retry")
               transform(block)
             end
           end

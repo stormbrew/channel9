@@ -67,3 +67,8 @@ end
 saved.call(2)
 call(&saved)
 
+$z = 0
+meth do |i|
+  retry if ($z += 1) == 2
+  puts "hi"
+end
