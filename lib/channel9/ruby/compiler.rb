@@ -1430,11 +1430,31 @@ module Channel9
         super
       end
 
+      def current_sexp
+        Thread.current[:cur_sexp]
+      end
+      def with_current_sexp(tree)
+        if (tree.is_a? Sexp)
+          begin
+            if (!current_sexp || current_sexp.line != tree.line)
+              builder.line(tree.file.to_s, tree.line)
+            end
+            old, Thread.current[:cur_sexp] = current_sexp, tree
+            yield
+          ensure
+            Thread.current[:cur_sexp] = old
+          end
+        else
+          yield
+        end
+      end
+
       def transform(tree)
         begin
-          Thread.current[:cur_sexp] = tree if (tree.is_a? Sexp)
-          name, *info = tree
-          send(:"transform_#{name}", *info)
+          with_current_sexp(tree) do
+            name, *info = tree
+            send(:"transform_#{name}", *info)
+          end
         rescue
           cur = Thread.current[:cur_sexp]
           puts "Compile error near line #{cur.line} of #{cur.file}" if cur
