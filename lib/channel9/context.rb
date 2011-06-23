@@ -17,14 +17,16 @@ module Channel9
     attr :parent_locals
     attr :frame_variables
     attr :stack
+    attr :caller
 
-    def initialize(environment, stream, pos = 0, locals = nil, framevars = nil)
+    def initialize(environment, stream, pos = 0, locals = nil, framevars = nil, caller = nil)
       @environment = environment
       @instruction_stream = stream
       @pos = pos
       @local_variables = locals ? locals.dup : [Array.new(@instruction_stream.locals.length)]
       @frame_variables = framevars ? framevars.dup : Array.new(@instruction_stream.framevars.length)
       @stack = []
+      @caller = caller
     end
 
     def truthy?
@@ -44,6 +46,20 @@ module Channel9
     def set_pos(pos)
       @pos = @instruction_stream.label(pos)
       return self
+    end
+
+    def line_info
+      # scan back through the instruction stream's line info for the nearest line
+      # declaration.
+      cur_pos = @pos
+      lines = @instruction_stream.line_info
+      while (cur_pos >= 0)
+        if (!lines[cur_pos].nil?)
+          return lines[cur_pos]
+        end
+        cur_pos -= 1
+      end
+      return nil
     end
 
     def reset_stack
@@ -110,6 +126,7 @@ module Channel9
       {
         :is => @instruction_stream.to_s, 
         :ip => @pos, 
+        :line => line_info,
         :locals => Hash[@local_variables.collect {|l| l.collect {|v| j += 1; [@instruction_stream.local_name(j-1), v.to_s] }}], 
         :frame => Hash[@frame_variables.collect {|v| k += 1; [@instruction_stream.framevar_name(k-1), v.to_s] }], 
         :stack => @stack.collect {|x| x.to_s } 
@@ -127,7 +144,7 @@ module Channel9
     end
 
     def channel_send(cenv, val, ret)
-      Context.new(@env, @stream, @pos, @locals, @framevars).channel_send(cenv, val, ret)
+      Context.new(@env, @stream, @pos, @locals, @framevars, @env.context).channel_send(cenv, val, ret)
     end
   end
 end
