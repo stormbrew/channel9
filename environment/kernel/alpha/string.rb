@@ -7,6 +7,19 @@ class String
     @str.split(by.to_s_prim).to_a
   end
 
+  def [](of)
+    if (of.class == Range)
+      first = of.begin
+      last = of.end
+      last -= 1 if (of.exclude_end?)
+      @str.substr(first, last).to_s
+    elsif (of.class == Fixnum)
+      @str.substr(of, of).to_chr
+    else
+      raise NotImplementedError, "Unknown index type for String#[]"
+    end
+  end
+
   def to_sym
     @str
   end

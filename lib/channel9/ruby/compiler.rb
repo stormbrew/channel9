@@ -61,18 +61,18 @@ module Channel9
       end
       def transform_dot2(first, last)
         transform_const(:Range)
-        builder.push(false)
-        transform(last)
         transform(first)
+        transform(last)
+        builder.push(false)
         builder.message_new(:new, 0, 3)
         builder.channel_call
         builder.pop
       end
       def transform_dot3(first, last)
         transform_const(:Range)
-        builder.push(true)
-        transform(last)
         transform(first)
+        transform(last)
+        builder.push(true)
         builder.message_new(:new, 0, 3)
         builder.channel_call
         builder.pop
