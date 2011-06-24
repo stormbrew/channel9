@@ -84,3 +84,8 @@ def test_given
 end
 test_given
 test_given {|x|}
+
+z = meth do |x|
+  break 500
+end
+puts z
