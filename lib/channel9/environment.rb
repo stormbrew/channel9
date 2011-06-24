@@ -66,6 +66,14 @@ module Channel9
       register_debug_handler(:stop_print_steps) do
         @debug = @saved_debug
       end
+      @error_handler = proc {|err, ctx|
+        puts "Unhandled VM Error in #{self}"
+        raise err
+      }
+    end
+
+    def set_error_handler(&handler)
+      @error_handler = handler
     end
 
     def register_debug_handler(name, &exec)
@@ -150,6 +158,8 @@ module Channel9
               :final_state => @context.debug_info
             )
           end
+        rescue => e
+          @error_handler.call(e, @context)
         ensure
           @running = false
         end
@@ -167,6 +177,8 @@ module Channel9
             sp = @context.stack.length
             instruction.run(self)
           end
+        rescue => e
+          @error_handler.call(e, @context)
         ensure
           @running = false
         end
