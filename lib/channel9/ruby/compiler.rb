@@ -1178,11 +1178,15 @@ module Channel9
         end
       end
 
+      def transform_for(from, args, block)
+        transform_iter(s(:call, from, :each, s(:arglist)), args, block, false)
+      end
+
       # The sexp for this is weird. It embeds the call into
       # the iterator, so we build the iterator and then push it
       # onto the stack, then flag the upcoming call sexp so that it
       # swaps it in to the correct place.
-      def transform_iter(call, args, block = nil)
+      def transform_iter(call, args, block = nil, new_scope = true)
         call = call.dup
         call << true
 
@@ -1208,7 +1212,7 @@ module Channel9
         builder.pop
 
         with_linked_vtable do
-          builder.local_linked_scope
+          builder.local_linked_scope if (new_scope)
           if (args.nil?)
             # no args, pop the message off the stack.
             builder.pop
