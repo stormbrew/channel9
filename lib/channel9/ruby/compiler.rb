@@ -474,8 +474,18 @@ module Channel9
           builder.local_set(find_local_depth(splatarg, true), splatarg)
         end
         if (blockarg)
+          no_yield_label = builder.make_label("call.no_yield")
+          transform_colon3(:Proc)
           builder.frame_get("yield")
+          builder.dup_top
+          builder.jmp_if_not(no_yield_label)
+          builder.message_new(:new_from_prim, 0, 1)
+          builder.channel_call
+          builder.pop
           builder.local_set(find_local_depth(blockarg, true), blockarg)
+          builder.push(nil)
+          builder.set_label(no_yield_label)
+          builder.pop
         end
         builder.pop
       end
@@ -1097,6 +1107,9 @@ module Channel9
           block_arg = arglist.pop.dup
           has_iter = true
           transform(block_arg[1])
+          builder.message_new(:to_proc_prim, 0, 0)
+          builder.channel_call
+          builder.pop
         end
 
         if (first_splat = has_splat(arglist))

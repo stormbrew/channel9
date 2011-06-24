@@ -56,6 +56,13 @@ module Channel9
         object_klass.constant[:Kernel.to_c9] = kernel_mod
         object_klass.constant[:Channel9.to_c9] = channel9_mod
 
+        env.set_error_handler do |err, ctx|
+          puts "Unhandled VM Error in #{self}"
+          pp Channel9::Ruby::RubyModule.make_backtrace(ctx).collect {|i| i.real_str }
+          pp ctx.debug_info
+          raise err
+        end
+
         # Builtin special types:
         [
           [:Fixnum, "Number"],
@@ -75,7 +82,7 @@ module Channel9
 
         env.no_debug do
           ["singletons", "kernel", "symbol", "string", "enumerable",
-           "tuple", "array", "exceptions"].each do |file|
+           "tuple", "array", "proc", "exceptions"].each do |file|
             file = :"#{c9rb_env}/kernel/alpha/#{file}.rb".to_c9
             object_klass.channel_send(env,
               Primitive::Message.new(:raw_load, [], [file]),
@@ -92,11 +99,13 @@ module Channel9
       def setup_environment(argv)
         c9_mod = env.special_channel[:Channel9]
         argv = argv.collect {|i| Primitive::String.new(i) }.to_c9
-        env.save_context do
-          c9_mod.channel_send(env,
-            Primitive::Message.new(:setup_environment, [], [argv]),
-            CallbackChannel.new { throw :end_save}
-          )
+        env.no_debug do
+          env.save_context do
+            c9_mod.channel_send(env,
+              Primitive::Message.new(:setup_environment, [], [argv]),
+              CallbackChannel.new { throw :end_save}
+            )
+          end
         end
       end
 

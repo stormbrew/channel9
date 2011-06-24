@@ -47,6 +47,10 @@ module Kernel
     }
   end
 
+  def exit(n)
+    special_channel(:exit).call(n)
+  end
+
   def to_tuple_prim
     to_a.to_tuple_prim
   end

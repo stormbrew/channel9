@@ -19,9 +19,13 @@ module Kernel
   end
 
   def lambda(&block)
-    block
+    Proc.new(&block)
   end
   def proc(&block)
-    block
+    Proc.new(&block)
+  end
+
+  def Array(ary)
+    Array.new(ary.to_tuple_prim)
   end
 end
