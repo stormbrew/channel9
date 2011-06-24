@@ -73,3 +73,14 @@ meth do |i|
   redo if ($z += 1) < 2
   puts i, $z
 end
+
+
+def test_given
+  if (block_given?)
+    puts "yes"
+  else
+    puts "no"
+  end
+end
+test_given
+test_given {|x|}
