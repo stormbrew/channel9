@@ -4,6 +4,10 @@ module Channel9
     Object.const_set(:ARGV, argv.collect {|i| i.to_s }.to_a)
 
     Object.const_set(:ENV, {}) # TODO: Make this not a stub.
+
+    $stderr = Object.new
+    $stdout = Object.new
+    $stdin = Object.new
   end
 end
 # These are targets for what we're trying to be compatible
