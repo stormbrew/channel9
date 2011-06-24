@@ -33,7 +33,7 @@ class String
     self
   end
   def to_i
-    @str.to_i
+    @str.to_num
   end
 
   def +(other)
