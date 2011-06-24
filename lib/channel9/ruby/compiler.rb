@@ -1099,6 +1099,62 @@ module Channel9
           # will be sitting on the stack, and we want to swap it in
           # to first sysarg position.
           builder.swap
+          # But first, we need to set up a trampoline and unwind
+          # handler for breaks in the block. This is very complex,
+          # and should probably only be done if there actually is a
+          # break in the block or the block is passed as an & (so can't
+          # be detected).
+          breaker_tramp = builder.make_label("call.iter.trampoline")
+          breaker_tramp_done = builder.make_label("call.iter.trampoline.done")
+          breaker_unwind = builder.make_label("call.iter.unwinder")
+          breaker_unwind_ret = builder.make_label("call.iter.unwinder.next")
+          builder.jmp(breaker_tramp_done)
+
+          builder.set_label(breaker_tramp)
+          builder.frame_set("iter.trampoline.ret")
+
+          builder.channel_special(:unwinder)
+          builder.channel_new(breaker_unwind)
+          builder.channel_call
+          builder.pop
+          builder.pop
+
+          builder.frame_get("iter.trampoline.real")
+          builder.swap
+          builder.channel_call
+          builder.pop
+
+          # get here, unwinder needs removal.
+          builder.channel_special(:unwinder)
+          builder.push(nil)
+          builder.channel_call
+          builder.pop
+          builder.pop
+
+          builder.frame_get("iter.trampoline.ret")
+          builder.swap
+          builder.channel_ret
+
+          builder.set_label(breaker_unwind)
+          builder.pop
+          builder.message_name
+          builder.is(:iter_break)
+          builder.jmp_if(breaker_unwind_ret)
+          builder.channel_special(:unwinder)
+          builder.swap
+          builder.channel_ret
+
+          builder.set_label(breaker_unwind_ret)
+          builder.message_unpack(1,0,0)
+          builder.swap
+          builder.pop
+          builder.frame_get("iter.trampoline.ret")
+          builder.swap
+          builder.channel_ret
+
+          builder.set_label(breaker_tramp_done)
+          builder.frame_set("iter.trampoline.real") #will be picked up in trampoline's frame.
+          builder.channel_new(breaker_tramp)
         end
 
         _, *arglist = arglist
@@ -1162,6 +1218,16 @@ module Channel9
         case linfo[:type]
         when :while
           builder.jmp(linfo[:end_label])
+        when :block
+          builder.channel_special(:unwinder)
+          if (val.nil?)
+            transform_nil
+          else
+            transform(val)
+          end
+          builder.message_new(:iter_break, 0, 1)
+          builder.channel_call
+          builder.pop
         else
           raise "Invalid (or unimplemented?) location for a break"
         end
