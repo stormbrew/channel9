@@ -24,4 +24,4 @@ load 'beta/regexp.rb'
 
 load 'beta/range.rb'
 
-ENV = {} # TODO: Make this not a stub.
+load 'beta/channel9.rb'
