@@ -43,8 +43,11 @@ module Channel9
         @real_str.to_json(*a)
       end
 
-      def c9_to_i
-        @str.to_i.to_c9
+      def c9_to_num
+        @real_str.to_i.to_c9
+      end
+      def c9_to_chr
+        @real_str[0]
       end
       
       def c9_plus(other)
