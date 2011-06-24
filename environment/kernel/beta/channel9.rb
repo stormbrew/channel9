@@ -8,6 +8,6 @@ module Channel9
 end
 # These are targets for what we're trying to be compatible
 # with.
-::RUBY_PLATFORM = "i686-darwin10.3.0"
-::RUBY_VERSION = "1.8.7"
-::RUBY_PATCHLEVEL = "334"
+RUBY_PLATFORM = "i686-darwin10.3.0"
+RUBY_VERSION = "1.8.7"
+RUBY_PATCHLEVEL = "334"
