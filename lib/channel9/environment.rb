@@ -12,7 +12,11 @@ module Channel9
   # Exits with the status code passed to it.
   module ExitChannel
     def self.channel_send(env, val, ret)
-      exit(val.to_i)
+      if (val.kind_of? Primitive::Message)
+        exit(val.positional[0].real_num)
+      else
+        exit(val.real_num)
+      end
     end
     def self.truthy?; true; end
   end
@@ -68,6 +72,7 @@ module Channel9
       end
       @error_handler = proc {|err, ctx|
         puts "Unhandled VM Error in #{self}"
+        pp ctx.debug_info
         raise err
       }
     end
@@ -100,7 +105,7 @@ module Channel9
           @running = false
           yield
         ensure
-          @running = true
+          @running = prev_running
           @context = prev_context
         end
       end

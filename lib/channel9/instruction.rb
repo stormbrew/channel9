@@ -39,6 +39,9 @@ module Channel9
 
         [instruction_name, *arguments].to_json(*a)
       end
+      def to_s
+        "#{instruction_name} #{arguments.join(', ')}"
+      end
     end
 
     def self.get(name)

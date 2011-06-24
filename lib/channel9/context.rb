@@ -33,6 +33,10 @@ module Channel9
       true
     end
 
+    def to_c9
+      self
+    end
+
     def initialize_copy(other)
       super
       @stack = @stack.dup
@@ -122,10 +126,12 @@ module Channel9
     end
 
     def debug_info
+      n = @pos - 7
       j, k = 0, 0
       {
         :is => @instruction_stream.to_s, 
-        :ip => @pos, 
+        :ip => @pos-1,
+        :context => @instruction_stream.instructions[@pos-6, 10].collect {|i| "#{n += 1}: #{i}" },
         :line => line_info,
         :locals => Hash[@local_variables.collect {|l| l.collect {|v| j += 1; [@instruction_stream.local_name(j-1), v.to_s] }}], 
         :frame => Hash[@frame_variables.collect {|v| k += 1; [@instruction_stream.framevar_name(k-1), v.to_s] }], 
@@ -141,6 +147,13 @@ module Channel9
       @pos = pos
       @locals = locals
       @framevars = framevars.dup
+    end
+
+    def truthy?
+      true
+    end
+    def to_c9
+      self
     end
 
     def channel_send(cenv, val, ret)

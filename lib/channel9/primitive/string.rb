@@ -49,6 +49,10 @@ module Channel9
       def c9_to_chr
         @real_str[0]
       end
+
+      def c9_length
+        @real_str.length
+      end
       
       def c9_plus(other)
         return String.new(@real_str + String.coerce(other).real_str)
