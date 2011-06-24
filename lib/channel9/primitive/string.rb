@@ -42,6 +42,10 @@ module Channel9
       def to_json(*a)
         @real_str.to_json(*a)
       end
+
+      def c9_to_i
+        @str.to_i.to_c9
+      end
       
       def c9_plus(other)
         return String.new(@real_str + String.coerce(other).real_str)
