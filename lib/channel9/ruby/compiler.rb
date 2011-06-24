@@ -1072,6 +1072,12 @@ module Channel9
       end
 
       def transform_call(target, method, arglist, has_iter = false)
+        if (target.nil? && method == :block_given?)
+          builder.frame_get("yield")
+          builder.is_not(Primitive::Undef)
+          return
+        end
+
         if (target.nil?)
           transform_self()
         else
