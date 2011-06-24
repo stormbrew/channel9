@@ -1486,11 +1486,30 @@ module Channel9
         when :const
           done_label = builder.make_label("defined.const.done")
           transform(val)
+          builder.dup_top
           builder.jmp_if_not(done_label)
+          builder.pop
           builder.push(:constant)
           builder.set_label(done_label)
+        when :call
+          done_label = builder.make_label("defined.call.done")
+          name, lhs, name, args = val
+          # TODO: This will error if lhs can't evaluate,
+          # and that needs to be fixed.
+          transform(lhs)
+          builder.dup_top
+          builder.jmp_if_not(done_label)
+          builder.push(name)
+          builder.message_new(:respond_to?, 0, 1)
+          builder.channel_call
+          builder.pop
+          builder.dup_top
+          builder.jmp_if_not(done_label)
+          builder.pop
+          builder.push(:method)
+          builder.set_label(done_label)
         else
-          raise "Unknown defined? type."
+          raise "Unknown defined? type #{val[0]}."
         end
       end
 
