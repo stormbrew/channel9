@@ -65,7 +65,7 @@ module Channel9
         mod.add_method(:special_channel) do |cenv, msg, ret|
           elf = msg.system.first
           name = msg.positional.first
-          ret.channel_send(elf.env, mod.env.special_channel[name], InvalidReturnChannel)
+          ret.channel_send(elf.env, mod.env.special_channel[name.to_sym], InvalidReturnChannel)
         end
 
         mod.add_method(:print) do |cenv, msg, ret|
@@ -126,7 +126,7 @@ module Channel9
           if (bt.nil?)
             bt = make_backtrace(env.context).to_c9
           end
-          
+
           exc.channel_send(env, Primitive::Message.new(:exception, [], [desc].compact), CallbackChannel.new {|ienv, exc, sret|
             raise_exception(env, exc, bt)
           })
