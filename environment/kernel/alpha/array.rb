@@ -75,8 +75,12 @@ class Array
     @tuple = @tuple.front_pop
     l
   end
-  def [](idx)
-    @tuple.at(idx)
+  def [](idx, len = nil)
+    if (len.nil?)
+      @tuple.at(idx)
+    else
+      @tuple.subary(idx, idx + len).to_a
+    end
   end
   def []=(idx, val)
     @tuple = @tuple.replace(idx, val)

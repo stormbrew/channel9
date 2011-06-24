@@ -32,6 +32,9 @@ module Channel9
         Channel9::Ruby::RubyModule.kernel_mod(kernel_mod)
         object_klass.include(kernel_mod)
 
+        channel9_mod = Channel9::Ruby::RubyModule.new(env, "Channel9")
+        env.special_channel[:Channel9] = channel9_mod
+
         env.special_channel[:loader] = self
         env.special_channel[:global_self] = Channel9::Ruby::RubyObject.new(env)
         c9rb_root = File.expand_path(File.dirname(__FILE__) + "../../../..")
@@ -51,6 +54,7 @@ module Channel9
         object_klass.constant[:Module.to_c9] = module_klass
         object_klass.constant[:Class.to_c9] = class_klass
         object_klass.constant[:Kernel.to_c9] = kernel_mod
+        object_klass.constant[:Channel9.to_c9] = channel9_mod
 
         # Builtin special types:
         [
@@ -85,9 +89,15 @@ module Channel9
         end
       end
 
-      def set_argv(argv)
-        object_klass = env.special_channel[:Object]
-        object_klass.constant[:"ARGV".to_c9] = argv.to_c9
+      def setup_environment(argv)
+        c9_mod = env.special_channel[:Channel9]
+        argv = argv.collect {|i| Primitive::String.new(i) }.to_c9
+        env.save_context do
+          c9_mod.channel_send(env,
+            Primitive::Message.new(:setup_environment, [], [argv]),
+            CallbackChannel.new { throw :end_save}
+          )
+        end
       end
 
       def channel_send(cenv, msg, ret)

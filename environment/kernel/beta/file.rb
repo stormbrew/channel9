@@ -30,4 +30,8 @@ class File
     path_parts.pop
     path_parts.join("/")
   end
+
+  def self.exist?
+    false # TODO: Make not a stub.
+  end
 end
