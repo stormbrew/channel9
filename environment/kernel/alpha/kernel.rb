@@ -1,4 +1,7 @@
 module Kernel
+  def initialize_copy(other)
+  end
+
   def nil?
     false
   end

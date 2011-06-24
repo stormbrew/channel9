@@ -38,11 +38,13 @@ module Channel9
         klass.add_method(:instance_variable_get) do |cenv, msg, ret|
           elf = msg.system.first
           name = msg.positional.first
+          #pp [:get, elf.ivars.object_id, name.to_s]
           ret.channel_send(elf.env, elf.ivars[name].to_c9, InvalidReturnChannel)
         end
         klass.add_method(:instance_variable_set) do |cenv, msg, ret|
           elf = msg.system.first
           name, val = msg.positional
+          #pp [:set, elf.ivars.object_id, name.to_s, val.to_s]
           ret.channel_send(elf.env, elf.ivars[name] = val, InvalidReturnChannel)
         end
         klass.add_method(:equal?) do |cenv, msg, ret|
@@ -62,6 +64,11 @@ module Channel9
         klass.add_method(:singleton!) do |cenv, msg, ret|
           elf = msg.system.first
           ret.channel_send(elf.env, elf.singleton!, InvalidReturnChannel)
+        end
+
+        klass.add_method(:dup) do |cenv, msg, ret|
+          elf = msg.system.first
+          ret.channel_send(elf.env, elf.make_dup, InvalidReturnChannel)
         end
       end
 
@@ -93,6 +100,18 @@ module Channel9
         end
       end
 
+      def make_dup
+        duped = dup
+        @env.save_context do
+          duped.channel_send(@env, Primitive::Message.new(:initialize_copy, [], [self]), CallbackChannel.new {|ienv, val, iret|
+            return duped
+          })
+        end
+      end
+      def initialize_copy(other)
+        @singleton = nil
+        @ivars = @ivars.dup
+      end
       def rebind(klass)
         @klass = klass
       end
