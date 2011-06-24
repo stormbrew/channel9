@@ -50,6 +50,9 @@ module Channel9
       def c9_at(idx)
         @real_ary[idx.real_num].to_c9
       end
+      def c9_subary(first, last)
+        Tuple.new(@real_ary[first.real_num..last.real_num])
+      end
       def c9_replace(idx, val)
         n = @real_ary.dup
         n[idx.real_num] = val
