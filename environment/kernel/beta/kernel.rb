@@ -17,4 +17,11 @@ module Kernel
   def at_exit(&block)
     # TODO: Make not a stub.
   end
+
+  def lambda(&block)
+    block
+  end
+  def proc(&block)
+    block
+  end
 end
