@@ -38,6 +38,9 @@ class Array
     return 0 if @tuple.nil?
     return @tuple.length
   end
+  def size
+    return length
+  end
 
   def split(by)
     Array.new(@tuple.split(by))
