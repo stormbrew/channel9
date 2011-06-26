@@ -101,7 +101,6 @@ module Channel9
         begin
           prev_context = @context
           prev_running = @running
-          @context = nil
           @running = false
           yield
         ensure

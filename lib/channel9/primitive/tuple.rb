@@ -41,6 +41,11 @@ module Channel9
         n.shift
         Tuple.new(n)
       end
+      def c9_delete(i)
+        n = @real_ary.dup
+        n.delete_at(i)
+        Tuple.new(n)
+      end
       def c9_first
         @real_ary.first
       end
@@ -51,7 +56,7 @@ module Channel9
         @real_ary[idx.real_num].to_c9
       end
       def c9_subary(first, last)
-        Tuple.new(@real_ary[first.real_num..last.real_num])
+        Tuple.new(@real_ary[first.real_num...last.real_num])
       end
       def c9_replace(idx, val)
         n = @real_ary.dup

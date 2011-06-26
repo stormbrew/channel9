@@ -34,6 +34,17 @@ module Channel9
       def to_c9_num
         self
       end
+      def to_int
+        @real_num
+      end
+
+      def c9_to_string_primitive
+        Primitive::String.new(to_s)
+      end
+      
+      def c9_negate()
+        return -@real_num
+      end
 
       def c9_plus(other)
         return @real_num + Number.coerce(other).real_num
@@ -55,7 +66,15 @@ module Channel9
         return @real_num % Number.coerce(other).real_num
       end
       alias_method :"c9_%", :c9_mod
-
+      def c9_exp(other)
+        return @real_num ** Number.coerce(other).real_num
+      end
+      alias_method :"c9_**", :c9_exp
+      
+      def c9_spaceship(other)
+        return @real_num <=> Number.coerce(other).real_num
+      end
+      alias_method :"c9_<=>", :c9_spaceship
       def c9_lt(other)
         return @real_num < Number.coerce(other).real_num
       end

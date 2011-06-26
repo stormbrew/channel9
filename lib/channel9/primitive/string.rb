@@ -14,7 +14,7 @@ module Channel9
         if (other.kind_of? Base)
           other = other.to_c9_str
         else
-          raise "Unimplemented: turning arbitrary values into strings"
+          raise "Unimplemented: turning arbitrary values into strings (#{other.class})"
         end
         raise "Primitive error: Not a string" if (!other.kind_of? String)
         other  
@@ -30,6 +30,9 @@ module Channel9
         @real_str.hash
       end
 
+      def to_str
+        @real_str.to_s
+      end
       def to_s
         @real_str.to_s
       end
@@ -43,6 +46,10 @@ module Channel9
         @real_str.to_json(*a)
       end
 
+      def c9_spaceship(other)
+        return @real_str <=> String.coerce(other).real_str
+      end
+      alias_method :"c9_<=>", :c9_spaceship
       def c9_to_num
         @real_str.to_i.to_c9
       end
