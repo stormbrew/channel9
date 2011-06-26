@@ -22,13 +22,29 @@ class Module
     attr_writer(name) if write
   end
 
+  def class_eval(s = nil, &block)
+    if (s)
+      raise NotImplementedError, "String eval not implemented."
+    else
+      define_singleton_method(:__class_eval__, &block)
+      __class_eval__
+    end
+  end
+
   def module_function(*names)
     # TODO: Implement.
   end
-  def alias_method(from, to)
+
+  def public_class_method(*names)
+    # TODO: Implement.
+  end
+  def protected_class_method(*names)
     # TODO: Implement.
   end
   def private_class_method(*names)
+    # TODO: Implement.
+  end
+  def public(*names)
     # TODO: Implement.
   end
   def private(*names)

@@ -32,4 +32,7 @@ class Proc
   def to_proc_prim
     @p
   end
+  def to_proc
+    self
+  end
 end

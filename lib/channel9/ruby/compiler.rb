@@ -60,7 +60,7 @@ module Channel9
         end
       end
       def transform_dot2(first, last)
-        transform_const(:Range)
+        transform_colon3(:Range)
         transform(first)
         transform(last)
         builder.push(false)
@@ -69,7 +69,7 @@ module Channel9
         builder.pop
       end
       def transform_dot3(first, last)
-        transform_const(:Range)
+        transform_colon3(:Range)
         transform(first)
         transform(last)
         builder.push(true)
@@ -79,11 +79,25 @@ module Channel9
       end
 
       def transform_str(str)
-        transform_const(:String)
+        transform_colon3(:String)
         builder.push(Primitive::String.new(str))
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop        
+      end
+      def transform_xstr(str)
+        transform_self
+        builder.push(Primitive::String.new(str))
+        builder.message_new(:system, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+      def transform_dxstr(initial, *strings)
+        transform_self
+        transform_dsym(initial, *strings)
+        builder.message_new(:system, 0, 1)
+        builder.channel_call
+        builder.pop
       end
       def transform_evstr(ev)
         transform(ev)
@@ -100,14 +114,22 @@ module Channel9
         end
       end
       def transform_dstr(initial, *strings)
-        transform_const(:String)
+        transform_colon3(:String)
         transform_dsym(initial, *strings)
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop
       end
       def transform_dregx(initial, *strings)
-        transform_const(:Regexp)
+        transform_colon3(:Regexp)
+        transform_dsym(initial, *strings)
+        builder.message_new(:new, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+      def transform_dregx_once(initial, *strings)
+        opt = strings.pop
+        transform_colon3(:Regexp)
         transform_dsym(initial, *strings)
         builder.message_new(:new, 0, 1)
         builder.channel_call
@@ -343,6 +365,58 @@ module Channel9
 
           builder.tuple_new(1) # -> restuple -> var
           builder.message_new(:[]=, 0, 0) # -> msg -> restuple -> var
+          builder.frame_get("asgn1.tuple") # -> args -> msg -> restuple -> var
+          builder.message_splat # -> msg -> restuple -> var
+          builder.swap # -> restuple -> msg -> var
+          builder.message_splat # -> msg -> var
+          builder.channel_call
+          builder.pop # -> res
+        end
+      end
+
+      def transform_op_asgn2(var_if, attrib_write, op, val)
+        attrib_read = attrib_write.to_s.gsub(%r{=$}, '').to_sym
+        args = s(:arglist)
+        case op
+        when :'||', :'&&'
+          done_label = builder.make_label("asgn1.done")
+          transform_call(var_if, attrib_read, args)
+          builder.dup_top
+          case op
+          when :'||'
+            builder.jmp_if(done_label)
+          when :'&&'
+            builder.jmp_if_not(done_label)
+          end
+          builder.pop
+          asgn_args = args + s(val)
+          transform_call(var_if, attrib_write, asgn_args)
+          builder.set_label(done_label)
+        else
+          transform(var_if) # -> var
+          builder.dup_top # -> var -> var
+          builder.dup_top # -> var -> var -> var
+          _, *args = args
+          args.reverse.each do |arg|
+            transform(arg)
+          end # -> args... -> var -> var -> var
+          builder.tuple_new(args.length) # -> args -> var -> var -> var
+          builder.dup_top # -> args -> args -> var -> var -> var
+          builder.frame_set("asgn1.tuple") # -> args -> var -> var -> var
+          builder.message_new(attrib_read, 0, 0) # -> []msg -> args -> var -> var -> var
+          builder.swap # -> args -> msg -> var -> var -> var
+          builder.message_splat # -> msg -> var -> var -> var
+          builder.channel_call 
+          builder.pop # -> orig -> var -> var
+
+          transform(val) # -> opvar -> orig -> var -> var
+          builder.swap # -> orig -> opvar -> var -> var
+          builder.message_new(op, 0, 1) # -> msg -> var -> var
+          builder.channel_call 
+          builder.pop # -> opres -> var
+
+          builder.tuple_new(1) # -> restuple -> var
+          builder.message_new(attrib_write, 0, 0) # -> msg -> restuple -> var
           builder.frame_get("asgn1.tuple") # -> args -> msg -> restuple -> var
           builder.message_splat # -> msg -> restuple -> var
           builder.swap # -> restuple -> msg -> var
@@ -1019,6 +1093,9 @@ module Channel9
           transform_gvar(:"$#{num}")
         end
       end
+      def transform_back_ref(name)
+        transform_gvar(:"$#{name}")
+      end
 
       def transform_iasgn(name, val = nil)
         if (val.nil?)
@@ -1508,6 +1585,13 @@ module Channel9
           builder.pop
           builder.push(:method)
           builder.set_label(done_label)
+        when :ivar
+          transform_self
+          name, varname = val
+          transform_lit(varname)
+          builder.message_new(:instance_variable?, 0, 1)
+          builder.channel_call
+          builder.pop
         else
           raise "Unknown defined? type #{val[0]}."
         end

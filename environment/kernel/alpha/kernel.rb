@@ -2,6 +2,9 @@ module Kernel
   def initialize_copy(other)
   end
 
+  def freeze
+  end
+
   def nil?
     false
   end
@@ -37,7 +40,7 @@ module Kernel
 
   def puts(*args)
     args.each {|arg|
-      if (arg.respond_to?(:each))
+      if (arg.kind_of?(Tuple) || arg.kind_of?(Array))
         puts(*arg)
       elsif (arg.nil?)
         print("nil\n")
@@ -56,6 +59,10 @@ module Kernel
   end
   def to_a
     [self]
+  end
+
+  def to_proc_prim
+    to_proc.to_proc_prim
   end
 
   def inspect

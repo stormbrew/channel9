@@ -38,14 +38,18 @@ module Channel9
         klass.add_method(:instance_variable_get) do |cenv, msg, ret|
           elf = msg.system.first
           name = msg.positional.first
-          #pp [:get, elf.ivars.object_id, name.to_s]
           ret.channel_send(elf.env, elf.ivars[name].to_c9, InvalidReturnChannel)
         end
         klass.add_method(:instance_variable_set) do |cenv, msg, ret|
           elf = msg.system.first
           name, val = msg.positional
-          #pp [:set, elf.ivars.object_id, name.to_s, val.to_s]
           ret.channel_send(elf.env, elf.ivars[name] = val, InvalidReturnChannel)
+        end
+        klass.add_method(:instance_variable?) do |cenv, msg, ret|
+          elf = msg.system.first
+          name = msg.positional.first
+          found = elf.ivars.key?(name)
+          ret.channel_send(elf.env, found.to_c9, InvalidReturnChannel)
         end
         klass.add_method(:equal?) do |cenv, msg, ret|
           elf = msg.system.first
@@ -69,6 +73,13 @@ module Channel9
         klass.add_method(:dup) do |cenv, msg, ret|
           elf = msg.system.first
           ret.channel_send(elf.env, elf.make_dup, InvalidReturnChannel)
+        end
+
+        klass.add_method(:send) do |cenv, msg, ret|
+          elf, zuper, block = msg.system
+          name, *args = msg.positional
+          msg = Primitive::Message.new(name.real_str.to_sym, [block], args)
+          elf.channel_send(cenv, msg, ret)
         end
       end
 
@@ -138,6 +149,7 @@ module Channel9
       def channel_send_with(elf, singleton, klass, cenv, val, ret)
         if (val.is_a?(Primitive::Message))
           env.for_debug do
+            pp(:pretrace=>{:name=>val.name.to_s, :self => elf.to_s})
             pp(:trace=>{:name=>val.name.to_s, :self => elf.to_s, :system => val.system.collect {|i| i.to_s },:args => val.positional.collect {|i| i.to_s }})
           end
           meth, found_klass = (singleton && singleton.lookup(val.name)) || klass.lookup(val.name)

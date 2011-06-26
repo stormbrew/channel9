@@ -34,6 +34,7 @@ module Channel9
 
         channel9_mod = Channel9::Ruby::RubyModule.new(env, "Channel9")
         env.special_channel[:Channel9] = channel9_mod
+        Channel9::Ruby::RubyModule.channel9_mod(channel9_mod)
 
         env.special_channel[:loader] = self
         env.special_channel[:global_self] = Channel9::Ruby::RubyObject.new(env)
@@ -81,7 +82,7 @@ module Channel9
         end
 
         env.no_debug do
-          ["singletons", "kernel", "symbol", "string", "enumerable",
+          ["singletons", "string", "kernel", "symbol", "enumerable",
            "tuple", "array", "proc", "exceptions"].each do |file|
             file = :"#{c9rb_env}/kernel/alpha/#{file}.rb".to_c9
             object_klass.channel_send(env,
@@ -96,13 +97,13 @@ module Channel9
         end
       end
 
-      def setup_environment(argv)
+      def setup_environment(exe, argv)
         c9_mod = env.special_channel[:Channel9]
         argv = argv.collect {|i| Primitive::String.new(i) }.to_c9
         env.no_debug do
           env.save_context do
             c9_mod.channel_send(env,
-              Primitive::Message.new(:setup_environment, [], [argv]),
+              Primitive::Message.new(:setup_environment, [], [exe, argv]),
               CallbackChannel.new { throw :end_save}
             )
           end
