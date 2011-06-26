@@ -60,6 +60,9 @@ class RegexpError < StandardError; end
 class RuntimeError < StandardError; end
 class SecurityError < StandardError; end
 class SystemCallError < StandardError; end
+module Errno
+  class ENOENT < SystemCallError; end
+end
 class SystemStackError < StandardError; end
 class ThreadError < StandardError; end
 class TypeError < StandardError; end

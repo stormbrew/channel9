@@ -25,7 +25,7 @@ module Channel9
             name = args.first
             ret.channel_send(elf.env, RubyModule.new(elf.env, name), InvalidReturnChannel)
           else
-            elf.channel_send(elf.env, Primitive::Message.new(:allocate, [], [elf]), CallbackChannel.new {|cenv, obj, iret|
+            elf.channel_send(elf.env, Primitive::Message.new(:allocate, [], []), CallbackChannel.new {|cenv, obj, iret|
               obj.channel_send(elf.env, Primitive::Message.new(:initialize, [], args), CallbackChannel.new {|cenv, x, iret|
                 ret.channel_send(elf.env, obj, InvalidReturnChannel)
               })
@@ -78,6 +78,13 @@ module Channel9
         channel ||= CallbackChannel.new(&cb)
         @instance_methods[name.to_c9] = channel
       end
+      def del_method(name, stopper = false)
+        if (stopper)
+          @instance_methods[name.to_c9] = Primitive::Undef
+        else
+          @instance_methods.delete(name.to_c9)
+        end
+      end
 
       def lookup(name)
         name = name.to_c9
@@ -85,7 +92,8 @@ module Channel9
           res = mod.instance_methods[name]
           return res, self if res
         end
-        @superclass.lookup(name) if !@superclass.nil? && @superclass != self
+        return @superclass.lookup(name) if !@superclass.nil? && @superclass != self
+        return nil, nil
       end
     end
   end

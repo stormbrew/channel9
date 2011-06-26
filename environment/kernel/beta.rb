@@ -9,19 +9,21 @@ load 'beta/object.rb'
 load 'beta/class.rb'
 load 'beta/module.rb'
 
+load 'beta/comparable.rb'
+
+load 'beta/channel9.rb'
+
+load 'beta/string.rb'
 load 'beta/fixnum.rb'
 load 'beta/message.rb'
 load 'beta/table.rb'
-
+load 'beta/range.rb'
 load 'beta/hash.rb'
 
 load 'beta/file.rb'
 load 'beta/dir.rb'
-
-load 'beta/comparable.rb'
+load 'beta/time.rb'
 
 load 'beta/regexp.rb'
 
-load 'beta/range.rb'
-
-load 'beta/channel9.rb'
+load 'beta/signal.rb'

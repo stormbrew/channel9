@@ -25,7 +25,11 @@ module Channel9
           finding = names.pop
           last = elf
           scopes = [elf] + names.collect do |name|
-            last.constant[name.to_c9]
+            if (last.constant[name.to_c9])
+              last = last.constant[name.to_c9]
+            else
+              break
+            end
           end
           const = nil
           scopes.reverse.each do |scope|
@@ -51,6 +55,24 @@ module Channel9
           elf, zuper, channel = msg.system
           name = msg.positional.first
           elf.add_method(name, channel)
+          ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
+        end
+        klass.add_method(:remove_method) do |cenv, msg, ret|
+          elf = msg.system.first
+          name = msg.positional.first
+          elf.del_method(name, false)
+          ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
+        end
+        klass.add_method(:undef_method) do |cenv, msg, ret|
+          elf = msg.system.first
+          name = msg.positional.first
+          elf.del_method(name, true)
+          ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
+        end
+        klass.add_method(:alias_method) do |cenv, msg, ret|
+          elf = msg.system.first
+          new_name, orig_name = msg.positional
+          elf.add_method(new_name, elf.lookup(orig_name)[0])
           ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
         end
         klass.add_method(:method_defined?) do |cenv, msg, ret|
@@ -186,6 +208,72 @@ module Channel9
         end
       end
 
+      def self.channel9_mod(mod)
+        mod.singleton!.add_method(:prim_dir_glob) do |cenv, msg, ret|
+          glob = msg.positional.first.real_str
+          res = Dir.glob(glob).collect {|i| Primitive::String.new(i) }.to_c9
+          ret.channel_send(cenv, res, InvalidReturnChannel)
+        end
+
+        mod.singleton!.add_method(:prim_sprintf) do |cenv, msg, ret|
+          ret.channel_send(cenv, Primitive::String.new(sprintf(*msg.positional)), ret)
+        end
+
+        mod.singleton!.add_method(:prim_time_now) do |cenv, msg, ret|
+          ret.channel_send(cenv, Time.now.to_i.to_c9, InvalidReturnChannel)
+        end
+
+        mod.singleton!.add_method(:prim_stat) do |cenv, msg, ret|
+          elf = msg.system.first
+          name = msg.positional.first
+          begin
+            info = File.stat(name.real_str)
+            info_arr = [
+              info.atime.to_i,
+              info.blksize,
+              info.blockdev?,
+              info.blocks,
+              info.chardev?,
+              info.ctime.to_i,
+              info.dev,
+              info.dev_major,
+              info.dev_minor,
+              info.directory?,
+              info.executable?,
+              info.executable_real?,
+              info.file?,
+              info.ftype.to_sym,
+              info.gid,
+              info.grpowned?,
+              info.ino,
+              info.mode,
+              info.mtime.to_i,
+              info.nlink,
+              info.owned?,
+              info.pipe?,
+              info.rdev,
+              info.rdev_major,
+              info.rdev_minor,
+              info.readable?,
+              info.readable_real?,
+              info.setgid?,
+              info.setuid?,
+              info.size,
+              info.socket?,
+              info.sticky?,
+              info.symlink?,
+              info.uid,
+              info.writable?,
+              info.writable_real?,
+              info.zero?
+            ].collect {|i| i.to_c9 }.to_c9
+            ret.channel_send(cenv, info_arr, InvalidReturnChannel)
+          rescue Errno::ENOENT
+            ret.channel_send(cenv, nil.to_c9, InvalidReturnChannel)
+          end
+        end
+      end
+
       def initialize(env, name)
         super(env, env.special_channel[:Module])
         @name = name
@@ -221,9 +309,20 @@ module Channel9
         @included.uniq!
       end
 
+      def lookup(name)
+        return @instance_methods[name.to_c9], self
+      end
+
       def add_method(name, channel = nil, &cb)
         channel ||= CallbackChannel.new(&cb)
         @instance_methods[name.to_c9] = channel
+      end
+      def del_method(name, stopper = false)
+        if (stopper)
+          @instance_methods[name.to_c9] = Primitive::Undef
+        else
+          @instance_methods.delete(name.to_c9)
+        end
       end
     end
   end

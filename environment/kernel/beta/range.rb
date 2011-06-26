@@ -75,9 +75,8 @@ class Range
       obj <= @end
     end
   end
-  def ===(obj)
-    cover?(obj)
-  end
+  alias_method :===, :cover?
+  alias_method :include?, :cover?
   def hash
     [@begin, @end, @exclusive].hash
   end

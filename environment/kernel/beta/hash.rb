@@ -13,6 +13,12 @@ class Hash
     end
   end
 
+  def each
+    @vals.each do |k,v|
+      yield k,v
+    end
+  end
+
   def []=(name, val)
     @vals.each do |a|
       if (name.eql?(a[0]))
