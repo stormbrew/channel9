@@ -141,12 +141,12 @@ module Channel9
   end
 
   class CallableContext
-    def initialize(env, stream, pos, locals, framevars)
+    def initialize(env, stream, pos = 0, locals = nil, framevars = nil)
       @env = env
       @stream = stream
       @pos = pos
       @locals = locals
-      @framevars = framevars.dup
+      @framevars = framevars && framevars.dup
     end
 
     def truthy?
