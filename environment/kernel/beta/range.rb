@@ -24,7 +24,7 @@ class Range
     if (n)
       raise NotImplementedError, "Range#last(n)"
     else
-      @exclusive ? @end - 1 : @end
+      @end
     end
   end
 
