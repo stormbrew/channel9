@@ -42,7 +42,7 @@ module Kernel
   alias_method :is_a?, :kind_of?
 
   def to_s
-    "#<#{self.class}:" + "0x%0#{1.size}x" % object_id
+    "#<#{self.class}:" + "0x%0#{1.size}x" % object_id + ">"
   end
 
   def at_exit(&block)
@@ -50,10 +50,10 @@ module Kernel
   end
 
   def lambda(&block)
-    Proc.new(&block)
+    block
   end
   def proc(&block)
-    Proc.new(&block)
+    block
   end
 
   def Array(ary)
@@ -70,8 +70,11 @@ module Kernel
     if (s)
       raise NotImplementedError, "String eval not implemented."
     else
-      define_singleton_method(:__instance_eval__, &block)
-      __instance_eval__
+      instance_eval_prim(&block)
     end
   end
+  def send(name, *args)
+    send_prim(name.to_s_prim, *args)
+  end
+  alias_method :__send__, :send
 end
