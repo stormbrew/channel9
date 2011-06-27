@@ -1285,8 +1285,17 @@ module Channel9
         builder.pop
       end
 
-      def transform_attrasgn(target, method, arglist)
-        transform_call(target, method, arglist)
+      def transform_attrasgn(target, method, arglist = nil)
+        if (arglist)
+          transform_call(target, method, arglist)
+        else
+          # This is for masgn (including proc args)
+          transform(target)
+          builder.swap # get the arg in place
+          builder.message_new(method, 0, 1)
+          builder.channel_call
+          builder.pop
+        end
       end
 
       def transform_next(val = nil)
@@ -1383,7 +1392,7 @@ module Channel9
             # no args, pop the message off the stack.
             builder.pop
           else
-            if (args[0] == :lasgn || args[0] == :gasgn)
+            if (args[0] == :lasgn || args[0] == :gasgn || args[0] == :attrasgn)
               # Ruby's behaviour on a single arg block is ugly.
               # If it takes one argument, but is given multiple,
               # it's as if it were a single arg splat. Otherwise,
