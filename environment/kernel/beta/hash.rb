@@ -36,6 +36,7 @@ class Hash
       yield k,v
     end
   end
+  alias_method :each_pair, :each
 
   def []=(name, val)
     @vals.each do |a|
