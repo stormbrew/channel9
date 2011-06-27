@@ -82,9 +82,9 @@ module Channel9
         end
 
         klass.add_method(:send_prim) do |cenv, msg, ret|
-          elf, zuper, block = msg.system
+          elf, zuper, *sargs = msg.system
           name, *args = msg.positional
-          msg = Primitive::Message.new(name.to_sym, [block], args)
+          msg = Primitive::Message.new(name.to_sym, [*sargs], args)
           elf.channel_send(cenv, msg, ret)
         end
       end
