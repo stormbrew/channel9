@@ -69,12 +69,19 @@ module Kernel
   def instance_eval(s = nil, &block)
     if (s)
       block = Channel9.compile_string(:eval, s, "__eval__", 1)
+      if (!block)
+        raise ParseError
+      end
     end
     instance_eval_prim(&block)
   end
   def eval(s, filename = "__eval__", line = 1)
     proc = Channel9.compile_string(:eval, s, filename, line)
-    special_channel(:global_self).instance_eval(&proc)
+    if (proc)
+      special_channel(:global_self).instance_eval(&proc)
+    else
+      raise ParseError
+    end
   end
   def instance_exec(*args, &block)
     instance_eval_prim(*args, &block)

@@ -119,8 +119,13 @@ module Channel9
         case msg.name.to_sym
         when :compile
           type, str, filename, line = msg.positional
-          compiled = compile_string(type.to_sym, str.real_str, filename.real_str, line.real_num)
-          callable = CallableContext.new(cenv, compiled)
+          callable = nil
+          begin
+            compiled = compile_string(type.to_sym, str.real_str, filename.real_str, line.real_num)
+            callable = CallableContext.new(cenv, compiled)
+          rescue => e
+            puts "Compile error: #{e}"
+          end
           ret.channel_send(env, callable, InvalidReturnChannel)
         else
           raise "BOOM: Unknown message for loader: #{msg.name}."
@@ -133,7 +138,7 @@ module Channel9
           parser = RubyParser.new
           begin
             tree = parser.parse(str, filename)
-          rescue Racc::ParseError
+          rescue Racc::ParseError => e
             puts "parse error in #{filename}"
             raise
           end
@@ -152,6 +157,8 @@ module Channel9
             return compile_string(:file, f.read, filename)
           end
         rescue Errno::ENOENT, Errno::EISDIR
+        rescue => e
+          puts "Compile error: #{e}"
         end
         return nil
       end
