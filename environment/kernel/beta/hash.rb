@@ -1,16 +1,34 @@
 class Hash
   include Enumerable
 
-  def initialize(tuple)
+  attr :default, true
+  attr :default_proc, true
+
+  def self.new_from_tuple(tuple)
+    a = allocate
+    a.initialize(tuple, nil, nil)
+    a
+  end
+  def self.new(default, &default_proc)
+    a = allocate
+    a.initialize(nil, default, default_proc)
+    a
+  end
+  def initialize(tuple, default, default_proc)
     @vals = []
-    key = nil
-    tuple.each do |i|
-      if (key)
-        @vals.push([key, i])
-      else
-        key = i
+    if (tuple)
+      key = nil
+      tuple.each do |i|
+        if (key)
+          @vals.push([key, i])
+          key = nil
+        else
+          key = i
+        end
       end
     end
+    @default = default
+    @default_proc = default_proc
   end
 
   def each
@@ -26,6 +44,7 @@ class Hash
       end
     end
     @vals.push([name, val])
+    val
   end
   def [](name)
     @vals.each do |k,v|
@@ -33,7 +52,11 @@ class Hash
         return v
       end
     end
-    nil
+    if (@default_proc)
+      @default_proc.call(self, name)
+    else
+      @default
+    end
   end
   def keys
     @vals.collect {|k,v| k }
