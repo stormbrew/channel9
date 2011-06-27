@@ -1,6 +1,6 @@
 class File
-  def self.join(a,b)
-    "#{a}/#{b}"
+  def self.join(*components)
+    components.join('/')
   end
 
   def self.expand_path(path, dir = "")
