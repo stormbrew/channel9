@@ -37,6 +37,14 @@ module Channel9
         return 0 # default to current scope.
       end
 
+      def raise_error(type, desc)
+        transform_self
+        transform_colon3(type.to_sym)
+        builder.push(desc.to_sym)
+        builder.message_new(:raise, 0, 2)
+        builder.channel_ret
+      end
+
       def transform_self()
         builder.frame_get("self")
       end
@@ -835,6 +843,7 @@ module Channel9
       def transform_class(name, superclass, body)
         label_prefix = "Class:#{name}"
         body_label = builder.make_label(label_prefix + ".body")
+        make_label = builder.make_label(label_prefix + ".make")
         done_label = builder.make_label(label_prefix + ".done")
 
         full_name = @state[:static_scope] + [name]
@@ -843,9 +852,26 @@ module Channel9
         # See if it's already there
         transform_const(name)
         builder.dup_top
+        builder.jmp_if_not(make_label)
+
+        # Make sure it's a class
+        builder.dup_top
+        builder.channel_special(:Class)
+        builder.swap
+        builder.message_new(:class, 0, 0)
+        builder.channel_call
+        builder.pop
+        builder.message_new(:==, 0, 1)
+        builder.channel_call
+        builder.pop
         builder.jmp_if(done_label)
 
+        # It's not a class, so error out here.
+        builder.pop
+        raise_error(:TypeError, "#{name} is not a Class.")
+
         # If it's not, make a new class and set it.
+        builder.set_label(make_label)
         builder.pop
         load_static_scope
         builder.push(name)

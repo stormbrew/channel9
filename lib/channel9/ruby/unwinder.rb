@@ -6,8 +6,12 @@ module Channel9
           exc = msg.positional.first
           puts("Uncaught exception: #{exc}")
           exc.channel_send(env, Primitive::Message.new(:backtrace,[],[]), CallbackChannel.new {|ienv, bt, iret|
-            bt.real_ary.each do |bt_item|
-              puts bt_item.real_str
+            if (bt.nil?)
+              puts "No backtrace."
+            else
+              bt.real_ary.each do |bt_item|
+                puts bt_item.real_str
+              end
             end
             exit(1)
           })

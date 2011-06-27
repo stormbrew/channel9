@@ -7,6 +7,11 @@ module Channel9
       attr :constant
 
       def self.module_klass(klass)
+        klass.add_method(:==) do |cenv, msg, ret|
+          elf = msg.system.first
+          other = msg.positional.first
+          ret.channel_send(cenv, elf.eql?(other).to_c9, InvalidReturnChannel)
+        end
         klass.add_method(:const_set) do |cenv, msg, ret|
           elf = msg.system.first
           name, val = msg.positional
@@ -117,18 +122,16 @@ module Channel9
           elf = msg.system.first
           path = msg.positional.first
           loader = elf.env.special_channel[:loader]
-          path.channel_send(elf.env, Primitive::Message.new(:to_s_prim,[],[]), CallbackChannel.new {|ienv, sval, sret|
-            stream = loader.compile(sval.to_s)
-            if (stream)
-              context = Channel9::Context.new(elf.env, stream)
-              global_self = elf.env.special_channel[:global_self]
-              context.channel_send(elf.env, global_self, CallbackChannel.new {|ienv, imsg, iret|
-                ret.channel_send(elf.env, true.to_c9, InvalidReturnChannel)
-              })
-            else
-              ret.channel_send(elf.env, false.to_c9, InvalidReturnChannel)
-            end
-          })
+          stream = loader.compile(path.real_str)
+          if (stream)
+            context = Channel9::Context.new(elf.env, stream)
+            global_self = elf.env.special_channel[:global_self]
+            context.channel_send(elf.env, global_self, CallbackChannel.new {|ienv, imsg, iret|
+              ret.channel_send(elf.env, true.to_c9, InvalidReturnChannel)
+            })
+          else
+            ret.channel_send(elf.env, false.to_c9, InvalidReturnChannel)
+          end
         end
 
         mod.add_method(:raise) do |cenv, msg, ret|

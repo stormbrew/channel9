@@ -27,7 +27,7 @@ module Kernel
 
   def load(name)
     $LOAD_PATH.reverse.each {|path|
-      if (raw_load("#{path}/#{name}"))
+      if (raw_load("#{path}/#{name}".to_s_prim))
         return true
       end
     }
