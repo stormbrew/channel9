@@ -690,10 +690,23 @@ module Channel9
       def transform_yield(*args)
         builder.frame_get("yield")
 
+        sofar = 0
+        message_created = false
         args.each do |arg|
-          transform(arg)
+          if (arg[0] != :splat)
+            transform(arg)
+            sofar += 1
+          else
+            builder.message_new(:call, 0, sofar)
+            transform(arg[1])
+            builder.message_new(:to_tuple_prim, 0, 0)
+            builder.channel_call
+            builder.pop
+            builder.message_splat
+            message_created = true
+          end
         end
-        builder.message_new(:call, 0, args.length)
+        builder.message_new(:call, 0, args.length) if !message_created
         builder.channel_call
         builder.pop
       end
@@ -1046,7 +1059,11 @@ module Channel9
           builder.message_new(:to_a, 0, 0)
           builder.channel_call
           builder.pop
-          transform(splat[1])
+          if (splat[1])
+            transform(splat[1])
+          else
+            builder.pop
+          end
           builder.pop # don't want the result of the individual assignments.
         end
       end
@@ -1323,6 +1340,12 @@ module Channel9
 
       def transform_for(from, args, block)
         transform_iter(s(:call, from, :each, s(:arglist)), args, block, false)
+      end
+
+      def transform_0
+        # TODO: This should actually blow up if the value passed
+        # to it isn't empty or nil. For now just pop it.
+        builder.pop
       end
 
       # The sexp for this is weird. It embeds the call into
