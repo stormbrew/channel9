@@ -113,17 +113,21 @@ class Array
     r
   end
 
-  def push(val)
-    @tuple = @tuple.push(val)
-    val
+  def push(*vals)
+    vals.each do |val|
+      @tuple = @tuple.push(val)
+    end
+    vals
   end
   def <<(val)
     @tuple = @tuple.push(val)
     self
   end
-  def unshift(val)
-    @tuple = @tuple.front_push(val)
-    val
+  def unshift(*vals)
+    vals.each do |val|
+      @tuple = @tuple.front_push(val)
+    end
+    vals
   end
   def pop
     l = @tuple.last
