@@ -71,6 +71,7 @@ module Channel9
         # Builtin special types:
         [
           [:Fixnum, "Number"],
+          [:Float, "Float"],
           [:Symbol, "String"],
           [:Tuple, "Tuple"],
           [:Table, "Table"],

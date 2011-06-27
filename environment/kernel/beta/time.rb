@@ -21,7 +21,10 @@ class Time
   end
 
   def to_i
-    @ts
+    @ts.to_i
+  end
+  def to_f
+    @ts.to_f
   end
 
   def <=>(other)
@@ -32,10 +35,14 @@ class Time
   end
 
   def +(i)
-    @ts += i.to_i
+    Time.at(@ts + i.to_f)
   end
   def -(i)
-    @ts -= i.to_i
+    if (i.kind_of?(Time))
+      @ts.to_f - i.to_f
+    else
+      Time.at(@ts - i.to_f)
+    end
   end
 end
 
