@@ -163,6 +163,9 @@ class Array
   def delete_at(idx)
     @tuple = @tuple.delete(idx)
   end
+  def clear
+    @tuple = [].to_tuple_prim
+  end
   def reject(obj = nil)
     tuple = [].to_tuple_prim
     if (block_given?)

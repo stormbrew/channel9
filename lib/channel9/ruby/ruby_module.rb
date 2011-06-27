@@ -78,8 +78,14 @@ module Channel9
         klass.add_method(:method_defined?) do |cenv, msg, ret|
           elf = msg.system.first
           name = msg.positional.first
-          defined = elf.instance_methods[name] ? true : false
+          defined = elf.lookup(name)[0] ? true : false
           ret.channel_send(elf.env, defined.to_c9, InvalidReturnChannel)
+        end
+        klass.add_method(:instance_method_prim) do |cenv, msg, ret|
+          elf = msg.system.first
+          name = msg.positional.first
+          meth = elf.lookup(name)[0]
+          ret.channel_send(elf.env, meth.to_c9, InvalidReturnChannel)
         end
       end
 

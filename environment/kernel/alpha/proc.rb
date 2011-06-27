@@ -34,3 +34,26 @@ class Proc
     self
   end
 end
+
+class UnboundMethod
+  def initialize(name, prim)
+    @name = name
+    @p = prim
+  end
+
+  def bind(obj)
+    Method.new(obj, @name, @p)
+  end
+end
+
+class Method
+  def initialize(obj, name, prim)
+    @obj = obj
+    @name = name
+    @p = prim
+  end
+
+  def call(*args)
+    @obj.instance_exec(*args, &Proc.new_from_prim(@p))
+  end
+end

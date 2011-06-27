@@ -42,9 +42,10 @@ module Channel9
         end
         klass.add_method(:__c9_primitive_call__) do |cenv, msg, ret|
           elf = msg.system.first
+          env = elf.respond_to?(:env) ? elf.env : cenv
           name, instance, *args = msg.positional
           imsg = Primitive::Message.new(name, [msg.system[2]], args)
-          elf.channel_send_with(instance, nil, elf, elf.env, imsg, ret)
+          elf.channel_send_with(instance, nil, elf, env, imsg, ret)
         end
 
       end

@@ -37,7 +37,7 @@ module Channel9
         end
         klass.add_method(:instance_eval_prim) do |cenv, msg, ret|
           elf, zuper, channel = msg.system
-          msg = Primitive::Message.new(:__instance_eval___, [elf], [])
+          msg = Primitive::Message.new(:__instance_eval___, [elf], msg.positional)
           raise "BOOM: Not a callablechannel! #{channel}" if !channel.kind_of?(CallableContext)
           channel.channel_send(cenv, msg, ret)
         end
@@ -57,6 +57,16 @@ module Channel9
           found = elf.ivars.key?(name)
           ret.channel_send(elf.env, found.to_c9, InvalidReturnChannel)
         end
+        klass.add_method(:instance_variables_prim) do |cenv, msg, ret|
+          elf = msg.system.first
+          if (elf.respond_to? :env)
+            found = elf.ivars.keys.collect {|i| i.to_c9 }.to_c9
+            ret.channel_send(elf.env, found, InvalidReturnChannel)
+          else
+            # Primitives don't have ivars. For now.
+            ret.channel_send(cenv, [].to_c9, InvalidReturnChannel)
+          end
+        end
         klass.add_method(:equal?) do |cenv, msg, ret|
           elf = msg.system.first
           other = msg.positional.first
@@ -68,7 +78,11 @@ module Channel9
         end
         klass.add_method(:singleton) do |cenv, msg, ret|
           elf = msg.system.first
-          ret.channel_send(elf.env, elf.singleton, InvalidReturnChannel)
+          if (elf.respond_to? :env)
+            ret.channel_send(elf.env, elf.singleton.to_c9, InvalidReturnChannel)
+          else
+            ret.channel_send(cenv, nil.to_c9, InvalidReturnChannel)
+          end
         end
 
         klass.add_method(:singleton!) do |cenv, msg, ret|
