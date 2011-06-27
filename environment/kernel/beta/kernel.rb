@@ -77,8 +77,8 @@ module Kernel
     special_channel(:global_self).instance_eval(&proc)
   end
 
-  def send(name, *args)
-    send_prim(name.to_s_prim, *args)
+  def send(name, *args, &block)
+    send_prim(name.to_s_prim, *args, &block)
   end
   alias_method :__send__, :send
 end
