@@ -17,19 +17,19 @@ module Channel9
 
         object_klass = Channel9::Ruby::RubyClass.new(env, "Object", nil)
         env.special_channel[:Object] = object_klass
-        Channel9::Ruby::RubyObject.object_klass(object_klass)
 
         module_klass = Channel9::Ruby::RubyClass.new(env, "Module", object_klass)
         env.special_channel[:Module] = module_klass
-        Channel9::Ruby::RubyModule.module_klass(module_klass)
 
         class_klass = Channel9::Ruby::RubyClass.new(env, "Class", module_klass)
-        env.special_channel[:Class] = class_klass
-        Channel9::Ruby::RubyClass.class_klass(class_klass)
-        
+        env.special_channel[:Class] = class_klass        
         object_klass.rebind(class_klass)
         module_klass.rebind(class_klass)
         class_klass.rebind(class_klass)
+
+        Channel9::Ruby::RubyObject.object_klass(object_klass)
+        Channel9::Ruby::RubyModule.module_klass(module_klass)
+        Channel9::Ruby::RubyClass.class_klass(class_klass)
 
         kernel_mod = Channel9::Ruby::RubyModule.new(env, "Kernel")
         env.special_channel[:Kernel] = kernel_mod

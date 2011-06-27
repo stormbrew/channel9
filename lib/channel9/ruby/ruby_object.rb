@@ -176,8 +176,8 @@ module Channel9
       def channel_send_with(elf, singleton, klass, cenv, val, ret)
         if (val.is_a?(Primitive::Message))
           env.for_debug do
-            pp(:pretrace=>{:name=>val.name.to_s, :self => elf.to_s})
-            pp(:trace=>{:name=>val.name.to_s, :self => elf.to_s, :system => val.system.collect {|i| i.to_s },:args => val.positional.collect {|i| i.to_s }})
+            pp(:trace=>{:name=>val.name.to_s, :self => elf.to_s, :klass=>klass.to_s, :singleton=>singleton.to_s, :system => val.system.collect {|i| i.to_s },:args => val.positional.collect {|i| i.to_s }})
+            pp(:lookup=>{:name=>val.name.to_s, :found => send_lookup(val.name).to_s })
           end
           meth, found_klass = (singleton && singleton.lookup(val.name)) || klass.lookup(val.name)
           if (meth.nil?)

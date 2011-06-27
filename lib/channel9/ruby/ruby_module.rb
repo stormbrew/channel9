@@ -7,6 +7,18 @@ module Channel9
       attr :constant
 
       def self.module_klass(klass)
+        klass.add_method(:name) do |cenv, msg, ret|
+          elf = msg.system.first
+          ret.channel_send(elf.env, Primitive::String.new(elf.name), InvalidReturnChannel)
+        end
+        klass.add_method(:scope_name) do |cenv, msg, ret|
+          elf = msg.system.first
+          if (elf != elf.env.special_channel[:Object])
+            ret.channel_send(elf.env, Primitive::String.new(elf.name.to_s + "::"), InvalidReturnChannel)
+          else
+            ret.channel_send(elf.env, Primitive::String.new(""), InvalidReturnChannel)
+          end
+        end
         klass.add_method(:==) do |cenv, msg, ret|
           elf = msg.system.first
           other = msg.positional.first
@@ -26,23 +38,18 @@ module Channel9
         end
         klass.add_method(:const_get_scoped) do |cenv, msg, ret|
           elf = msg.system.first
-          names = msg.positional.dup
-          finding = names.pop
-          last = elf
-          scopes = [elf] + names.collect do |name|
-            if (last.constant[name.to_c9])
-              last = last.constant[name.to_c9]
-            else
-              break
-            end
+          name, next_scope = msg.positional
+          
+          found = elf.constant[name.to_c9]
+          if (found)
+            ret.channel_send(elf.env, found.to_c9, InvalidReturnChannel)
+          elsif (!next_scope.nil?)
+            mod, next_scope = next_scope.real_ary
+            nmsg = Primitive::Message.new(:const_get_scoped, [], [name, next_scope])
+            mod.channel_send(elf.env, nmsg, ret)
+          else
+            ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
           end
-          const = nil
-          scopes.reverse.each do |scope|
-            if (const = scope && scope.constant[finding.to_c9])
-              break
-            end
-          end
-          ret.channel_send(elf.env, const.to_c9, InvalidReturnChannel)
         end
         klass.add_method(:const_defined?) do |cenv, msg, ret|
           elf = msg.system.first
