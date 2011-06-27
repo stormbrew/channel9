@@ -1597,6 +1597,25 @@ module Channel9
         end
       end
 
+      def transform_eval(body)
+        builder.frame_set("return")
+        builder.message_sys_unpack(1)
+        builder.frame_set("self")
+        builder.pop
+        if (!body.nil?)
+          with_state(:static_scope => []) do
+            with_new_vtable do
+              transform(body)
+            end
+          end
+        else
+          transform_nil
+        end
+        builder.frame_get("return")
+        builder.swap
+        builder.channel_ret
+      end
+
       def transform_file(body)
         builder.frame_set("return")
         builder.frame_set("self")

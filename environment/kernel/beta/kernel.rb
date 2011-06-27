@@ -68,11 +68,15 @@ module Kernel
 
   def instance_eval(s = nil, &block)
     if (s)
-      raise NotImplementedError, "String eval not implemented."
-    else
-      instance_eval_prim(&block)
+      block = Channel9.compile_string(:eval, s, "__eval__", 1)
     end
+    instance_eval_prim(&block)
   end
+  def eval(s, filename = "__eval__", line = 1)
+    proc = Channel9.compile_string(:eval, s, filename, line)
+    special_channel(:global_self).instance_eval(&proc)
+  end
+
   def send(name, *args)
     send_prim(name.to_s_prim, *args)
   end

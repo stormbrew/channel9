@@ -24,12 +24,11 @@ class Module
 
   def class_eval(s = nil, &block)
     if (s)
-      raise NotImplementedError, "String eval not implemented."
-    else
-      define_singleton_method(:__class_eval__, &block)
-      __class_eval__
+      block = Channel9.compile_string(:eval, s, "__eval__", 1)
     end
+    instance_eval(&block)
   end
+  alias_method :module_eval, :class_eval
 
   def module_function(*names)
     # TODO: Implement.
