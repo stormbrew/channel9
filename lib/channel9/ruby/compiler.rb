@@ -37,6 +37,38 @@ module Channel9
         return 0 # default to current scope.
       end
 
+      # Pushes the constant self onto the stack,
+      # using the const-self frame variable.
+      # If name is passed in, will also
+      # evaluate any :const/:colon2/:colon3
+      # trees and return the rightmost name component
+      # (just returning name if name is a bare symbol
+      # or a :const sexp)
+      def const_self(name = nil)
+        if (name)
+          if (name.is_a? Symbol)
+            const_self # no name
+            return name
+          elsif (name.first == :const)
+            const_self
+            return name[1]
+          elsif (name.first == :colon3) # global scoped
+            builder.channel_special(:Object)
+            return name[1]
+          elsif (name.first == :colon2) # scoped
+            transform(name[1])
+            return name[2]
+          else
+            raise "Unknown constant type #{name.first}"
+          end
+        else
+          builder.frame_get("const-self")
+          builder.tuple_unpack(1, 0, 0)
+          builder.swap
+          builder.pop # get rid of the tuple.
+        end
+      end
+
       def raise_error(type, desc)
         transform_self
         transform_colon3(type.to_sym)
@@ -846,11 +878,13 @@ module Channel9
         make_label = builder.make_label(label_prefix + ".make")
         done_label = builder.make_label(label_prefix + ".done")
 
-        full_name = @state[:static_scope] + [name]
-        full_name = full_name.join('::')
-
         # See if it's already there
-        transform_const(name)
+        bare_name = const_self(name)
+        builder.push(bare_name)
+        builder.message_new(:const_get, 0, 1)
+        builder.channel_call
+        builder.pop
+
         builder.dup_top
         builder.jmp_if_not(make_label)
 
@@ -868,21 +902,31 @@ module Channel9
 
         # It's not a class, so error out here.
         builder.pop
-        raise_error(:TypeError, "#{name} is not a Class.")
+        raise_error(:TypeError, "#{bare_name} is not a Class.")
 
         # If it's not, make a new class and set it.
         builder.set_label(make_label)
         builder.pop
-        load_static_scope
-        builder.push(name)
-        
+
+        const_self(name)
+        builder.push(bare_name)
+
         builder.channel_special(:Class)
         if (superclass.nil?)
           builder.channel_special(:Object)
         else
           transform(superclass)
         end
-        builder.push(full_name.to_sym)
+
+        const_self(name)
+        builder.message_new(:scope_name, 0, 0)
+        builder.channel_call
+        builder.pop
+        builder.push(bare_name)
+        builder.message_new(:+, 0, 1)
+        builder.channel_call
+        builder.pop
+
         builder.message_new(:new, 0, 2)
         builder.channel_call
         builder.pop
@@ -890,21 +934,26 @@ module Channel9
         builder.message_new(:const_set, 0, 2)
         builder.channel_call
         builder.pop
+
         builder.jmp(done_label)
 
         builder.set_label(body_label)
         builder.local_clean_scope
         builder.frame_set("return")
         builder.message_sys_unpack(1)
+        builder.dup_top
         builder.frame_set("self")
+        builder.tuple_new(1)
+        builder.frame_get("const-self")
+        builder.tuple_new(1)
+        builder.tuple_splat
+        builder.frame_set("const-self")
         builder.pop
-        with_state(:static_scope => @state[:static_scope] + [name]) do
-          if (body.nil?)
-            transform_nil
-          else
-            with_new_vtable do
-              transform(body)
-            end
+        if (body.nil?)
+          transform_nil
+        else
+          with_new_vtable do
+            transform(body)
           end
         end
         builder.frame_get("return")
@@ -931,21 +980,35 @@ module Channel9
         body_label = builder.make_label(label_prefix + ".body")
         done_label = builder.make_label(label_prefix + ".done")
 
-        full_name = @state[:static_scope] + [name]
-        full_name = full_name.join('::')
-
         # See if it's already there
-        transform_const(name)
+        bare_name = const_self(name)
+        builder.push(bare_name)
+        builder.message_new(:const_get, 0, 1)
+        builder.channel_call
+        builder.pop
+        
         builder.dup_top
         builder.jmp_if(done_label)
 
         # If it's not, make a new module and set it.
         builder.pop
-        load_static_scope
-        builder.push(name)
-        
+
+        const_self(name)
+        builder.dup_top
+        builder.push(bare_name)
+
+        builder.swap
+        builder.message_new(:scope_name, 0, 0)
+        builder.channel_call
+        builder.pop
+        builder.push(bare_name)
+        builder.message_new(:+, 0, 1)
+        builder.channel_call
+        builder.pop
+
         builder.channel_special(:Module)
-        builder.push(full_name.to_sym)
+        builder.swap
+
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop
@@ -959,15 +1022,19 @@ module Channel9
         builder.local_clean_scope
         builder.frame_set("return")
         builder.message_sys_unpack(1)
+        builder.dup_top
         builder.frame_set("self")
+        builder.tuple_new(1)
+        builder.frame_get("const-self")
+        builder.tuple_new(1)
+        builder.tuple_splat
+        builder.frame_set("const-self")
         builder.pop
-        with_state(:static_scope => @state[:static_scope] + [name]) do
-          if (body.nil?)
-            transform_nil
-          else
-            with_new_vtable do
-              transform(body)
-            end
+        if (body.nil?)
+          transform_nil
+        else
+          with_new_vtable do
+            transform(body)
           end
         end
         builder.frame_get("return")
@@ -998,35 +1065,30 @@ module Channel9
         builder.pop
       end
 
-      def load_static_scope
-        builder.channel_special(:Object)
-        if (@state[:static_scope].any?)
-          @state[:static_scope].each do |scope|
-            builder.push(scope)
-          end
-          builder.message_new(:const_get_scoped, 0, @state[:static_scope].length)
-          builder.channel_call
-          builder.pop
+      def transform_cdecl(name, val = nil)
+        bare_name = const_self(name)
+        if (val.nil?)
+          builder.swap # value is in stack before this.
+        else
+          transform(val)
         end
-      end
-
-      def transform_cdecl(name, val)
-        load_static_scope
-        builder.push(name)
-        transform(val)
+        builder.push(bare_name)
+        builder.swap # contortion necessary to deal with pulling up value from stack.
         builder.message_new(:const_set, 0, 2)
         builder.channel_call
         builder.pop
       end
       def transform_const(name)
-        builder.channel_special(:Object)
-        @state[:static_scope].each do |scope|
-          builder.push(scope)
-        end
+        builder.frame_get("const-self")
+        builder.tuple_unpack(2, 0, 0)
+        builder.swap
         builder.push(name)
-        builder.message_new(:const_get_scoped, 0, @state[:static_scope].length + 1)
+        builder.swap
+        builder.message_new(:const_get_scoped, 0, 2)
         builder.channel_call
         builder.pop
+        builder.swap
+        builder.pop # get rid of the const-self
       end
 
       def transform_colon3(name)
@@ -1665,10 +1727,12 @@ module Channel9
         builder.frame_set("self")
         builder.pop
         if (!body.nil?)
-          with_state(:static_scope => []) do
-            with_new_vtable do
-              transform(body)
-            end
+          builder.push(nil)
+          builder.channel_special(:Object)
+          builder.tuple_new(2)
+          builder.frame_set("const-self")
+          with_new_vtable do
+            transform(body)
           end
         else
           transform_nil
@@ -1682,10 +1746,12 @@ module Channel9
         builder.frame_set("return")
         builder.frame_set("self")
         if (!body.nil?)
-          with_state(:static_scope => []) do
-            with_new_vtable do
-              transform(body)
-            end
+          builder.push(nil)
+          builder.channel_special(:Object)
+          builder.tuple_new(2)
+          builder.frame_set("const-self")
+          with_new_vtable do
+            transform(body)
           end
         else
           transform_nil

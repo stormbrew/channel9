@@ -36,10 +36,6 @@ module Channel9
           elf = msg.system.first
           ret.channel_send(elf.env, elf.superclass.to_c9, InvalidReturnChannel)
         end
-        klass.add_method(:name) do |cenv, msg, ret|
-          elf = msg.system.first
-          ret.channel_send(elf.env, Primitive::String.new(elf.name), InvalidReturnChannel)
-        end
         klass.add_method(:__c9_primitive_call__) do |cenv, msg, ret|
           elf = msg.system.first
           env = elf.respond_to?(:env) ? elf.env : cenv
