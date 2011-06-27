@@ -431,8 +431,12 @@ module Channel9
         next_label = builder.make_label("when.next")
         done_label = @state[:case_done]
 
-        comparisons = comparisons.dup
-        comparisons.shift
+        if (comparisons.first == :array)
+          comparisons = comparisons.dup
+          comparisons.shift
+        else
+          comparisons = [comparisons]
+        end
 
         comparisons.each do |cmp|
           if (@state[:if_case])
