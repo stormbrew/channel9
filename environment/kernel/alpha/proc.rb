@@ -5,9 +5,7 @@ class Proc
     a
   end
   def self.new(&p)
-    a = allocate
-    a.initialize(p)
-    a
+    p
   end
 
   def initialize(p)
