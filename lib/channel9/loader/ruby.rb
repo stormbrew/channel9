@@ -8,6 +8,10 @@ module Channel9
     class Ruby
       attr :env
 
+      def to_c9
+        self
+      end
+
       def initialize(debug = false)
         @env = Channel9::Environment.new(debug)
 
@@ -111,29 +115,40 @@ module Channel9
       end
 
       def channel_send(cenv, msg, ret)
-        case msg.name
-        when "compile"
-          compile(msg.positional.first)
-          ret.channel_send(env, true, InvalidReturnChannel)
+        case msg.name.to_sym
+        when :compile
+          type, str, filename, line = msg.positional
+          compiled = compile_string(type.to_sym, str.real_str, filename.real_str, line.real_num)
+          callable = CallableContext.new(cenv, compiled)
+          ret.channel_send(env, callable, InvalidReturnChannel)
         else
           raise "BOOM: Unknown message for loader: #{msg.name}."
         end
       end
 
+      def compile_string(type, str, filename = "__eval__", line = 1)
+        stream = Channel9::Stream.new
+        stream.build do |builder|
+          parser = RubyParser.new
+          begin
+            tree = parser.parse(str, filename)
+          rescue Racc::ParseError
+            puts "parse error in #{filename}"
+            raise
+          end
+          tree = s(type.to_sym, tree)
+          tree.filename = filename
+          tree.line = line
+          compiler = Channel9::Ruby::Compiler.new(builder)
+          compiler.transform(tree)
+        end
+        return stream
+      end
+
       def compile(filename)
         begin
           File.open("#{filename}", "r") do |f|
-            stream = Channel9::Stream.new
-            stream.build do |builder|
-              parser = RubyParser.new
-              tree = parser.parse(f.read, filename)
-              tree = s(:file, tree)
-              tree.file = filename.to_s
-              tree.pos = 1
-              compiler = Channel9::Ruby::Compiler.new(builder)
-              compiler.transform(tree)
-            end
-            return stream
+            return compile_string(:file, f.read, filename)
           end
         rescue Errno::ENOENT, Errno::EISDIR
         end

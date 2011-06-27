@@ -10,6 +10,12 @@ module Channel9
     $stdout = Object.new
     $stdin = Object.new
   end
+
+  def self.compile_string(type, string, filename, line)
+    loader = special_channel(:loader)
+    compiled = loader.compile(type.to_s_prim, string.to_s_prim, filename.to_s_prim, line.to_i)
+    return Proc.new_from_prim(compiled)
+  end
 end
 # These are targets for what we're trying to be compatible
 # with.
