@@ -53,6 +53,12 @@ class String
   def ljust(i, pad)
     self # TODO: Make not stub
   end
+  def sub(at, with)
+    self # TODO: Make not a stub
+  end
+  def chomp
+    self # TODO: Make not a stub
+  end
 
   def +(other)
     String.new(@str + other.to_s_prim)
