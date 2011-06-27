@@ -12,4 +12,6 @@ class Object
   def singleton_methods
     [] # TODO: Implement properly.
   end
+
+  alias_method :__id__, :object_id
 end

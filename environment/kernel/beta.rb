@@ -28,3 +28,4 @@ load 'beta/time.rb'
 load 'beta/regexp.rb'
 
 load 'beta/signal.rb'
+load 'beta/thread.rb'
