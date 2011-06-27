@@ -87,7 +87,14 @@ module Channel9
 
         klass.add_method(:singleton!) do |cenv, msg, ret|
           elf = msg.system.first
-          ret.channel_send(elf.env, elf.singleton!, InvalidReturnChannel)
+          if (elf.respond_to? :env)
+            ret.channel_send(elf.env, elf.singleton!, InvalidReturnChannel)
+          else
+            object = cenv.special_channel[:Object]
+            type_error = object.constant[:TypeError.to_c9]
+            msg = Primitive::String.new("no virtual class for primitive types")
+            elf.channel_send(cenv, Primitive::Message.new(:raise, [], [type_error, msg]), InvalidReturnChannel)
+          end
         end
 
         klass.add_method(:dup) do |cenv, msg, ret|
