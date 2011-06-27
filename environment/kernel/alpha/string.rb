@@ -27,6 +27,9 @@ class String
   def length
     @str.length
   end
+  def empty?
+    @str.length == 0
+  end
   def size
     length
   end
