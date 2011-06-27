@@ -6,6 +6,9 @@ class Fixnum < Numeric
   def to_i
     self
   end
+  def to_f
+    to_float_primitive
+  end
   def to_s
     to_string_primitive.to_s
   end

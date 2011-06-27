@@ -57,12 +57,6 @@ module Channel9
           elf.add_method(name, channel)
           ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
         end
-        klass.add_method(:instance_eval_prim) do |cenv, msg, ret|
-          elf, zuper, channel = msg.system
-          msg = Primitive::Message.new(:__instance_eval___, [elf], [])
-          raise "BOOM: Not a callablechannel! #{channel}" if !channel.kind_of?(CallableContext)
-          channel.channel_send(cenv, msg, ret)
-        end
         klass.add_method(:remove_method) do |cenv, msg, ret|
           elf = msg.system.first
           name = msg.positional.first
@@ -226,7 +220,7 @@ module Channel9
         end
 
         mod.singleton!.add_method(:prim_time_now) do |cenv, msg, ret|
-          ret.channel_send(cenv, Time.now.to_i.to_c9, InvalidReturnChannel)
+          ret.channel_send(cenv, Time.now.to_f.to_c9, InvalidReturnChannel)
         end
 
         mod.singleton!.add_method(:prim_stat) do |cenv, msg, ret|

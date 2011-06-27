@@ -15,6 +15,7 @@ load 'beta/channel9.rb'
 
 load 'beta/string.rb'
 load 'beta/fixnum.rb'
+load 'beta/float.rb'
 load 'beta/message.rb'
 load 'beta/table.rb'
 load 'beta/range.rb'
