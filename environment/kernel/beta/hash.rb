@@ -31,6 +31,10 @@ class Hash
     @default_proc = default_proc
   end
 
+  def to_s
+    @vals.join
+  end
+
   def each
     @vals.each do |k,v|
       yield k,v
@@ -59,6 +63,18 @@ class Hash
       @default
     end
   end
+  def delete(key)
+    found = nil
+    @vals.each_with_index do |a, idx|
+      if (a[0] == key)
+        found = idx
+        break
+      end
+    end
+    @vals.delete_at(found) if found
+    self
+  end
+
   def keys
     @vals.collect {|k,v| k }
   end
