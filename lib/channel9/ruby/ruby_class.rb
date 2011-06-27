@@ -13,7 +13,7 @@ module Channel9
           ret.channel_send(elf.env, RubyObject.new(elf.env, elf), InvalidReturnChannel)
         end
         klass.add_method(:new) do |cenv, msg, ret|
-          elf = msg.system.first
+          elf, zuper, *sargs = msg.system
           args = msg.positional
           case elf
           when elf.env.special_channel[:Class]
@@ -26,7 +26,7 @@ module Channel9
             ret.channel_send(elf.env, RubyModule.new(elf.env, name), InvalidReturnChannel)
           else
             elf.channel_send(elf.env, Primitive::Message.new(:allocate, [], []), CallbackChannel.new {|cenv, obj, iret|
-              obj.channel_send(elf.env, Primitive::Message.new(:initialize, [], args), CallbackChannel.new {|cenv, x, iret|
+              obj.channel_send(elf.env, Primitive::Message.new(:initialize, [*sargs], args), CallbackChannel.new {|cenv, x, iret|
                 ret.channel_send(elf.env, obj, InvalidReturnChannel)
               })
             })

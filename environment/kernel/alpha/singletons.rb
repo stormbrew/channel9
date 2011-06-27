@@ -8,6 +8,9 @@ class NilClass
   def to_i
     0
   end
+  def to_proc_prim
+    nil
+  end
 end
 
 class TrueClass
