@@ -141,7 +141,7 @@ module Channel9
           transform(item)
         end
         builder.tuple_new(items.length)
-        builder.message_new(:new, 0, 1)
+        builder.message_new(:new_from_tuple, 0, 1)
         builder.channel_call
         builder.pop
       end
