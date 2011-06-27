@@ -76,6 +76,19 @@ module Kernel
     proc = Channel9.compile_string(:eval, s, filename, line)
     special_channel(:global_self).instance_eval(&proc)
   end
+  def instance_exec(*args, &block)
+    instance_eval_prim(*args, &block)
+  end
+  def instance_method(name)
+    if (method_defined?(name.to_sym))
+      UnboundMethod.new(name.to_sym, instance_method_prim(name.to_s_prim))
+    else
+      nil
+    end
+  end
+  def instance_variables
+    instance_variables_prim.to_a
+  end
 
   def send(name, *args, &block)
     send_prim(name.to_s_prim, *args, &block)
