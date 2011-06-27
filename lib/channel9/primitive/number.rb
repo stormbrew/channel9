@@ -34,12 +34,21 @@ module Channel9
       def to_c9_num
         self
       end
+      def to_c9_float
+        Float.new(@real_num.to_f)
+      end
       def to_int
         @real_num
       end
 
       def c9_to_string_primitive
         Primitive::String.new(to_s)
+      end
+      def c9_to_num_primitive
+        self
+      end
+      def c9_to_float_primitive
+        to_c9_float
       end
       
       def c9_negate()
