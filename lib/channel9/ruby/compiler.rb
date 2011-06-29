@@ -1729,7 +1729,7 @@ module Channel9
           builder.channel_call
           builder.pop
         else
-          raise "Unknown defined? type #{val[0]}."
+          raise_error :NotImplementedError, "Unknown defined? type #{val[0]}."
         end
       end
 
