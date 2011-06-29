@@ -199,7 +199,12 @@ module Channel9
         if (val.kind_of? Primitive::Message)
           channel_send_with(self, singleton, klass, cenv, val, ret)
         else
-          ret.channel_send(env, @ivars[val.to_sym].to_c9, InvalidReturnChannel)
+          case val.to_s
+          when /^@[^@]/
+            ret.channel_send(env, @ivars[val.to_sym].to_c9, InvalidReturnChannel)
+          when /^_*[A-Z]/
+            ret.channel_send(env, @constant[val.to_c9].to_c9, InvalidReturnChannel)
+          end
         end
       end
 

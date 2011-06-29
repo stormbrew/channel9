@@ -1141,7 +1141,6 @@ module Channel9
       def transform_colon3(name)
         builder.channel_special(:Object)
         builder.push(name)
-        builder.message_new(:const_get, 0, 1)
         builder.channel_call
         builder.pop
       end
@@ -1149,7 +1148,6 @@ module Channel9
       def transform_colon2(lhs, name)
         transform(lhs)
         builder.push(name)
-        builder.message_new(:const_get, 0, 1)
         builder.channel_call
         builder.pop
       end
