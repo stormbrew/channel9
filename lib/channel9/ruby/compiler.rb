@@ -1452,7 +1452,7 @@ module Channel9
         when :while
           builder.jmp(linfo[:beg_label])
         else
-          raise "Invalid (or unimplemented?) location for a next: #{linfo[:type]}"
+          raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a next: #{linfo[:type]}"
         end
       end
 
@@ -1472,7 +1472,7 @@ module Channel9
           builder.channel_call
           builder.pop
         else
-          raise "Invalid (or unimplemented?) location for a break"
+          raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a break"
         end
       end
       def transform_redo
