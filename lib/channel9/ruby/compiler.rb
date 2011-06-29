@@ -899,10 +899,10 @@ module Channel9
       end
 
       def transform_class(name, superclass, body)
-        label_prefix = "Class:#{name}"
-        body_label = builder.make_label(label_prefix + ".body")
-        make_label = builder.make_label(label_prefix + ".make")
-        done_label = builder.make_label(label_prefix + ".done")
+        label_prefix = builder.make_label("Class:#{name}")
+        body_label = label_prefix + ".body"
+        make_label = label_prefix + ".make"
+        done_label = label_prefix + ".done"
 
         # See if it's already there
         bare_name = const_self(name)
