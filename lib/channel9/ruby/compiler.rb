@@ -1252,21 +1252,41 @@ module Channel9
         builder.channel_call
         builder.pop
       end
-      def transform_cvdecl(name, val)
-        builder.frame_get("self")
-        builder.push(name)
-        transform(val)
-        builder.message_new(:class_variable_decl, 0, 2)
-        builder.channel_call
-        builder.pop
+      def transform_cvdecl(name, val = nil)
+        if (val)
+          const_self
+          builder.push(name)
+          transform(val)
+          builder.message_new(:class_variable_decl, 0, 2)
+          builder.channel_call
+          builder.pop
+        else
+          const_self
+          builder.swap
+          builder.push(name)
+          builder.swap
+          builder.message_new(:class_variable_decl, 0, 2)
+          builder.channel_call
+          builder.pop
+        end
       end
-      def transform_cvasgn(name, val)
-        builder.frame_get("self")
-        builder.push(name)
-        transform(val)
-        builder.message_new(:class_variable_set, 0, 2)
-        builder.channel_call
-        builder.pop
+      def transform_cvasgn(name, val = nil)
+        if (val)
+          const_self
+          builder.push(name)
+          transform(val)
+          builder.message_new(:class_variable_set, 0, 2)
+          builder.channel_call
+          builder.pop
+        else
+          const_self
+          builder.swap
+          builder.push(name)
+          builder.swap
+          builder.message_new(:class_variable_set, 0, 2)
+          builder.channel_call
+          builder.pop
+        end
       end
 
       def transform_block(*lines)
