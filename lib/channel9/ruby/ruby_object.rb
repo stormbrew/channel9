@@ -44,17 +44,17 @@ module Channel9
         klass.add_method(:instance_variable_get) do |cenv, msg, ret|
           elf = msg.system.first
           name = msg.positional.first
-          ret.channel_send(elf.env, elf.ivars[name].to_c9, InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.ivars[name.to_sym].to_c9, InvalidReturnChannel)
         end
         klass.add_method(:instance_variable_set) do |cenv, msg, ret|
           elf = msg.system.first
           name, val = msg.positional
-          ret.channel_send(elf.env, elf.ivars[name] = val, InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.ivars[name.to_sym] = val, InvalidReturnChannel)
         end
         klass.add_method(:instance_variable?) do |cenv, msg, ret|
           elf = msg.system.first
           name = msg.positional.first
-          found = elf.ivars.key?(name)
+          found = elf.ivars.key?(name.to_sym)
           ret.channel_send(elf.env, found.to_c9, InvalidReturnChannel)
         end
         klass.add_method(:instance_variables_prim) do |cenv, msg, ret|
@@ -196,7 +196,11 @@ module Channel9
         end
       end
       def channel_send(cenv, val, ret)
-        channel_send_with(self, singleton, klass, cenv, val, ret)
+        if (val.kind_of? Primitive::Message)
+          channel_send_with(self, singleton, klass, cenv, val, ret)
+        else
+          ret.channel_send(env, @ivars[val.to_sym].to_c9, InvalidReturnChannel)
+        end
       end
 
       def truthy?

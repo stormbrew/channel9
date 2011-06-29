@@ -1265,7 +1265,6 @@ module Channel9
       def transform_ivar(name)
         builder.frame_get("self")
         builder.push(name)
-        builder.message_new(:instance_variable_get, 0, 1)
         builder.channel_call
         builder.pop
       end
