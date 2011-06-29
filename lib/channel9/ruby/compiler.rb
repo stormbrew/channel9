@@ -553,64 +553,66 @@ module Channel9
           end
         end
 
-        if (defargs.length == 0)
-          builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
-          args.each do |arg|
-            builder.local_set(find_local_depth(arg, true), arg)
-          end
-        else
-          must_have = args.length - defargs.length
-          argdone_label = builder.make_label("args.done")
-          defarg_labels = (0...defargs.length).collect {|i| builder.make_label("args.default.#{i}") }
-          
-          builder.message_count
-          builder.frame_set("arg.count")
-          builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
-          i = 0
-          must_have.times do
-            builder.local_set(find_local_depth(args[i], true), args[i])
-            i += 1
-          end
+        if (args.length)
+          if (defargs.length == 0)
+            builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
+            args.each do |arg|
+              builder.local_set(find_local_depth(arg, true), arg)
+            end
+          else
+            must_have = args.length - defargs.length
+            argdone_label = builder.make_label("args.done")
+            defarg_labels = (0...defargs.length).collect {|i| builder.make_label("args.default.#{i}") }
+            
+            builder.message_count
+            builder.frame_set("arg.count")
+            builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
+            i = 0
+            must_have.times do
+              builder.local_set(find_local_depth(args[i], true), args[i])
+              i += 1
+            end
 
-          while (i < args.length)
-            builder.frame_get("arg.count")
-            builder.is(i)
-            builder.jmp_if(defarg_labels[i-must_have])
-            builder.local_set(find_local_depth(args[i], true), args[i])
-            i += 1
-          end
-          builder.jmp(argdone_label)
+            while (i < args.length)
+              builder.frame_get("arg.count")
+              builder.is(i)
+              builder.jmp_if(defarg_labels[i-must_have])
+              builder.local_set(find_local_depth(args[i], true), args[i])
+              i += 1
+            end
+            builder.jmp(argdone_label)
 
-          defarg_labels.each do |defarg_label|
-            builder.set_label(defarg_label)
-            builder.pop # undef padding value
-            transform(defargs.shift)
-            builder.pop # result of assignment
-          end
+            defarg_labels.each do |defarg_label|
+              builder.set_label(defarg_label)
+              builder.pop # undef padding value
+              transform(defargs.shift)
+              builder.pop # result of assignment
+            end
 
-          builder.set_label(argdone_label)
-        end
-        if (splatarg)
-          transform_colon3(:Array)
-          builder.swap
-          builder.message_new(:new, 0, 1)
-          builder.channel_call
-          builder.pop
-          builder.local_set(find_local_depth(splatarg, true), splatarg)
-        end
-        if (blockarg)
-          no_yield_label = builder.make_label("call.no_yield")
-          transform_colon3(:Proc)
-          builder.frame_get("yield")
-          builder.dup_top
-          builder.jmp_if_not(no_yield_label)
-          builder.message_new(:new_from_prim, 0, 1)
-          builder.channel_call
-          builder.pop
-          builder.local_set(find_local_depth(blockarg, true), blockarg)
-          builder.push(nil)
-          builder.set_label(no_yield_label)
-          builder.pop
+            builder.set_label(argdone_label)
+          end
+          if (splatarg)
+            transform_colon3(:Array)
+            builder.swap
+            builder.message_new(:new, 0, 1)
+            builder.channel_call
+            builder.pop
+            builder.local_set(find_local_depth(splatarg, true), splatarg)
+          end
+          if (blockarg)
+            no_yield_label = builder.make_label("call.no_yield")
+            transform_colon3(:Proc)
+            builder.frame_get("yield")
+            builder.dup_top
+            builder.jmp_if_not(no_yield_label)
+            builder.message_new(:new_from_prim, 0, 1)
+            builder.channel_call
+            builder.pop
+            builder.local_set(find_local_depth(blockarg, true), blockarg)
+            builder.push(nil)
+            builder.set_label(no_yield_label)
+            builder.pop
+          end
         end
         builder.pop
       end
