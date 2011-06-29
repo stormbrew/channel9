@@ -4,18 +4,20 @@ module Channel9
       def channel_send(cenv, val, ret)
         if (val.kind_of?(Message))
           if (self.respond_to?(:"c9_#{val.name}"))
-            result = self.send(:"c9_#{val.name}", *val.positional)
-            ret.channel_send(cenv, result.to_c9, InvalidReturnChannel)
-            return
-          else
-            if (ext = cenv.special_channel[self.class.name])
-              msg = val.prefix(self).forward(:__c9_primitive_call__)
-              ext.channel_send(cenv, msg, ret)
+            begin
+              result = self.send(:"c9_#{val.name}", *val.positional)
+              ret.channel_send(cenv, result.to_c9, InvalidReturnChannel)
               return
+            rescue
+              # let the environment's singleton class deal with it below
             end
           end
         end
-        raise "Primitive method error: #{val}"
+        if (ext = cenv.special_channel[self.class.name])
+          msg = val.prefix(self).forward(:__c9_primitive_call__)
+          ext.channel_send(cenv, msg, ret)
+          return
+        end
       end
 
       def to_c9
