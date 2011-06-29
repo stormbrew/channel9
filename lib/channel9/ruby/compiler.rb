@@ -1000,9 +1000,10 @@ module Channel9
       end
 
       def transform_module(name, body)
-        label_prefix = "Module:#{name}"
-        body_label = builder.make_label(label_prefix + ".body")
-        done_label = builder.make_label(label_prefix + ".done")
+        label_prefix = builder.make_label("Module:#{name}")
+        body_label = label_prefix + ".body"
+        make_label = label_prefix + ".make"
+        done_label = label_prefix + ".done"
 
         # See if it's already there
         bare_name = const_self(name)
@@ -1012,8 +1013,24 @@ module Channel9
         builder.pop
         
         builder.dup_top
+        builder.jmp_if_not(make_label)
+
+        builder.dup_top
+        builder.channel_special(:Module)
+        builder.swap
+        builder.message_new(:class, 0, 0)
+        builder.channel_call
+        builder.pop
+        builder.message_new(:==, 0, 1)
+        builder.channel_call
+        builder.pop
         builder.jmp_if(done_label)
 
+        # It's not a module, so error out here.
+        builder.pop
+        raise_error(:TypeError, "#{bare_name} is not a Module.")
+
+        builder.set_label(make_label)
         # If it's not, make a new module and set it.
         builder.pop
 
