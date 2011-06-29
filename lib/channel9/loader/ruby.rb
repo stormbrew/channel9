@@ -120,13 +120,13 @@ module Channel9
         when :compile
           type, str, filename, line = msg.positional
           callable = nil
-          begin
-            compiled = compile_string(type.to_sym, str.real_str, filename.real_str, line.real_num)
+          compiled = compile_string(type.to_sym, str.real_str, filename.real_str, line.real_num)
+          if (compiled)
             callable = CallableContext.new(cenv, compiled)
-          rescue => e
-            puts "Compile error: #{e}"
+            ret.channel_send(env, callable, InvalidReturnChannel)
+          else
+            ret.channel_send(env, nil.to_c9, InvalidReturnChannel)
           end
-          ret.channel_send(env, callable, InvalidReturnChannel)
         else
           raise "BOOM: Unknown message for loader: #{msg.name}."
         end
@@ -139,8 +139,11 @@ module Channel9
           begin
             tree = parser.parse(str, filename)
           rescue Racc::ParseError => e
-            puts "parse error in #{filename}"
-            raise
+            puts "parse error in #{filename}: #{e}"
+            return nil
+          rescue SyntaxError => e
+            puts "syntax error in #{filename}: #{e}"
+            return nil
           end
           tree = s(type.to_sym, tree)
           tree.filename = filename
@@ -157,10 +160,8 @@ module Channel9
             return compile_string(:file, f.read, filename)
           end
         rescue Errno::ENOENT, Errno::EISDIR
-        rescue => e
-          puts "Compile error: #{e}"
+          return nil
         end
-        return nil
       end
     end
   end
