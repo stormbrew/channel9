@@ -90,7 +90,7 @@ module Channel9
             transform_dot2([:lit, literal.first], [:lit, literal.last])
           end
         when Regexp
-          transform_const(:Regexp)
+          transform_colon3(:Regexp)
           builder.push(Primitive::String.new(literal.to_s))
           builder.message_new(:new, 0, 1)
           builder.channel_call
@@ -176,7 +176,7 @@ module Channel9
         builder.pop
       end
       def transform_hash(*items)
-        transform_const(:Hash)
+        transform_colon3(:Hash)
         items.reverse.each do |item|
           transform(item)
         end
@@ -200,7 +200,7 @@ module Channel9
           splat = items.pop
         end
 
-        transform_const(:Array)
+        transform_colon3(:Array)
         items.reverse.each do |item|
           transform(item)
         end
@@ -591,7 +591,7 @@ module Channel9
           builder.set_label(argdone_label)
         end
         if (splatarg)
-          transform_const(:Array)
+          transform_colon3(:Array)
           builder.swap
           builder.message_new(:new, 0, 1)
           builder.channel_call
