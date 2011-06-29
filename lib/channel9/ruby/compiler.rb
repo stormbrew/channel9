@@ -1480,7 +1480,7 @@ module Channel9
         end
       end
 
-      def transform_for(from, args, block)
+      def transform_for(from, args, block = nil)
         transform_iter(s(:call, from, :each, s(:arglist)), args, block, false)
       end
 
