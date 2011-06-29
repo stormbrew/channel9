@@ -59,7 +59,7 @@ module Channel9
             transform(name[1])
             return name[2]
           else
-            raise "Unknown constant type #{name.first}"
+            raise_error NotImplementedError, "Unknown constant type #{name.first}"
           end
         else
           builder.frame_get("const-self")
@@ -1476,7 +1476,7 @@ module Channel9
         if (@state[:rescue_retry])
           builder.jmp(@state[:rescue_retry])
         else
-          raise "Invalid (or unimplemented?) location for a retry"
+          raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a retry"
         end
       end
 
