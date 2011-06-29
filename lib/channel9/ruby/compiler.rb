@@ -636,6 +636,13 @@ module Channel9
         end
       end
 
+      def transform_undef(name)
+        const_self
+        builder.message_new(:undef_method, 0, 0)
+        builder.channel_call
+        builder.pop
+      end
+
       def transform_defn(name, args, code)
         transform_defs(nil, name, args, code)
       end
@@ -707,7 +714,7 @@ module Channel9
         end
         builder.set_label(method_done_label)
         if (on.nil?)
-          builder.frame_get("self")
+          const_self
         else
           transform(on)
         end
@@ -848,7 +855,13 @@ module Channel9
         builder.local_clean_scope
         builder.frame_set("return")
         builder.message_sys_unpack(1)
+        builder.dup_top
         builder.frame_set("self")
+        builder.tuple_new(1)
+        builder.frame_get("const-self")
+        builder.tuple_new(1)
+        builder.tuple_splat
+        builder.frame_set("const-self")
         builder.pop
         if (body.nil?)
           transform_nil
