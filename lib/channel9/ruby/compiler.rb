@@ -668,7 +668,11 @@ module Channel9
           transform(args)
 
           with_state(:has_long_return => nru, :name => name) do
-            transform(code)
+            if (code.nil?)
+              transform_nil
+            else
+              transform(code)
+            end
           end
         end
 
@@ -1253,10 +1257,14 @@ module Channel9
       end
 
       def transform_block(*lines)
-        count = lines.length
-        lines.each_with_index do |line, idx|
-          transform(line)
-          builder.pop if (count != idx + 1)
+        if (lines.empty?)
+          transform_nil
+        else
+          count = lines.length
+          lines.each_with_index do |line, idx|
+            transform(line)
+            builder.pop if (count != idx + 1)
+          end
         end
       end
 

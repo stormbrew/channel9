@@ -33,3 +33,9 @@ puts(a, a.class)
 def mret_splat_multi
   return *ident([1,2,3])
 end
+
+def empty; end
+puts empty.class
+
+def String.empty; end
+puts String.empty.class
