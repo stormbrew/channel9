@@ -906,6 +906,8 @@ module Channel9
 
         # See if it's already there
         bare_name = const_self(name)
+        builder.dup_top
+        builder.frame_set("new-const-self")
         builder.push(bare_name)
         builder.message_new(:const_get, 0, 1)
         builder.channel_call
@@ -934,7 +936,7 @@ module Channel9
         builder.set_label(make_label)
         builder.pop
 
-        const_self(name)
+        builder.frame_get("new-const-self")
         builder.push(bare_name)
 
         builder.channel_special(:Class)
@@ -944,7 +946,7 @@ module Channel9
           transform(superclass)
         end
 
-        const_self(name)
+        builder.frame_get("new-const-self")
         builder.message_new(:scope_name, 0, 0)
         builder.channel_call
         builder.pop
@@ -987,6 +989,8 @@ module Channel9
         builder.channel_ret
 
         builder.set_label(done_label)
+        builder.push(nil)
+        builder.frame_set("new-const-self")
 
         builder.dup_top
         builder.channel_new(body_label)
