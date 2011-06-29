@@ -48,7 +48,7 @@ module Channel9
 
       def initialize(env, name, superclass)
         super(env, env.special_channel[:Class])
-        @name = name
+        @name = name.nil? ? "Class:#{object_id}" : name
         @superclass = superclass.nil? ? env.special_channel[:Object] : superclass
         @instance_methods = {}
         @included = []

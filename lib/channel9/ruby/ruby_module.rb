@@ -292,7 +292,7 @@ module Channel9
 
       def initialize(env, name)
         super(env, env.special_channel[:Module])
-        @name = name
+        @name = name.nil? ? "Module:#{object_id}" : name
         @instance_methods = {}
         @included = []
         @constant = {}
