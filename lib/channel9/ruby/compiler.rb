@@ -1705,7 +1705,11 @@ module Channel9
           name, lhs, name, args = val
           # TODO: This will error if lhs can't evaluate,
           # and that needs to be fixed.
-          transform(lhs)
+          if (lhs)
+            transform(lhs)
+          else
+            transform_self
+          end
           builder.dup_top
           builder.jmp_if_not(done_label)
           builder.push(name)
