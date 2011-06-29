@@ -275,6 +275,13 @@ module Channel9
         builder.push(nil.to_c9)
       end
 
+      def transform_flip2(l, r)
+        raise_error :NotImplementedError, "(i == N)..(i == M) syntax not supported. Do you really use this?"
+      end
+      def transform_flip3(l, r)
+        raise_error :NotImplementedError, "(i == N)...(i == M) syntax not supported. Do you really use this?"
+      end
+
       def transform_if(cond, truthy, falsy)
         falsy_label = builder.make_label("if.falsy")
         done_label = builder.make_label("if.done")
