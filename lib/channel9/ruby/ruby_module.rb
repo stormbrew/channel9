@@ -232,7 +232,8 @@ module Channel9
         end
 
         mod.singleton!.add_method(:prim_sprintf) do |cenv, msg, ret|
-          ret.channel_send(cenv, Primitive::String.new(sprintf(*msg.positional)), ret)
+          format, *args = msg.positional
+          ret.channel_send(cenv, Primitive::String.new(sprintf(format.to_s, *args)), ret)
         end
 
         mod.singleton!.add_method(:prim_time_now) do |cenv, msg, ret|
