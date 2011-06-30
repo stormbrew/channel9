@@ -26,11 +26,15 @@ module Kernel
   end
 
   def load(name)
-    $LOAD_PATH.reverse.each {|path|
+    lp = $LOAD_PATH
+    i = lp.length - 1
+    while (i >= 0)
+      path = lp[i]
       if (raw_load("#{path}/#{name}".to_s_prim))
         return true
       end
-    }
+      i -= 1
+    end
     raise LoadError, "Could not load library #{name}"
   end
 
@@ -38,9 +42,24 @@ module Kernel
     raise NoMethodError, "undefined method `#{name}' for #{to_s}:#{self.class}"
   end
 
+  def kind_of?(other)
+    if (other.class == Class)
+      # find our own class in the hierarchy of the other.
+      klass = self.class
+      while (klass)
+        if (klass == other)
+          return true
+        end
+        klass = klass.superclass
+      end
+    end
+    return false
+  end
+  alias_method :is_a?, :kind_of?
+
   def puts(*args)
     args.each {|arg|
-      if (arg.kind_of?(Tuple) || arg.kind_of?(Array))
+      if (arg.kind_of?(::Channel9::Tuple) || arg.kind_of?(::StaticTuple) || arg.kind_of?(::Array))
         puts(*arg)
       elsif (arg.nil?)
         print("nil\n")

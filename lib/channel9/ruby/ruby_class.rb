@@ -24,6 +24,9 @@ module Channel9
             # special case for creating new classes.
             name = args.first
             ret.channel_send(elf.env, RubyModule.new(elf.env, name), InvalidReturnChannel)
+          when elf.env.special_channel[:Tuple]
+            # special case for creating tuples
+            ret.channel_send(elf.env, Tuple.new(elf.env, args.first), InvalidReturnChannel)
           else
             elf.channel_send(elf.env, Primitive::Message.new(:allocate, [], []), CallbackChannel.new {|cenv, obj, iret|
               obj.channel_send(elf.env, Primitive::Message.new(:initialize, [*sargs], args), CallbackChannel.new {|cenv, x, iret|

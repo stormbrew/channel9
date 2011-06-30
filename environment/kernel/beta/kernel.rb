@@ -26,21 +26,6 @@ module Kernel
     end
   end
 
-  def kind_of?(other)
-    if (other.class == Class)
-      # find our own class in the hierarchy of the other.
-      klass = self.class
-      while (klass)
-        if (klass == other)
-          return true
-        end
-        klass = klass.superclass
-      end
-    end
-    return false
-  end
-  alias_method :is_a?, :kind_of?
-
   def to_s
     "#<#{self.class}:" + "0x%0#{1.size}x" % object_id + ">"
   end

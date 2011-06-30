@@ -44,4 +44,14 @@ class Fixnum < Numeric
       return o.gcd(self % o)
     end
   end
+
+  # These are called if the primitive
+  # errors for some reason in its default handling
+  # of these operators.
+  def <(o)
+    self < o.to_int
+  end
+  def >(o)
+    self > o.to_int
+  end
 end

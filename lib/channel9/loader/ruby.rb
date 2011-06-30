@@ -40,6 +40,10 @@ module Channel9
         env.special_channel[:Channel9] = channel9_mod
         Channel9::Ruby::RubyModule.channel9_mod(channel9_mod)
 
+        tuple_klass = Channel9::Ruby::RubyClass.new(env, "Channel9::Tuple", object_klass)
+        env.special_channel[:Tuple] = tuple_klass
+        Channel9::Ruby::Tuple.tuple_klass(tuple_klass)
+
         env.special_channel[:loader] = self
         env.special_channel[:global_self] = Channel9::Ruby::RubyObject.new(env)
         c9rb_root = File.expand_path(File.dirname(__FILE__) + "../../../..")
@@ -60,6 +64,7 @@ module Channel9
         object_klass.constant[:Class.to_c9] = class_klass
         object_klass.constant[:Kernel.to_c9] = kernel_mod
         object_klass.constant[:Channel9.to_c9] = channel9_mod
+        channel9_mod.constant[:Tuple.to_c9] = tuple_klass
 
         env.set_error_handler do |err, ctx|
           puts "Unhandled VM Error in #{self}"
@@ -73,7 +78,7 @@ module Channel9
           [:Fixnum, "Number"],
           [:Float, "Float"],
           [:Symbol, "String"],
-          [:Tuple, "Tuple"],
+          [:StaticTuple, "Tuple"],
           [:Table, "Table"],
           [:Message, "Message"],
           [:TrueClass, "TrueC"],
@@ -88,7 +93,7 @@ module Channel9
 
         env.no_debug do
           ["singletons", "string", "kernel", "symbol", "enumerable",
-           "tuple", "array", "proc", "exceptions"].each do |file|
+           "static_tuple", "tuple", "array", "proc", "exceptions"].each do |file|
             file = :"#{c9rb_env}/kernel/alpha/#{file}.rb".to_c9
             object_klass.channel_send(env,
               Primitive::Message.new(:raw_load, [], [file]),
