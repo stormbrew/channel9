@@ -1340,6 +1340,9 @@ module Channel9
           builder.frame_get("yield")
           builder.is_not(Primitive::Undef)
           return
+        elsif (target.nil? && method == :undefined)
+          builder.push(Primitive::Undef)
+          return
         end
 
         if (target.nil?)
