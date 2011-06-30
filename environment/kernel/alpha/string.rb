@@ -24,6 +24,10 @@ class String
     end
   end
 
+  def hash
+    @str.hash
+  end
+
   def length
     @str.length
   end

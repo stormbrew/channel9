@@ -27,5 +27,9 @@ class Object
     end
   end
 
+  def frozen?
+    false
+  end
+
   alias_method :__id__, :object_id
 end
