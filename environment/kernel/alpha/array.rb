@@ -2,66 +2,11 @@ class Array
   include Enumerable
 
   def initialize(ary)
-    if (ary.class == ::Array)
-      @tuple = ary.instance_variable_get(:@tuple).dup
-      @start = ary.instance_variable_get(:@start)
-      @length = ary.instance_variable_get(:@length)
-    elsif (ary.class == ::StaticTuple || ary.class == ::Channel9::Tuple)
-      @tuple = ary
-      @start = 0
-      @length = @tuple.length
-    else
-      ary ||= 0
-      ary = ary.to_int
-      @tuple = ::Channel9::Tuple.new(ary + 8)
-      @start = 0
-      @length = ary
-    end
-    @read_only = @tuple.class == ::StaticTuple
+    @tuple = ary.to_tuple_prim
   end
 
-  def make_writeable
-    if (@read_only)
-      new_tuple = Channel9::Tuple.new(@length)
-      i = 0
-      while (i < @length)
-        new_tuple.put(i, @tuple.at(@start + i))
-        i += 1
-      end
-      @tuple = new_tuple
-      @start = 0
-      @read_only = false
-    end
-  end
-  def expand(size)
-    if (@start + size > @tuple.length)
-      new_tuple = Channel9::Tuple.new(size + (size - @length)*2)
-      i = 0
-      while (i < @length)
-        new_tuple.put(i, @tuple.at(@start + i))
-        i += 1
-      end
-      @tuple = new_tuple
-      @start = 0
-      @read_only = false
-    end
-  end
-
-  def to_tuple
-    if (@start == 0 && @length == @tuple.length)
-      @tuple
-    else
-      tuple = Channel9::Tuple.new(@length)
-      i = 0
-      while (i < @length)
-        tuple.put(i, @tuple.at(@start + i))
-        i += 1
-      end
-      tuple
-    end
-  end
   def to_tuple_prim
-    to_tuple.to_tuple_prim
+    @tuple
   end
   def to_a
     self
@@ -111,10 +56,8 @@ class Array
     self
   end
   def swap_elem(x,y)
-    make_writeable
     a, b = at(x), at(y)
-    @tuple.put(@start + y, a)
-    @tuple.put(@start + x, b)
+    @tuple = @tuple.replace(x, b).replace(y, a)
   end
   def sort
     dup.sort!
@@ -131,27 +74,33 @@ class Array
   end
 
   def each
+    return if @tuple.nil? #only meaningful in debug output for initialize.
     i = 0
-    while (i < @length)
-      yield @tuple.at(@start + i)
+    while (i < @tuple.length)
+      yield @tuple.at(i)
       i += 1
     end
   end
   def each_with_index
     i = 0
-    while (i < @length)
-      yield @tuple.at(@start + i), i
+    while (i < @tuple.length)
+      yield @tuple.at(i), i
       i += 1
     end
   end    
   def length
-    @length
+    return 0 if @tuple.nil?
+    return @tuple.length
   end
   def size
     return length
   end
   def empty?
     length == 0
+  end
+
+  def split(by)
+    Array.new(@tuple.split(by))
   end
 
   def reverse
@@ -165,97 +114,73 @@ class Array
   end
 
   def push(*vals)
-    adding = vals.length
-    expand(@length + adding)
-    pos = @start + @length
-    i = 0
-    while (i < adding)
-      @tuple.put(pos, vals.at(i))
-      pos += 1
-      i += 1
+    vals.each do |val|
+      @tuple = @tuple.push(val)
     end
-    @length = pos - @start
     vals
   end
   def <<(val)
-    push(val)
+    @tuple = @tuple.push(val)
     self
   end
   def unshift(*vals)
-    ary = vals + self
-    @tuple = ary.to_tuple
-    @start = 0
-    @length = ary.length
-    @read_only = false
+    vals.each do |val|
+      @tuple = @tuple.front_push(val)
+    end
+    vals
   end
   def pop
-    @length -= 1
-    l = @tuple.at(@start + @length)
-    @tuple.put(@start + @length, nil) if !@read_only
+    l = @tuple.last
+    @tuple = @tuple.pop
     l
   end
   def shift
-    l = @tuple.at(@start)
-    @tuple.put(@start, nil) if !@read_only
-    @start += 1
+    l = @tuple.first
+    @tuple = @tuple.front_pop
     l
   end
   def delete(obj)
-    new_tuple = Channel9::Tuple.new(@length)
-    i = @start
-    count = 0
-    if (block_given?)
-      while (i < @length)
-        val = @tuple.at(@start + i)
-        if !yield(val)
-          new_tuple.put(count, val)
-          count += 1
-        end
-        i += 1
+    i = 0
+    dels = []
+    while (i < @tuple.length)
+      if (block_given?)
+        dels.unshift(i) if yield(@tuple.at(i))
+      else
+        dels.unshift(i) if (@tuple.at(i) == obj)
       end
-    else
-      while (i < @length)
-        val = @tuple.at(@start + i)
-        if (val != obj)
-          new_tuple.put(count, val)
-          count += 1
-        end
-        i += 1
-      end
+      i += 1
     end
-    orig_len = @length
-    @tuple = new_tuple
-    @start = 0
-    @length = count
-    @read_only = false
+    dels.each do |i|
+      @tuple = @tuple.delete(i)
+    end
 
-    if (count < orig_len)
+    if (dels.length > 0)
       return obj
     else
       return nil
     end
   end
-  alias_method :reject, :delete
-  def reject!(obj = nil, &b)
-    rejected = reject(obj, &b)
-    @tuple = rejected.to_tuple
-    @start = 0
-    @length = rejected.length
-    @read_only = false
-  end
-
   def delete_at(idx)
-    make_writeable
-    i = idx
-    while (i < @length)
-      @tuple.put(@start + i, @tuple.at(@start + i + 1))
-      i += 1
-    end
-    @tuple.put(@start + @length, nil)
-    @length -= 1
+    @tuple = @tuple.delete(idx)
   end
   def clear
     @tuple = [].to_tuple_prim
+  end
+  def reject(obj = nil)
+    tuple = [].to_tuple_prim
+    if (block_given?)
+      each do |i|
+        tuple = tuple.push(i) if !yield(i)
+      end
+    else
+      each do |i|
+        tuple = tuple.push(i) if i != obj
+      end
+    end
+    Array.new(tuple)
+  end
+  def reject!(obj = nil, &b)
+    @tuple = reject(obj, &b).to_tuple_prim
   end
   def compact
     reject(nil)
@@ -263,9 +188,9 @@ class Array
 
   def at(idx, len = nil)
     if (len.nil?)
-      @tuple.at(@start + idx)
+      @tuple.at(idx)
     else
-      @tuple.subary(@start + idx, @start + idx + len).to_a
+      @tuple.subary(idx, idx + len).to_a
     end
   end
   def [](idx,len=nil)
@@ -278,25 +203,11 @@ class Array
     @tuple.at(-1)
   end
   def []=(idx, val)
-    make_writeable
-    @tuple.put(idx, val)
+    @tuple = @tuple.replace(idx, val)
   end
 
   def +(other)
-    other_len = other.length
-    new_tuple = Channel9::Tuple.new(@length + other_len)
-    i = @start
-    while (i < @length)
-      new_tuple.put(@start + i, @tuple.at(@start + i))
-      i += 1
-    end
-    j = 0
-    while (j < other_len)
-      new_tuple.put(@start + i, other.at(j))
-      i += 1
-      j += 1
-    end
-    Array.new(new_tuple)
+    Array.new(@tuple + other.to_tuple_prim)
   end
   def -(other)
     n = []
