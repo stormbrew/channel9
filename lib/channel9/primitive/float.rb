@@ -97,6 +97,10 @@ module Channel9
         return @real_num != Float.coerce(other).real_num
       end
       alias_method :"c9_!=", :c9_notequal
+
+      def c9_hash
+        @real_num.hash.to_c9
+      end
     end
   end
 end

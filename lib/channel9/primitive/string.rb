@@ -73,6 +73,10 @@ module Channel9
       def c9_substr(first, last)
         String.new(@real_str[first.real_num..last.real_num])
       end
+
+      def c9_hash
+        @real_str.hash.to_c9
+      end
     end
   end
 end
