@@ -55,6 +55,15 @@ module Channel9
         return -@real_num
       end
 
+      def c9_bitand(other)
+        return @real_num & Number.coerce(other).real_num
+      end
+      alias_method :"c9_&", :c9_bitand
+      def c9_bitor(other)
+        return @real_num | Number.coerce(other).real_num
+      end
+      alias_method :"c9_|", :c9_bitor
+
       def c9_plus(other)
         return @real_num + Number.coerce(other).real_num
       end
@@ -108,6 +117,10 @@ module Channel9
         return @real_num != Number.coerce(other).real_num
       end
       alias_method :"c9_!=", :c9_notequal
+
+      def c9_hash
+        @real_num.hash.to_c9
+      end
     end
   end
 end
