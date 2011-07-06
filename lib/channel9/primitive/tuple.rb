@@ -72,6 +72,6 @@ end
 
 class Array
   def to_c9
-    Channel9::Primitive::Tuple.new(self)
+    self
   end
 end

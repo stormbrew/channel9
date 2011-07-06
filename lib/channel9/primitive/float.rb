@@ -107,6 +107,6 @@ end
 
 class Float
   def to_c9
-    Channel9::Primitive::Float.new(self)
+    self
   end
 end

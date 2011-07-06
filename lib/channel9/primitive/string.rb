@@ -81,12 +81,13 @@ module Channel9
   end
 end
 
-# Note: C9 uses immutable strings, so it doesn't make
-# sense to provide to_c9 for String, since such a thing
-# would probably interfere with langauge's attempts to
-# provide a mutable string object.
 class Symbol
   def to_c9
-    Channel9::Primitive::String.new(self.to_s)
+    self
+  end
+end
+class String
+  def to_c9
+    self
   end
 end

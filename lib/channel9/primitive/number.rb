@@ -127,12 +127,12 @@ end
 
 class Fixnum
   def to_c9
-    Channel9::Primitive::Number.new(self)
+    self
   end
 end
 
 class Bignum
   def to_c9
-    Channel9::Primitive::Number.new(self)
+    self
   end
 end
