@@ -1,6 +1,6 @@
 module Channel9
   module Primitive
-    class Message < Base
+    class Message
       attr :name
       attr :positional
       attr :system

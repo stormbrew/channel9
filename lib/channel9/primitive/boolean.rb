@@ -27,11 +27,11 @@ end
 
 class TrueClass
   def to_c9
-    Channel9::Primitive::True
+    self
   end
 end
 class FalseClass
   def to_c9
-    Channel9::Primitive::False
+    self
   end
 end

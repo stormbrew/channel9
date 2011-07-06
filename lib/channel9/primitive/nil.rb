@@ -20,6 +20,6 @@ end
 
 class NilClass
   def to_c9
-    Channel9::Primitive::Nil
+    self
   end
 end
