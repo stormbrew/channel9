@@ -62,7 +62,7 @@ module Channel9
       @labels[name_or_ip] || name_or_ip
     end
 
-    def line(file, line, fpos = nil)
+    def line(file, line, fpos = 0, extra = "")
       while (@line_info.length <= @pos)
         @line_info << nil
       end
