@@ -91,7 +91,7 @@ module Channel9
           end
         when Regexp
           transform_colon3(:Regexp)
-          builder.push(Primitive::String.new(literal.to_s))
+          builder.push(literal.to_s)
           builder.message_new(:new, 0, 1)
           builder.channel_call
           builder.pop
@@ -120,14 +120,14 @@ module Channel9
 
       def transform_str(str)
         transform_colon3(:String)
-        builder.push(Primitive::String.new(str))
+        builder.push(str)
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop        
       end
       def transform_xstr(str)
         transform_self
-        builder.push(Primitive::String.new(str))
+        builder.push(str)
         builder.message_new(:system, 0, 1)
         builder.channel_call
         builder.pop
@@ -145,12 +145,16 @@ module Channel9
       def transform_dsym(initial, *strings)
         strings.reverse.each do |str|
           transform(str)
+          builder.string_coerce(:to_s_prim)
+          builder.pop
         end
         if (initial.length > 0)
           transform_str(initial)
-          builder.string_new(:to_s_prim, 1 + strings.length)
+          builder.string_coerce(:to_s_prim)
+          builder.pop
+          builder.string_new(1 + strings.length)
         else
-          builder.string_new(:to_s_prim, strings.length)
+          builder.string_new(strings.length)
         end
       end
       def transform_dstr(initial, *strings)
@@ -211,13 +215,13 @@ module Channel9
         builder.pop
       end
       def transform_nil()
-        builder.push nil.to_c9
+        builder.push nil
       end
       def transform_true()
-        builder.push true.to_c9
+        builder.push true
       end
       def transform_false()
-        builder.push false.to_c9
+        builder.push false
       end
 
       def transform_while(condition, body, unk)
@@ -245,7 +249,7 @@ module Channel9
 
         builder.jmp(begin_label)
         builder.set_label(done_label)
-        builder.push(nil.to_c9)
+        builder.push(nil)
       end
       def transform_until(condition, body, unk)
         begin_label = builder.make_label("until.begin")
@@ -272,7 +276,7 @@ module Channel9
 
         builder.jmp(begin_label)
         builder.set_label(done_label)
-        builder.push(nil.to_c9)
+        builder.push(nil)
       end
 
       def transform_flip2(l, r)
@@ -525,7 +529,9 @@ module Channel9
           end
         end
 
-        builder.pop # value not needed anymore.
+        if (!value.nil?)
+          builder.pop # value not needed anymore.
+        end
         if (else_case.nil?)
           builder.push(nil)
         else
@@ -1375,7 +1381,7 @@ module Channel9
             transform(arglist.shift)
             i += 1
           end
-          builder.message_new(method.to_c9, has_iter ? 1 : 0, i)
+          builder.message_new(method, has_iter ? 1 : 0, i)
           transform(arglist.shift[1])
           builder.message_new(:to_tuple_prim, 0, 0)
           builder.channel_call
@@ -1386,7 +1392,7 @@ module Channel9
             transform(arg)
           end
 
-          builder.message_new(method.to_c9, has_iter ? 1 : 0, arglist.length)
+          builder.message_new(method, has_iter ? 1 : 0, arglist.length)
         end
         builder.channel_call
         builder.pop
@@ -1508,7 +1514,7 @@ module Channel9
               # it's as if it were a single arg splat. Otherwise,
               # it's like a normal method invocation.
               builder.message_count
-              builder.is_not(1.to_c9)
+              builder.is_not(1)
               builder.jmp_if(label_prefix + ".splatify")
               builder.message_unpack(1, 0, 0)
               builder.jmp(label_prefix + ".done_unpack")
@@ -1691,7 +1697,7 @@ module Channel9
           # unwinder.
           builder.pop
           builder.message_name
-          builder.is(:raise.to_c9)
+          builder.is(:raise)
           builder.jmp_if_not(not_raise_label)
 
           builder.message_unpack(1,0,0)
@@ -1734,7 +1740,7 @@ module Channel9
         # does, when it goes to return, it will just
         # jmp to the done label rather than calling
         # the next handler.
-        builder.push(nil.to_c9)
+        builder.push(nil)
         # clear the unwinder
         builder.channel_special(:unwinder)
         builder.push(nil)

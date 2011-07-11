@@ -4,6 +4,12 @@ $LOAD_PATH = Array.new($LOAD_PATH)
 $: = $LOAD_PATH
 $LOADED_FEATURES = []
 
+module Channel9
+  def self.uncaught_exception(exc)
+    puts("Uncaught Exception:", exc)
+  end
+end
+
 load 'beta/kernel.rb'
 load 'beta/object.rb'
 load 'beta/class.rb'

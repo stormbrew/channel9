@@ -7,6 +7,7 @@ module Channel9
   module Loader
     class Ruby
       attr :env
+      attr :globals
 
       def to_c9
         self
@@ -16,13 +17,13 @@ module Channel9
         @env = Channel9::Environment.new(debug)
 
         object_klass = Channel9::Ruby::RubyClass.new(env, "Object", nil)
-        env.special_channel[:Object] = object_klass
+        env.set_special_channel(:Object, object_klass)
 
         module_klass = Channel9::Ruby::RubyClass.new(env, "Module", object_klass)
-        env.special_channel[:Module] = module_klass
+        env.set_special_channel(:Module, module_klass)
 
         class_klass = Channel9::Ruby::RubyClass.new(env, "Class", module_klass)
-        env.special_channel[:Class] = class_klass        
+        env.set_special_channel(:Class, class_klass)
         object_klass.rebind(class_klass)
         module_klass.rebind(class_klass)
         class_klass.rebind(class_klass)
@@ -32,39 +33,39 @@ module Channel9
         Channel9::Ruby::RubyClass.class_klass(class_klass)
 
         kernel_mod = Channel9::Ruby::RubyModule.new(env, "Kernel")
-        env.special_channel[:Kernel] = kernel_mod
+        env.set_special_channel(:Kernel, kernel_mod)
         Channel9::Ruby::RubyModule.kernel_mod(kernel_mod)
         object_klass.include(kernel_mod)
 
         channel9_mod = Channel9::Ruby::RubyModule.new(env, "Channel9")
-        env.special_channel[:Channel9] = channel9_mod
+        env.set_special_channel(:Channel9, channel9_mod)
         Channel9::Ruby::RubyModule.channel9_mod(channel9_mod)
 
         tuple_klass = Channel9::Ruby::RubyClass.new(env, "Channel9::Tuple", object_klass)
-        env.special_channel[:Tuple] = tuple_klass
+        env.set_special_channel(:Tuple, tuple_klass)
         Channel9::Ruby::Tuple.tuple_klass(tuple_klass)
 
-        env.special_channel[:loader] = self
-        env.special_channel[:global_self] = Channel9::Ruby::RubyObject.new(env)
+        env.set_special_channel(:loader, self)
+        env.set_special_channel(:global_self, Channel9::Ruby::RubyObject.new(env))
         c9rb_root = File.expand_path(File.dirname(__FILE__) + "../../../..")
         c9rb_env = c9rb_root + "/environment"
-        globals = env.special_channel[:globals] = {
-          :"$LOAD_PATH".to_c9 => [
-            :"#{c9rb_root}/environment/kernel".to_c9, 
-            :"#{c9rb_root}/environment/lib".to_c9,
-            :"#{c9rb_root}/environment/site-lib".to_c9,
-            :".".to_c9
+        @globals = {
+          :"$LOAD_PATH" => [
+            :"#{c9rb_root}/environment/kernel", 
+            :"#{c9rb_root}/environment/lib",
+            :"#{c9rb_root}/environment/site-lib",
+            :"."
           ]
         }
-        globals[:"$:".to_c9] = globals[:"$LOAD_PATH".to_c9]
-        env.special_channel[:unwinder] = Channel9::Ruby::Unwinder.new(env)
+        globals[:"$:"] = globals[:"$LOAD_PATH"]
+        env.set_special_channel(:unwinder, Channel9::Ruby::Unwinder.new(env))
         
-        object_klass.constant[:Object.to_c9] = object_klass
-        object_klass.constant[:Module.to_c9] = module_klass
-        object_klass.constant[:Class.to_c9] = class_klass
-        object_klass.constant[:Kernel.to_c9] = kernel_mod
-        object_klass.constant[:Channel9.to_c9] = channel9_mod
-        channel9_mod.constant[:Tuple.to_c9] = tuple_klass
+        object_klass.constant[:Object] = object_klass
+        object_klass.constant[:Module] = module_klass
+        object_klass.constant[:Class] = class_klass
+        object_klass.constant[:Kernel] = kernel_mod
+        object_klass.constant[:Channel9] = channel9_mod
+        channel9_mod.constant[:Tuple] = tuple_klass
 
         env.set_error_handler do |err, ctx|
           puts "Unhandled VM Error in #{self}"
@@ -86,30 +87,30 @@ module Channel9
           [:NilClass, "NilC"],
           [:UndefClass, "UndefC"]
         ].each do |ruby_name, c9_name|
-          klass = Channel9::Ruby::RubyClass.new(env, ruby_name.to_c9, object_klass)
-          env.special_channel["Channel9::Primitive::#{c9_name}"] = klass
-          object_klass.constant[ruby_name.to_c9] = klass
+          klass = Channel9::Ruby::RubyClass.new(env, ruby_name, object_klass)
+          env.set_special_channel("Channel9::Primitive::#{c9_name}", klass)
+          object_klass.constant[ruby_name.to_sym] = klass
         end
 
         env.no_debug do
           ["singletons", "string", "kernel", "symbol", "enumerable",
            "static_tuple", "tuple", "array", "proc", "exceptions"].each do |file|
-            file = :"#{c9rb_env}/kernel/alpha/#{file}.rb".to_c9
+            file = :"#{c9rb_env}/kernel/alpha/#{file}.rb"
             object_klass.channel_send(env,
               Primitive::Message.new(:raw_load, [], [file]),
               CallbackChannel.new {}
             )
           end
           object_klass.channel_send(env,
-            Primitive::Message.new(:raw_load, [], [:"#{c9rb_env}/kernel/beta.rb".to_c9]),
+            Primitive::Message.new(:raw_load, [], [:"#{c9rb_env}/kernel/beta.rb"]),
             CallbackChannel.new {}
           )
         end
       end
 
       def setup_environment(exe, argv)
-        c9_mod = env.special_channel[:Channel9]
-        argv = argv.collect {|i| Primitive::String.new(i) }.to_c9
+        c9_mod = env.special_channel(:Channel9)
+        argv = argv
         env.no_debug do
           env.save_context do
             c9_mod.channel_send(env,
@@ -125,19 +126,19 @@ module Channel9
         when :compile
           type, str, filename, line = msg.positional
           callable = nil
-          compiled = compile_string(type.to_sym, str.real_str, filename.real_str, line.real_num)
+          compiled = Ruby.compile_string(type.to_sym, str.to_s, filename.to_s, line)
           if (compiled)
             callable = CallableContext.new(cenv, compiled)
             ret.channel_send(env, callable, InvalidReturnChannel)
           else
-            ret.channel_send(env, nil.to_c9, InvalidReturnChannel)
+            ret.channel_send(env, nil, InvalidReturnChannel)
           end
         else
           raise "BOOM: Unknown message for loader: #{msg.name}."
         end
       end
 
-      def compile_string(type, str, filename = "__eval__", line = 1)
+      def self.compile_string(type, str, filename = "__eval__", line = 1)
         stream = Channel9::Stream.new
         stream.build do |builder|
           parser = RubyParser.new
@@ -159,7 +160,7 @@ module Channel9
         return stream
       end
 
-      def compile(filename)
+      def self.compile(filename)
         begin
           File.open("#{filename}", "r") do |f|
             return compile_string(:file, f.read, filename)

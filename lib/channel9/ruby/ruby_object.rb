@@ -13,16 +13,16 @@ module Channel9
         end
         klass.add_method(:class) do |cenv, msg, ret|
           elf = msg.system.first
-          if (elf.respond_to?(:env))
+          if (elf.respond_to?(:klass))
             ret.channel_send(elf.env, elf.klass, InvalidReturnChannel)
           else
-            ret.channel_send(cenv, cenv.special_channel[elf.class.name], InvalidReturnChannel)
+            ret.channel_send(cenv, cenv.special_channel(elf.class.channel_name), InvalidReturnChannel)
           end
         end
         klass.add_method(:object_id) do |cenv, msg, ret|
           elf = msg.system.first
           env = elf.respond_to?(:env)? elf.env : cenv
-          ret.channel_send(env, elf.object_id.to_c9, InvalidReturnChannel)
+          ret.channel_send(env, elf.object_id, InvalidReturnChannel)
         end
         klass.add_method(:define_method) do |cenv, msg, ret|
           elf, zuper, *system = msg.system
@@ -31,9 +31,9 @@ module Channel9
         end
         klass.add_method(:define_singleton_method) do |cenv, msg, ret|
           elf, zuper, channel = msg.system
-          name = msg.positional.first
+          name = msg.positional.first.to_sym
           elf.singleton!.add_method(name, channel)
-          ret.channel_send(elf.env, nil.to_c9, InvalidReturnChannel)
+          ret.channel_send(elf.env, nil, InvalidReturnChannel)
         end
         klass.add_method(:instance_eval_prim) do |cenv, msg, ret|
           elf, zuper, channel = msg.system
@@ -44,7 +44,7 @@ module Channel9
         klass.add_method(:instance_variable_get) do |cenv, msg, ret|
           elf = msg.system.first
           name = msg.positional.first
-          ret.channel_send(elf.env, elf.ivars[name.to_sym].to_c9, InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.ivars[name.to_sym], InvalidReturnChannel)
         end
         klass.add_method(:instance_variable_set) do |cenv, msg, ret|
           elf = msg.system.first
@@ -55,33 +55,33 @@ module Channel9
           elf = msg.system.first
           name = msg.positional.first
           found = elf.ivars.key?(name.to_sym)
-          ret.channel_send(elf.env, found.to_c9, InvalidReturnChannel)
+          ret.channel_send(elf.env, found, InvalidReturnChannel)
         end
         klass.add_method(:instance_variables_prim) do |cenv, msg, ret|
           elf = msg.system.first
           if (elf.respond_to? :env)
-            found = elf.ivars.keys.collect {|i| i.to_c9 }.to_c9
+            found = elf.ivars.keys.collect {|i| i }
             ret.channel_send(elf.env, found, InvalidReturnChannel)
           else
             # Primitives don't have ivars. For now.
-            ret.channel_send(cenv, [].to_c9, InvalidReturnChannel)
+            ret.channel_send(cenv, [], InvalidReturnChannel)
           end
         end
         klass.add_method(:equal?) do |cenv, msg, ret|
           elf = msg.system.first
           other = msg.positional.first
           if (elf.respond_to?(:env))
-            ret.channel_send(elf.env, elf.equal?(other).to_c9, InvalidReturnChannel)
+            ret.channel_send(elf.env, elf.equal?(other), InvalidReturnChannel)
           else
-            ret.channel_send(cenv, (elf == other).to_c9, InvalidReturnChannel)
+            ret.channel_send(cenv, (elf == other), InvalidReturnChannel)
           end
         end
         klass.add_method(:singleton) do |cenv, msg, ret|
           elf = msg.system.first
           if (elf.respond_to? :env)
-            ret.channel_send(elf.env, elf.singleton.to_c9, InvalidReturnChannel)
+            ret.channel_send(elf.env, elf.singleton, InvalidReturnChannel)
           else
-            ret.channel_send(cenv, nil.to_c9, InvalidReturnChannel)
+            ret.channel_send(cenv, nil, InvalidReturnChannel)
           end
         end
 
@@ -90,9 +90,9 @@ module Channel9
           if (elf.respond_to? :env)
             ret.channel_send(elf.env, elf.singleton!, InvalidReturnChannel)
           else
-            object = cenv.special_channel[:Object]
-            type_error = object.constant[:TypeError.to_c9]
-            msg = Primitive::String.new("no virtual class for primitive types")
+            object = cenv.special_channel(:Object)
+            type_error = object.constant[:TypeError]
+            msg = "no virtual class for primitive types"
             elf.channel_send(cenv, Primitive::Message.new(:raise, [], [type_error, msg]), InvalidReturnChannel)
           end
         end
@@ -112,7 +112,7 @@ module Channel9
 
       def initialize(env, klass = nil)
         @env = env
-        @klass = klass.nil? ? env.special_channel[:Object] : klass
+        @klass = klass.nil? ? env.special_channel(:Object) : klass
         @singleton = nil
         @ivars = {}
       end
@@ -122,7 +122,7 @@ module Channel9
         # don't infinite loop trying to to_s debug output
         # during the to_s.
         env.no_debug do
-          "#<Channel9::Ruby::RubyObject(#{@klass.name}): #{to_c9_str}>"
+          "#<Channel9::Ruby::RubyObject(#{@klass.name})>"#: #{to_c9_str}>"
         end
       end
 
@@ -132,7 +132,7 @@ module Channel9
 
       def to_c9_str
         @env.save_context do
-          channel_send(@env, Primitive::Message.new(:to_s_prim, [], []), CallbackChannel.new {|ienv, val, iret|
+          channel_send(@env, Primitive::Message.new(:to_sym, [], []), CallbackChannel.new {|ienv, val, iret|
             return val
           })
         end
@@ -175,18 +175,21 @@ module Channel9
 
       def channel_send_with(elf, singleton, klass, cenv, val, ret)
         if (val.is_a?(Primitive::Message))
+          name = val.name.to_sym
           env.for_debug do
-            pp(:trace=>{:name=>val.name.to_s, :self => elf.to_s, :klass=>klass.to_s, :singleton=>singleton.to_s, :system => val.system.collect {|i| i.to_s },:args => val.positional.collect {|i| i.to_s }})
-            pp(:lookup=>{:name=>val.name.to_s, :found => send_lookup(val.name).to_s })
+            pp(:trace=>{:name=>val.name.to_s, :ret=>ret.to_s, :self => elf.to_s, :klass=>klass.to_s, :singleton=>singleton.to_s, :system => val.system.collect {|i| i.to_s },:args => val.positional.collect {|i| i.to_s }})
           end
-          meth, found_klass = (singleton && singleton.lookup(val.name)) || klass.lookup(val.name)
+          meth, found_klass = (singleton && singleton.lookup(name)) || klass.lookup(name)
           if (meth.nil?)
-            orig_name = val.name
-            val = val.forward(:method_missing)
-            meth, found_klass = (singleton && singleton.lookup(val.name)) || klass.lookup(val.name)
+            orig_name = name
+            val = val.forward(name = :method_missing)
+            meth, found_klass = (singleton && singleton.lookup(name)) || klass.lookup(name)
             if (meth.nil?)
               raise "BOOM: No method_missing on #{elf}, orig message #{orig_name}"
             end
+          end
+          env.for_debug do
+            pp(:lookup=>{:name=>val.name.to_s, :found => meth.to_s, :on => found_klass.to_s, :ret => ret.to_s })
           end
           super_call = make_super(elf, found_klass, val)
           val = Primitive::Message.new(val.name, [elf, super_call] + val.system, val.positional)
@@ -201,9 +204,9 @@ module Channel9
         else
           case val.to_s
           when /^@[^@]/
-            ret.channel_send(env, @ivars[val.to_sym].to_c9, InvalidReturnChannel)
+            ret.channel_send(env, @ivars[val.to_sym], InvalidReturnChannel)
           when /^_*[A-Z]/
-            ret.channel_send(env, @constant[val.to_c9].to_c9, InvalidReturnChannel)
+            ret.channel_send(env, @constant[val.to_sym], InvalidReturnChannel)
           end
         end
       end
