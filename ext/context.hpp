@@ -1,7 +1,7 @@
 #pragma once
 
 #include "channel9.hpp"
-
+#include "environment.hpp"
 #include "istream.hpp"
 
 namespace Channel9
@@ -33,6 +33,7 @@ namespace Channel9
 	{
 	public:
 		virtual void send(Environment *env, const Value &val, const Value &ret) = 0;
+		virtual ~CallableContext() = 0;
 	};
 
 	class BytecodeContext : public CallableContext
@@ -82,6 +83,7 @@ namespace Channel9
 		void jump(const std::string &label);
 		CallableContext *new_context(const std::string &label);
 
+		const Value::vector &stack() const { return m_stack; }
 		size_t stack_count() const { return m_stack.size(); }
 		void push(const Value &val) { m_stack.push_back(val); }
 		void pop() { m_stack.pop_back(); }
@@ -97,4 +99,55 @@ namespace Channel9
 
 		void new_scope(bool linked = false);
 	};
+
+	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Message &msg);
+	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);
+	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);
+	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);
+	inline void channel_send(Environment *env, const Value &channel, const Value &val, const Value &ret)
+	{
+		switch (channel.m_type)
+		{
+		case RUNNABLE_CONTEXT:
+			channel.ret_ctx->send(env, val, ret);
+			break;
+		case CALLABLE_CONTEXT:
+			channel.call_ctx->send(env, val, ret);
+			break;
+		case NIL: {
+			const Value &def = env->special_channel("Channel9::Primitive::NilC");
+			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			}
+		case UNDEF: {
+			const Value &def = env->special_channel("Channel9::Primitive::UndefC");
+			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			}
+		case BFALSE: {
+			const Value &def = env->special_channel("Channel9::Primitive::TrueC");
+			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			}
+		case BTRUE: {
+			const Value &def = env->special_channel("Channel9::Primitive::FalseC");
+			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			}
+		case MESSAGE: {
+			const Value &def = env->special_channel("Channel9::Primitive::Message");
+			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			}
+		case MACHINE_NUM:
+			number_channel_simple(env, ret, channel, *val.msg);
+			break;
+		case STRING:
+			string_channel_simple(env, ret, channel, *val.msg);
+			break;
+		case TUPLE:
+			tuple_channel_simple(env, ret, channel, *val.msg);
+			break;
+		default:
+			printf("Built-in Channel for %d not yet implemented.\n", channel.m_type);
+			exit(1);
+		}
+	}
 }
+
+#include "primitive.hpp"

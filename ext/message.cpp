@@ -14,4 +14,12 @@ namespace Channel9
 		{
 			m_args.push_back(val);
 		}
+		void Message::prefix_args(const Value::vector &args)
+		{
+			m_args.insert(m_args.begin(), args.begin(), args.end());
+		}
+		void Message::prefix_arg(const Value &val)
+		{
+			m_args.insert(m_args.begin(), val);
+		}
 }

@@ -10,7 +10,7 @@ namespace Channel9
 	enum INUM
 	{
 		NOP = 0,
-		DEBUG,
+		DEBUGGER,
 
 		POP,
 		PUSH,
@@ -47,6 +47,7 @@ namespace Channel9
 		MESSAGE_UNPACK,
 
 		STRING_NEW,
+		STRING_COERCE,
 
 		TUPLE_NEW,
 		TUPLE_SPLAT,

@@ -11,6 +11,7 @@ extern "C" {
 using namespace Channel9;
 
 typedef VALUE (*ruby_method)(ANYARGS);
+typedef void (*mark_method)();
 
 VALUE rb_mChannel9;
 VALUE rb_mPrimitive;
@@ -37,11 +38,20 @@ private:
 	VALUE m_val;
 
 public:
-	RubyChannel(VALUE val) : m_val(val) {}
+	RubyChannel(VALUE val) : m_val(val) 
+	{
+		rb_gc_register_address(&m_val);
+	}
+	~RubyChannel()
+	{
+		rb_gc_unregister_address(&m_val);
+	}
+
+	VALUE data() { return m_val; }
 
 	void send(Environment *env, const Value &val, const Value &ret)
 	{
-		DO_DEBUG printf("Oh hi %s\n", STR2CSTR(rb_funcall(rb_class_of(m_val), rb_intern("to_s"), 0)));
+		DO_TRACE printf("Oh hi %s\n", STR2CSTR(rb_funcall(rb_class_of(m_val), rb_intern("to_s"), 0)));
 		rb_funcall(m_val, rb_intern("channel_send"), 3,
 			rb_Environment_new(env), c9_to_rb(val), c9_to_rb(ret));
 	}
@@ -59,7 +69,7 @@ static Value rb_to_c9(VALUE val)
 	case T_TRUE:
 		return Value::True;
 	case T_SYMBOL:
-		return value(rb_id2name(val));
+		return value(rb_id2name(SYM2ID(val)));
 	case T_STRING:
 		return value(STR2CSTR(val));
 	case T_FIXNUM:
@@ -78,12 +88,38 @@ static Value rb_to_c9(VALUE val)
 	case T_OBJECT:
 		if (rb_respond_to(val, rb_intern("channel_send")))
 		{
-			return value(new RubyChannel(val));
+			Value c9val = value(new RubyChannel(val));
+			DO_TRACE printf("Converting object %s to RubyChannel: %s\n", 
+				STR2CSTR(rb_any_to_s(val)), inspect(c9val).c_str());
+			return c9val;
+		} else if (val == rb_Undef) {
+			return Value::Undef;
 		}
-	default:
-		rb_raise(rb_eRuntimeError, "Could not convert object %s (%d) to c9 object.", 
-			STR2CSTR(rb_funcall(val, rb_intern("to_s"), 0)), type);
+		break;
+	case T_DATA: {
+		VALUE klass = rb_class_of(val);
+		if (klass == rb_cCallableContext) {
+			CallableContext *ctx;
+			Data_Get_Struct(val, CallableContext, ctx);
+			return value(ctx);
+		} else if (klass == rb_cContext) {
+			BytecodeContext *ctx;
+			Data_Get_Struct(val, BytecodeContext, ctx);
+			return value(ctx);
+		} else if (klass == rb_cRunnableContext) {
+			RunnableContext *ctx;
+			Data_Get_Struct(val, RunnableContext, ctx);
+			return value(ctx);
+		} else if (klass == rb_cMessage) {
+			Message *msg;
+			Data_Get_Struct(val, Message, msg);
+			return value(*msg);
+		}
+		}
+		break;
 	}
+	rb_raise(rb_eRuntimeError, "Could not convert object %s (%d) to c9 object.", 
+		STR2CSTR(rb_any_to_s(val)), type);
 	return Value::Nil;
 }
 
@@ -104,7 +140,7 @@ static VALUE c9_to_rb(const Value &val)
 	case FLOAT_NUM:
 		return rb_float_new(val.float_num);
 	case STRING:
-		return rb_intern(val.str->c_str());
+		return rb_str_new2(val.str->c_str());
 	case TUPLE: {
 		VALUE ary = rb_ary_new();
 		for (Value::vector::const_iterator it = val.tuple->begin(); it != val.tuple->end(); ++it)
@@ -146,13 +182,49 @@ static VALUE Environment_special_channel(VALUE self, VALUE name)
 {
 	Environment *env;
 	Data_Get_Struct(self, Environment, env);
-	return c9_to_rb(env->special_channel(rb_id2name(SYM2ID(name))));
+	switch (TYPE(name))
+	{
+	case T_SYMBOL: return c9_to_rb(env->special_channel(rb_id2name(SYM2ID(name)))); break;
+	case T_STRING: return c9_to_rb(env->special_channel(STR2CSTR(name))); break;
+	}
+	return Qnil;
 }
 static VALUE Environment_set_special_channel(VALUE self, VALUE name, VALUE channel)
 {
 	Environment *env;
 	Data_Get_Struct(self, Environment, env);
-	env->set_special_channel(rb_id2name(SYM2ID(name)), rb_to_c9(channel));
+	switch (TYPE(name))
+	{
+	case T_SYMBOL: env->set_special_channel(rb_id2name(SYM2ID(name)), rb_to_c9(channel)); break;
+	case T_STRING: env->set_special_channel(STR2CSTR(name), rb_to_c9(channel)); break;
+	}
+	return Qnil;
+}
+
+static VALUE Environment_current_context(VALUE self)
+{
+	Environment *env;
+	Data_Get_Struct(self, Environment, env);
+
+	RunnableContext *ctx = env->context();
+	if (ctx)
+		return c9_to_rb(value(ctx));
+	else
+		return Qnil;
+}
+
+static VALUE Environment_set_current_context(VALUE self, VALUE rb_ctx)
+{
+	Environment *env;
+	RunnableContext *ctx = NULL;
+	Data_Get_Struct(self, Environment, env);
+	if (rb_ctx != Qnil)
+	{
+		Data_Get_Struct(rb_ctx, RunnableContext, ctx);
+	}
+
+	env->run(ctx);
+
 	return Qnil;
 }
 
@@ -162,6 +234,8 @@ static void Init_Channel9_Environment()
 	rb_define_singleton_method(rb_cEnvironment, "new", ruby_method(Environment_new), 1);
 	rb_define_method(rb_cEnvironment, "special_channel", ruby_method(Environment_special_channel), 1);
 	rb_define_method(rb_cEnvironment, "set_special_channel", ruby_method(Environment_set_special_channel), 2);
+	rb_define_method(rb_cEnvironment, "current_context", ruby_method(Environment_current_context), 0);
+	rb_define_method(rb_cEnvironment, "set_current_context", ruby_method(Environment_set_current_context), 1);
 }
 
 static VALUE Stream_new(VALUE self)
@@ -261,9 +335,15 @@ static void Init_Channel9_Context()
 
 static VALUE rb_CallableContext_new(CallableContext *ctx)
 {
-	VALUE obj = Data_Wrap_Struct(rb_cCallableContext, 0, 0, ctx);
-	rb_obj_call_init(obj, 0, 0);
-	return obj;
+	RubyChannel *robj = dynamic_cast<RubyChannel*>(ctx);
+	if (robj)
+	{
+		return robj->data();
+	} else {
+		VALUE obj = Data_Wrap_Struct(rb_cCallableContext, 0, 0, ctx);
+		rb_obj_call_init(obj, 0, 0);
+		return obj;
+	}
 }
 
 static VALUE CallableContext_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret)
@@ -314,7 +394,7 @@ static void Init_Channel9_RunnableContext()
 static VALUE rb_Message_new(const Message *msg)
 {
 	VALUE obj = Data_Wrap_Struct(rb_cMessage, 0, 0, (void*)msg);
-	VALUE argv[3] = {c9_to_rb(value(msg->name())), c9_to_rb(value(msg->sysargs())), c9_to_rb(value(msg->args()))};
+	VALUE argv[3] = {ID2SYM(rb_intern(msg->name().c_str())), c9_to_rb(value(msg->sysargs())), c9_to_rb(value(msg->args()))};
 	rb_obj_call_init(obj, 3, argv);	
 	return obj;
 }
@@ -340,8 +420,33 @@ static void Init_Channel9_Message()
 
 static void Init_Channel9_Undef()
 {
-	rb_cUndef = rb_define_class_under(rb_mPrimitive, "Undef", rb_cObject);
+	rb_cUndef = rb_define_class_under(rb_mPrimitive, "UndefC", rb_cObject);
 	rb_Undef = rb_class_new_instance(0, 0, rb_cUndef);
+	rb_define_const(rb_mPrimitive, "Undef", rb_Undef);
+}
+
+static VALUE Primitive_channel_send(VALUE self, VALUE cenv, VALUE val, VALUE ret)
+{
+	Environment *c9_cenv;
+	Value c9_channel = rb_to_c9(self);
+	Value c9_val = rb_to_c9(val);
+	Value c9_ret = rb_to_c9(val);
+
+	Data_Get_Struct(cenv, Environment, c9_cenv);
+	channel_send(c9_cenv, c9_channel, c9_val, c9_ret);
+	return Qnil;
+}
+
+static void Init_Channel9_Primitives()
+{
+	rb_define_method(rb_cTrueClass, "channel_send", ruby_method(Primitive_channel_send), 3);
+	rb_define_method(rb_cFalseClass, "channel_send", ruby_method(Primitive_channel_send), 3);
+	rb_define_method(rb_cNilClass, "channel_send", ruby_method(Primitive_channel_send), 3);
+	rb_define_method(rb_cFixnum, "channel_send", ruby_method(Primitive_channel_send), 3);
+	rb_define_method(rb_cArray, "channel_send", ruby_method(Primitive_channel_send), 3);
+	rb_define_method(rb_cFloat, "channel_send", ruby_method(Primitive_channel_send), 3);
+	rb_define_method(rb_cString, "channel_send", ruby_method(Primitive_channel_send), 3);
+	rb_define_method(rb_cSymbol, "channel_send", ruby_method(Primitive_channel_send), 3);
 }
 
 extern "C" void Init_channel9ext()
@@ -355,4 +460,6 @@ extern "C" void Init_channel9ext()
 	Init_Channel9_Context();
 	Init_Channel9_RunnableContext();
 	Init_Channel9_CallableContext();
+
+	Init_Channel9_Primitives();
 }

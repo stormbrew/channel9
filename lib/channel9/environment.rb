@@ -98,13 +98,11 @@ module Channel9
     def save_context
       catch (:end_save) do
         begin
-          prev_context = @context
-          prev_running = @running
-          @running = false
+          prev_context = current_context
+          set_current_context(nil)
           yield
         ensure
-          @running = prev_running
-          @context = prev_context
+          set_current_context(prev_context)
         end
       end
     end

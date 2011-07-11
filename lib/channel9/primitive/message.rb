@@ -12,7 +12,7 @@ module Channel9
       end
 
       def forward(name)
-        Message.new(name, @system, [@name.to_c9, *@positional])
+        Message.new(name, @system, [@name, *@positional])
       end
 
       def prefix(*args)
