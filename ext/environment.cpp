@@ -23,34 +23,56 @@ namespace Channel9
 	}
 	void Environment::set_special_channel(const std::string &name, const Value &val)
 	{
+		DO_TRACE printf("set_special_channel(%s, %s)\n", name.c_str(), inspect(val).c_str());
 		m_specials[name] = val;
 	}
 
 	void Environment::run(RunnableContext *context)
 	{
 		m_context = context;
-		if (!m_running)
+		if (!context)
 		{
+			m_running = false;
+		} else if (!m_running)
+		{
+			DO_TRACE printf("Entering running state with %p\n", context);
 			m_running = true;
 			IStream::const_iterator it = m_context->next();
 			while (m_context && it != m_context->end())
 			{
+				size_t output = -1;
 				size_t expected = -1;
 #				define CHECK_STACK(in, out) {\
 					assert(m_context->stack_count() >= (size_t)(in)); \
 					if ((out) != -1) { assert((long)(expected = m_context->stack_count() - (size_t)(in) + (size_t)(out)) >= 0); } \
-					DO_DEBUG printf("Stack check: before(%d), in(%d), out(%d), expected(%d)\n", (int)m_context->stack_count(), (int)(in), (int)(out), (int)expected); \
+					DO_TRACE printf("Stack info: before(%d), in(%d), out(%d), expected(%d)\n", (int)m_context->stack_count(), (int)(in), (int)(out), (int)expected); \
+					output = (out); \
 				}
 
 				const Instruction &ins = *it;
-				DO_DEBUG printf("Hi! Doing %s@%d\n", iname(ins.instruction).c_str(), (int)(it - m_context->instructions().begin()));
+				DO_TRACE {
+					printf("Instruction: %s@%d(%s %s %s)\n", 
+						iname(ins.instruction).c_str(), 
+						(int)(it - m_context->instructions().begin()),
+						inspect(ins.arg1).c_str(),
+						inspect(ins.arg2).c_str(),
+						inspect(ins.arg3).c_str()
+						);
+					printf("Stack: %d deep", (int)m_context->stack_count());
+					Value::vector::const_iterator it;
+					for (it = m_context->stack().begin(); it != m_context->stack().end(); it++)
+					{
+						printf("\n   %s", inspect(*it).c_str());
+					}
+					printf(" <--\n");
+				}
 
 				switch(ins.instruction)
 				{
 				case NOP:
 					CHECK_STACK(0, 0);
 					break;
-				case DEBUG:
+				case DEBUGGER:
 					CHECK_STACK(0, 0);
 					break;
 
@@ -151,7 +173,7 @@ namespace Channel9
 					CHECK_STACK(0, 1);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = m_context->instructions().local(*ins.arg2.str);
-					DO_DEBUG printf("local_get %u@%u: %d\n", (unsigned)localid, (unsigned)depth, m_context->get_localvar(localid, depth).m_type);
+					DO_TRACE printf("local_get %u@%u: %d\n", (unsigned)localid, (unsigned)depth, m_context->get_localvar(localid, depth).m_type);
 					if (depth == 0)
 						m_context->push(m_context->get_localvar(localid));
 					else
@@ -162,7 +184,7 @@ namespace Channel9
 					CHECK_STACK(1, 0);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = m_context->instructions().local(*ins.arg2.str);
-					DO_DEBUG printf("local_set %u@%u: %d\n", (unsigned)localid, (unsigned)depth, m_context->top().m_type);
+					DO_TRACE printf("local_set %u@%u: %d\n", (unsigned)localid, (unsigned)depth, m_context->top().m_type);
 					if (depth == 0)
 						m_context->set_localvar(localid, m_context->top());
 					else
@@ -183,22 +205,11 @@ namespace Channel9
 					break;
 				case CHANNEL_SEND: {
 					CHECK_STACK(3, -1);
-					Value value = m_context->top(); m_context->pop();
+					Value val = m_context->top(); m_context->pop();
 					Value ret = m_context->top(); m_context->pop();
 					Value channel = m_context->top(); m_context->pop();
 
-					switch (channel.m_type)
-					{
-					case RUNNABLE_CONTEXT:
-						channel.ret_ctx->send(this, value, ret);
-						break;
-					case CALLABLE_CONTEXT:
-						channel.call_ctx->send(this, value, ret);
-						break;
-					default:
-						printf("Built-in Channels not yet implemented.\n");
-						exit(1);
-					}
+					channel_send(this, channel, val, ret);
 					}
 					break;
 				case CHANNEL_CALL:{
@@ -206,42 +217,16 @@ namespace Channel9
 					Value val = m_context->top(); m_context->pop();
 					Value channel = m_context->top(); m_context->pop();
 
-					switch (channel.m_type)
-					{
-					case RUNNABLE_CONTEXT:
-						channel.ret_ctx->send(this, val, value(m_context));
-						break;
-					case CALLABLE_CONTEXT:
-						channel.call_ctx->send(this, val, value(m_context));
-						break;
-					case MACHINE_NUM:
-						m_context->push(number_channel_simple(this, channel, *val.msg));
-						m_context->push(Value::Nil);
-						break;
-					default:
-						printf("Built-in Channel for %d not yet implemented.\n", channel.m_type);
-						exit(1);
-					}
+					channel_send(this, channel, val, value(m_context));
 					}
 					break;
 				case CHANNEL_RET:{
 					CHECK_STACK(2, -1);
-					Value value = m_context->top(); m_context->pop();
+					Value val = m_context->top(); m_context->pop();
 					Value channel = m_context->top(); m_context->pop();
 
 					// TODO: Special channel for invalid returns.
-					switch (channel.m_type)
-					{
-					case RUNNABLE_CONTEXT:
-						channel.ret_ctx->send(this, value, Value::Undef);
-						break;
-					case CALLABLE_CONTEXT:
-						channel.call_ctx->send(this, value, Value::Undef);
-						break;
-					default:
-						printf("Built-in Channels not yet implemented.\n");
-						exit(1);
-					}
+					channel_send(this, channel, val, value(m_context));
 					}
 					break;
 
@@ -350,6 +335,7 @@ namespace Channel9
 							splat_tuple.push_back(tuple[pos]);
 							pos -= 1;
 						}
+						m_context->push(value(splat_tuple));
 					}
 
 					pos = first_count - 1;
@@ -367,7 +353,35 @@ namespace Channel9
 					}
 					break;
 
-				case STRING_NEW:
+				case STRING_COERCE: {
+					const std::string &coerce = *ins.arg1.str;
+					const Value &val = m_context->top();
+					if (val.m_type == STRING)
+					{
+						CHECK_STACK(1, 2);
+						// push a nil like we called the method.
+						m_context->push(Value::Nil);
+					} else {
+						CHECK_STACK(1, -1);
+						channel_send(this, val, value(Message(coerce)), value(m_context));
+					}
+					}
+					break;
+
+				case STRING_NEW: {
+					//const std::string &coerce = *ins.arg1.str;
+					long long count = ins.arg2.machine_num, counter = 0;
+					CHECK_STACK(count, 1);
+					std::string res;
+					while (count > 0 && counter < count)
+					{
+						const Value &val = m_context->top();
+						assert(val.m_type == STRING);
+						res.append(*val.str);
+						m_context->pop();
+					}
+					m_context->push(value(res));
+					}
 					break;
 
 				case TUPLE_NEW: {
@@ -419,6 +433,7 @@ namespace Channel9
 							splat_tuple.push_back(tuple[pos]);
 							pos -= 1;
 						}
+						m_context->push(value(splat_tuple));
 					}
 
 					pos = first_count - 1;
@@ -440,11 +455,26 @@ namespace Channel9
 					exit(1);
 				}
 
-				if ((long)expected != -1)
+				DO_TRACE {
+					printf("Output: %d", (int)output);
+					if ((long)output > 0)
+					{
+						Value::vector::const_iterator it = std::max(
+							m_context->stack().begin(), m_context->stack().end() - output);
+						for (; it != m_context->stack().end(); it++)
+						{
+							printf("\n   %s", inspect(*it).c_str());
+						}
+					}
+					printf(" <--\n");
+					printf("----------------\n");
+				}
+				if ((long)output != -1)
 					assert(m_context->stack_count() == expected);
 
 				it = m_context->next();
 			}
+			DO_TRACE printf("Exiting running state with context %p\n", m_context);
 			m_running = false;
 			m_context = NULL;
 		}

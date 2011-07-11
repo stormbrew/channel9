@@ -1,6 +1,6 @@
 module Channel9
   module Primitive
-    class UndefC < Base
+    class UndefC
       def truthy?
         false
       end

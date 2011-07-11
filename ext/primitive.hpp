@@ -1,27 +1,106 @@
 #pragma once
 
+#include "message.hpp"
+#include "context.hpp"
+#include "environment.hpp"
+
 namespace Channel9
 {
-	inline Value number_channel_simple(Environment *cenv, const Value &oself, const Message &msg)
+	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Message &msg)
 	{
-		if (msg.args().size() == 1 && msg.args()[0].m_type == MACHINE_NUM && msg.name().length() == 1)
+		Message fwd("__c9_primitive_call__", msg.sysargs(), msg.args());
+		fwd.prefix_arg(oself);
+		fwd.prefix_arg(value(msg.name()));
+		channel_send(cenv, prim_class, value(fwd), ctx);	
+	}
+
+	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg)
+	{
+		const std::string &name = msg.name();
+		switch (name.length())
 		{
-			long long other = msg.args()[0].machine_num, self = oself.machine_num;
-			switch (msg.name()[0])
+		case 1:
+			if (msg.args().size() == 1 && msg.args()[0].m_type == MACHINE_NUM)
 			{
-			case '+':
-				return value(self + other);
-			case '-':
-				return value(self - other);
-			case '*':
-				return value(self * other);
-			case '/':
-				return value(self / other);
-			case '%':
-				return value(self % other);
+				long long other = msg.args()[0].machine_num, self = oself.machine_num;
+				switch (name[0])
+				{
+				case '+':
+					return channel_send(cenv, ctx, value(self + other), Value::Nil);
+				case '-':
+					return channel_send(cenv, ctx, value(self - other), Value::Nil);
+				case '*':
+					return channel_send(cenv, ctx, value(self * other), Value::Nil);
+				case '/':
+					return channel_send(cenv, ctx, value(self / other), Value::Nil);
+				case '%':
+					return channel_send(cenv, ctx, value(self % other), Value::Nil);
+				case '<':
+					return channel_send(cenv, ctx, bvalue(self < other), Value::Nil);
+				case '>':
+					return channel_send(cenv, ctx, bvalue(self > other), Value::Nil);
+				}
 			}
+			break;
+		case 2:
+			if (msg.args().size() == 1 && msg.args()[0].m_type == MACHINE_NUM && name[1] == '=')
+			{
+				long long other = msg.args()[0].machine_num, self = oself.machine_num;
+				switch (name[0])
+				{
+				case '<':
+					return channel_send(cenv, ctx, bvalue(self <= other), Value::Nil);
+				case '>':
+					return channel_send(cenv, ctx, bvalue(self >= other), Value::Nil);
+				}
+			}
+			break;
 		}
-		printf("Unknown message for number %s\n", msg.name().c_str());
-		exit(1);
+		Value def = cenv->special_channel("Channel9::Primitive::Number");
+		forward_primitive_call(cenv, def, ctx, oself, msg);
+	}
+
+	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg)
+	{
+		const std::string &name = msg.name();
+		if (name.length() == 1)
+		{
+			if (msg.args().size() == 1 && msg.args()[0].m_type == STRING)
+			{
+				const std::string &other = *msg.args()[0].str, &self = *oself.str;
+				switch (name[0])
+				{
+				case '+':
+					return channel_send(cenv, ctx, value(self + other), Value::Nil);
+				}
+			}
+		} else if (name == "length") {
+			return channel_send(cenv, ctx, value((long long)oself.str->length()), Value::Nil);
+		}
+		Value def = cenv->special_channel("Channel9::Primitive::String");
+		forward_primitive_call(cenv, def, ctx, oself, msg);
+	}
+
+	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg)
+	{
+		const std::string &name = msg.name();
+		if (name == "at") {
+			if (msg.args().size() == 1 && msg.args()[0].m_type == MACHINE_NUM)
+			{
+				const Value::vector &self = *oself.tuple;
+				ssize_t idx = (ssize_t)msg.args()[0].machine_num;
+				if (idx >= 0 && (size_t)idx < self.size())
+				{
+					return channel_send(cenv, ctx, self[idx], Value::Nil);
+				} else if (idx < 0 && (ssize_t)self.size() >= -idx) {
+					return channel_send(cenv, ctx, self[self.size() - idx], Value::Nil);
+				}
+			}
+		} else if (name == "length") {
+			return channel_send(cenv, ctx, value((long long)oself.tuple->size()), Value::Nil);
+		}
+
+		Value def = cenv->special_channel("Channel9::Primitive::Tuple");
+		forward_primitive_call(cenv, def, ctx, oself, msg);
 	}
 }

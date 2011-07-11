@@ -19,6 +19,8 @@ namespace Channel9
 			const Value::vector &sysargs = Value::vector(),
 			const Value::vector &args = Value::vector());
 
+		void prefix_args(const Value::vector &args);
+		void prefix_arg(const Value &arg);
 		void add_args(const Value::vector &args);
 		void add_arg(const Value &val);
 

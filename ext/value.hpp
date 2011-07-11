@@ -74,4 +74,6 @@ namespace Channel9
 	Value value(const Message &msg);
 	Value value(CallableContext *call_ctx);
 	Value value(RunnableContext *ret_ctx);
+
+	std::string inspect(const Value &val);
 }

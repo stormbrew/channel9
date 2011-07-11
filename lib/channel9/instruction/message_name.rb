@@ -17,7 +17,7 @@ module Channel9
       def run(env)
         message = env.context.pop
         env.context.push(message)
-        env.context.push(message.name.to_c9)
+        env.context.push(message.name)
       end
     end
   end

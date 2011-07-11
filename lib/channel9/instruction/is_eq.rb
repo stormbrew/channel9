@@ -18,7 +18,7 @@ module Channel9
       def run(environment)
         val1 = environment.context.pop
         val2 = environment.context.pop
-        environment.context.push((val1 == val2).to_c9)
+        environment.context.push(val1 == val2)
       end
     end
   end
