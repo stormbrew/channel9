@@ -20,23 +20,23 @@ module Channel9
         }
         klass.add_method(:length) {|cenv, msg, ret|
           elf = msg.system.first
-          ret.channel_send(elf.env, elf.length.to_c9, InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.length, InvalidReturnChannel)
         }
         klass.add_method(:subary) {|cenv, msg, ret|
           elf = msg.system.first
           first, last = msg.positional
-          ret.channel_send(elf.env, elf.data[first.real_num...last.real_num].to_c9, InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.data[first.real_num...last.real_num], InvalidReturnChannel)
         }
         klass.add_method(:to_tuple_prim) {|cenv, msg, ret|
           elf = msg.system.first
-          ret.channel_send(elf.env, Primitive::Tuple.new(elf.data), InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.data, InvalidReturnChannel)
         }
       end
 
       def initialize(env, count)
-        super(env, env.special_channel[:Tuple])
-        @length = count.real_num
-        @data = Array.new(count.real_num, Primitive::Nil)
+        super(env, env.special_channel(:Tuple))
+        @length = count.to_i
+        @data = Array.new(count.to_i)
       end
     end
   end

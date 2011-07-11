@@ -16,15 +16,15 @@ module Channel9
           elf, zuper, *sargs = msg.system
           args = msg.positional
           case elf
-          when elf.env.special_channel[:Class]
+          when elf.env.special_channel(:Class)
             # special case for creating new classes.
             superklass, name = args
             ret.channel_send(elf.env, RubyClass.new(elf.env, name, superklass), InvalidReturnChannel)
-          when elf.env.special_channel[:Module]
+          when elf.env.special_channel(:Module)
             # special case for creating new classes.
             name = args.first
             ret.channel_send(elf.env, RubyModule.new(elf.env, name), InvalidReturnChannel)
-          when elf.env.special_channel[:Tuple]
+          when elf.env.special_channel(:Tuple)
             # special case for creating tuples
             ret.channel_send(elf.env, Tuple.new(elf.env, args.first), InvalidReturnChannel)
           else
@@ -37,7 +37,7 @@ module Channel9
         end
         klass.add_method(:superclass) do |cenv, msg, ret|
           elf = msg.system.first
-          ret.channel_send(elf.env, elf.superclass.to_c9, InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.superclass, InvalidReturnChannel)
         end
         klass.add_method(:__c9_primitive_call__) do |cenv, msg, ret|
           elf = msg.system.first
@@ -50,9 +50,9 @@ module Channel9
       end
 
       def initialize(env, name, superclass)
-        super(env, env.special_channel[:Class])
+        super(env, env.special_channel(:Class))
         @name = name.nil? ? "Class:#{object_id}" : name
-        @superclass = superclass.nil? ? env.special_channel[:Object] : superclass
+        @superclass = superclass.nil? ? env.special_channel(:Object) : superclass
         @instance_methods = {}
         @included = []
         @constant = {}
@@ -63,7 +63,7 @@ module Channel9
       end
 
       def to_s
-        "#<Channel9::Ruby::RubyClass: #{name}>"
+        "#<Channel9::Ruby::RubyClass: #{name}@#{object_id}>"
       end
 
       def rebind_super(superclass)
@@ -76,18 +76,18 @@ module Channel9
 
       def add_method(name, channel = nil, &cb)
         channel ||= CallbackChannel.new(&cb)
-        @instance_methods[name.to_c9] = channel
+        @instance_methods[name] = channel
       end
       def del_method(name, stopper = false)
         if (stopper)
-          @instance_methods[name.to_c9] = Primitive::Undef
+          @instance_methods[name] = Primitive::Undef
         else
-          @instance_methods.delete(name.to_c9)
+          @instance_methods.delete(name)
         end
       end
 
       def lookup(name)
-        name = name.to_c9
+        name = name
         [self, *@included.reverse].each do |mod|
           res = mod.instance_methods[name]
           return res, self if res

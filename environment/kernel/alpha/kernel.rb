@@ -30,7 +30,7 @@ module Kernel
     i = lp.length - 1
     while (i >= 0)
       path = lp[i]
-      if (raw_load("#{path}/#{name}".to_s_prim))
+      if (raw_load(path + "/" + name))
         return true
       end
       i -= 1
@@ -39,7 +39,7 @@ module Kernel
   end
 
   def method_missing(name, *args)
-    raise NoMethodError, "undefined method `#{name}' for #{to_s}:#{self.class}"
+    raise NoMethodError, "undefined method `" + name.to_s + "' for " + to_s + ":" + self.class.to_s
   end
 
   def kind_of?(other)
@@ -62,9 +62,9 @@ module Kernel
       if (arg.kind_of?(::Channel9::Tuple) || arg.kind_of?(::StaticTuple) || arg.kind_of?(::Array))
         puts(*arg)
       elsif (arg.nil?)
-        print("nil\n")
+        print(:"nil\n")
       else
-        print arg, "\n"
+        print arg,:"\n"
       end
     }
   end

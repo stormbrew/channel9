@@ -4,15 +4,8 @@ module Channel9
       def self.channel_send(env, msg, ret)
         if (msg.name == :raise)
           exc = msg.positional.first
-          puts("Uncaught exception: #{exc}")
-          exc.channel_send(env, Primitive::Message.new(:backtrace,[],[]), CallbackChannel.new {|ienv, bt, iret|
-            if (bt.nil?)
-              puts "No backtrace."
-            else
-              bt.real_ary.each do |bt_item|
-                puts bt_item.real_str
-              end
-            end
+          global = env.special_channel(:Channel9)
+          global.channel_send(env, Primitive::Message.new(:uncaught_exception,[],[exc]), CallbackChannel.new {|ienv, bt, iret|
             exit(1)
           })
         else
@@ -44,7 +37,7 @@ module Channel9
         case set
         when Primitive::Message
           @handlers.pop.channel_send(@env, set, ret)
-        when Primitive::Nil
+        when nil
           ret.channel_send(@env, @handlers.pop, InvalidReturnChannel)
         else
           old_handler = handlers.last
