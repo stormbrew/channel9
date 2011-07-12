@@ -5,6 +5,10 @@ module Channel9
       attr :positional
       attr :system
 
+      class <<self
+        alias_method :channel_name, :name
+      end
+
       def initialize(name, system, positional)
         @name = name
         @system = system

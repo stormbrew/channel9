@@ -90,4 +90,5 @@ class String
   def to_c9
     self
   end
+  def self.channel_name; :"Channel9::Primitive::String"; end
 end

@@ -4,10 +4,14 @@
 #include "context.hpp"
 #include "environment.hpp"
 
+#include <sstream>
+
 namespace Channel9
 {
 	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Message &msg)
 	{
+		DO_TRACE printf("Forwarding primitive call: %s.%s from:%s to class:%s\n", 
+			inspect(oself).c_str(), inspect(value(msg)).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
 		Message fwd("__c9_primitive_call__", msg.sysargs(), msg.args());
 		fwd.prefix_arg(oself);
 		fwd.prefix_arg(value(msg.name()));
@@ -55,6 +59,13 @@ namespace Channel9
 				}
 			}
 			break;
+		default:
+			if (msg.name() == "to_string_primitive")
+			{
+				std::stringstream str;
+				str << oself.machine_num;
+				return channel_send(cenv, ctx, value(str.str()), Value::Nil);
+			}
 		}
 		Value def = cenv->special_channel("Channel9::Primitive::Number");
 		forward_primitive_call(cenv, def, ctx, oself, msg);
