@@ -1,6 +1,10 @@
 module Channel9
   module Primitive
     class UndefC
+      class <<self
+        alias_method :channel_name, :name
+      end
+
       def truthy?
         false
       end

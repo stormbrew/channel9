@@ -430,7 +430,7 @@ static VALUE Primitive_channel_send(VALUE self, VALUE cenv, VALUE val, VALUE ret
 	Environment *c9_cenv;
 	Value c9_channel = rb_to_c9(self);
 	Value c9_val = rb_to_c9(val);
-	Value c9_ret = rb_to_c9(val);
+	Value c9_ret = rb_to_c9(ret);
 
 	Data_Get_Struct(cenv, Environment, c9_cenv);
 	channel_send(c9_cenv, c9_channel, c9_val, c9_ret);

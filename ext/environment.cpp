@@ -159,12 +159,14 @@ namespace Channel9
 				case FRAME_GET: {
 					CHECK_STACK(0, 1);
 					size_t frameid = m_context->instructions().frame(*ins.arg1.str);
+					DO_TRACE printf("Getting frame var %s (%d)\n", ins.arg1.str->c_str(), (int)frameid);
 					m_context->push(m_context->get_framevar(frameid));
 					}
 					break;
 				case FRAME_SET: {
 					CHECK_STACK(1, 0);
 					size_t frameid = m_context->instructions().frame(*ins.arg1.str);
+					DO_TRACE printf("Setting frame var %s (%d) to: %s\n", ins.arg1.str->c_str(), (int)frameid, inspect(m_context->top()).c_str());
 					m_context->set_framevar(frameid, m_context->top());
 					m_context->pop();
 					}
@@ -300,7 +302,7 @@ namespace Channel9
 					while (pos >= 0)
 					{
 						if (pos >= len)
-							m_context->push(Value::Nil);
+							m_context->push(Value::Undef);
 						else
 							m_context->push(tuple[pos]);
 						
@@ -332,7 +334,7 @@ namespace Channel9
 						Value::vector splat_tuple;
 						while (pos >= first_count)
 						{
-							splat_tuple.push_back(tuple[pos]);
+							splat_tuple.insert(splat_tuple.begin(), tuple[pos]);
 							pos -= 1;
 						}
 						m_context->push(value(splat_tuple));
@@ -363,6 +365,7 @@ namespace Channel9
 						m_context->push(Value::Nil);
 					} else {
 						CHECK_STACK(1, -1);
+						m_context->pop();
 						channel_send(this, val, value(Message(coerce)), value(m_context));
 					}
 					}
@@ -370,7 +373,7 @@ namespace Channel9
 
 				case STRING_NEW: {
 					//const std::string &coerce = *ins.arg1.str;
-					long long count = ins.arg2.machine_num, counter = 0;
+					long long count = ins.arg1.machine_num, counter = 0;
 					CHECK_STACK(count, 1);
 					std::string res;
 					while (count > 0 && counter < count)
@@ -379,6 +382,7 @@ namespace Channel9
 						assert(val.m_type == STRING);
 						res.append(*val.str);
 						m_context->pop();
+						++counter;
 					}
 					m_context->push(value(res));
 					}
@@ -430,7 +434,7 @@ namespace Channel9
 						Value::vector splat_tuple;
 						while (pos >= first_count)
 						{
-							splat_tuple.push_back(tuple[pos]);
+							splat_tuple.insert(splat_tuple.begin(), tuple[pos]);
 							pos -= 1;
 						}
 						m_context->push(value(splat_tuple));
