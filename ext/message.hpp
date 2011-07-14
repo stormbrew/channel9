@@ -10,14 +10,19 @@ namespace Channel9
 {
 	class Message
 	{
-		std::string m_name;
+		const std::string *m_name;
 		Value::vector m_sysargs;
 		Value::vector m_args;
 
 	public:
-		Message(const std::string &name, 
+		Message(const std::string *name, 
 			const Value::vector &sysargs = Value::vector(),
-			const Value::vector &args = Value::vector());
+			const Value::vector &args = Value::vector())
+		 : m_name(name), m_sysargs(sysargs), m_args(args)
+		{}
+		Message(const std::string *name, size_t sysargs, size_t args)
+		 : m_name(name), m_sysargs(sysargs, Value::Nil), m_args(args, Value::Nil)
+		{}
 
 		void prefix_args(const Value::vector &args);
 		void prefix_arg(const Value &arg);
@@ -25,9 +30,11 @@ namespace Channel9
 		void add_arg(const Value &val);
 
 		size_t arg_count() const { return m_args.size(); }
-		const std::string &name() const { return m_name; }
+		const std::string &name() const { return *m_name; }
 		const Value::vector &args() const { return m_args; }
 		const Value::vector &sysargs() const { return m_sysargs; }
+		Value::vector &args() { return m_args; }
+		Value::vector &sysargs() { return m_sysargs; }
 
 		typedef Value::vector::iterator iterator;
 		typedef Value::vector::const_iterator const_iterator;
@@ -42,4 +49,6 @@ namespace Channel9
 		const_iterator begin() const { return m_args.begin(); }
 		const_iterator end() const { return m_args.end(); }
 	};
+	inline Value value(const Message &msg) MAKE_VALUE_PTR(MESSAGE, msg, new Message(msg));
+	inline Value value(const Message *msg) MAKE_VALUE_PTR(MESSAGE, msg, msg);
 }

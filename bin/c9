@@ -16,5 +16,11 @@ if (print)
 else
   environment = Channel9::Environment.new(debug)
   context = Channel9::Context.new(environment, stream)
-  context.channel_send(environment, nil, Channel9::CleanExitChannel)
+  stime = Time.now
+  begin
+    context.channel_send(environment, nil, Channel9::CleanExitChannel)
+  ensure
+    etime = Time.now
+    puts("Ran in #{etime - stime}s")
+  end
 end
