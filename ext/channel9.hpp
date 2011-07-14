@@ -6,7 +6,7 @@ namespace Channel9
 	struct Value;
 	class Environment;
 	class CallableContext;
-	class RunnableContext;
+	struct RunnableContext;
 	class IStream;
 	class Message;
 }

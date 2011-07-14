@@ -323,7 +323,7 @@ static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 	Data_Get_Struct(rb_stream, IStream, stream);
 
 	stream->normalize();
-	RunnableContext *ctx = new RunnableContext(env, stream);
+	RunnableContext *ctx = new_context(env, stream);
 	VALUE obj = Data_Wrap_Struct(rb_cContext, 0, 0, ctx);
 	VALUE argv[2] = {rb_env, rb_stream};
 	rb_obj_call_init(obj, 2, argv);

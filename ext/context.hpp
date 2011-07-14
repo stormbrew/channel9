@@ -38,63 +38,89 @@ namespace Channel9
 		virtual ~CallableContext() = 0;
 	};
 
-	class RunnableContext
+	inline RunnableContext *new_context(const RunnableContext &copy, bool with_stack = false);
+
+	struct RunnableContext
 	{
-	private:
 		Environment *m_environment;
 		IStream *m_instructions;
-		IStream::iterator m_pos;
-		Value::vector m_framevars;
+		const Instruction *m_pos;
 		VariableFrame *m_localvars;
+		Value *m_sp;
 
-		Value::vector *m_stack;
-		Value::vector::iterator m_sp;
+		Value m_data[0];
 
-	public:
-		RunnableContext(Environment *env, IStream *instructions,
-			const Value::vector *framevars = NULL, VariableFrame *localvars = NULL);
-		RunnableContext(Environment *env, IStream *instructions, IStream::iterator pos,
-			const Value::vector *framevars = NULL, VariableFrame *localvars = NULL);
-		
 		Environment *env() const { return m_environment; }
 		
-		void send(Environment *cenv, const Value &val, const Value &ret);
+		void send(Environment *cenv, const Value &val, const Value &ret)
+		{
+			if (m_sp)
+			{
+				push(val);
+				push(ret);
+				m_environment->run(this);
+			} else {
+				RunnableContext *nctx = new_context(*this, true);
+				nctx->send(cenv, val, ret);
+			}
+		}
 	
 		const IStream &instructions() { return *m_instructions; }
-		IStream::const_iterator next() { return m_pos++; }
-		IStream::const_iterator peek() const { return m_pos; }
-		IStream::const_iterator end() const { return m_instructions->end(); }
+		const Instruction *next() { return m_pos++; }
+		const Instruction *peek() const { return m_pos; }
+		const Instruction *end() const { return &*m_instructions->end(); }
 
 		void jump(const std::string &label);
-		void jump(size_t pos);
+		void jump(size_t pos)
+		{
+			m_pos = &*m_instructions->begin() + pos;
+		}
 
-		void associate_stack();
-		void dissociate_stack() { m_stack = NULL; }
-		Value::vector::const_iterator stack_begin() const { return m_stack->begin(); }
-		Value::vector::const_iterator stack_pos() const { return m_sp; }
-		size_t stack_count() const { return m_sp - m_stack->begin(); }
+		const Value *stack_begin() const { return m_data + m_instructions->frame_count(); }
+		const Value *stack_pos() const { return m_sp; }
+		size_t stack_count() const { return m_sp - stack_begin(); }
 		void push(const Value &val) 
 		{ 
-			DO_DEBUG assert(m_sp < m_stack->end());
-			*m_sp++ = val; 
+			*m_sp++ = val;
 		}
 		void pop() 
 		{ 
 			--m_sp; 
-			DO_DEBUG assert(m_sp >= m_stack->begin());
 		}
 		const Value &top() const { return *(m_sp-1); }
 
-		const Value &get_framevar(size_t id) const { return *(m_framevars.begin() + id); }
+		const Value &get_framevar(size_t id) const { return m_data[id]; }
 		const Value &get_localvar(size_t id) const { return m_localvars->lookup(id); }
 		const Value &get_localvar(size_t id, size_t depth) const { return m_localvars->lookup(id, depth); }
 
-		void set_framevar(size_t id, const Value &val) { m_framevars[id] = val; }
+		void set_framevar(size_t id, const Value &val) { m_data[id] = val; }
 		void set_localvar(size_t id, const Value &val) { m_localvars->set(id, val); }
 		void set_localvar(size_t id, size_t depth, const Value &val) { m_localvars->set(id, depth, val); }
 
 		void new_scope(bool linked = false);
 	};
+
+	inline RunnableContext *new_context(Environment *env, IStream *instructions, VariableFrame *localvars = NULL, size_t pos = 0)
+	{
+		RunnableContext *ctx = (RunnableContext*)malloc(sizeof(RunnableContext) + sizeof(Value)*instructions->frame_count());
+		ctx->m_environment = env;
+		ctx->m_instructions = instructions;
+		ctx->m_pos = &*instructions->begin();
+		ctx->m_localvars = localvars? localvars : new VariableFrame(instructions->local_count());
+		ctx->m_sp = NULL;
+		memset(ctx->m_data, 0, sizeof(Value)*instructions->frame_count());
+		return ctx;
+	}
+	inline RunnableContext *new_context(const RunnableContext &copy, bool with_stack)
+	{
+		size_t frame_count = copy.m_instructions->frame_count();
+		RunnableContext *ctx = (RunnableContext*)malloc(sizeof(RunnableContext) + 
+			sizeof(Value)*(frame_count + (with_stack?copy.m_instructions->stack_size():0)));
+		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
+		ctx->m_sp = with_stack? ctx->m_data + frame_count : NULL;
+		return ctx;
+	}
+	inline void delete_context(RunnableContext *ctx) { free(ctx); }
 
 	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Message &msg);
 	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);
