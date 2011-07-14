@@ -52,6 +52,20 @@ namespace Channel9
 		TUPLE_NEW,
 		TUPLE_SPLAT,
 		TUPLE_UNPACK,
+
+		INUM_COUNT,
+	};
+
+	struct InstructionInfo
+	{
+		INUM inum;
+
+		// number of stack args popped and pushed
+		size_t in, out;
+		// number of arguments the instruction takes
+		size_t argc;
+		// whether the instruction is terminal.
+		bool terminal;
 	};
 
 	INUM inum(std::string iname);
@@ -69,4 +83,8 @@ namespace Channel9
 	{ 
 		return instruction(inum(ins), arg1, arg2); 
 	}
+
+	InstructionInfo iinfo(const Instruction &ins);
+
+	std::string inspect(const Instruction &ins);
 }

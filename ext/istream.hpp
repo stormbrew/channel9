@@ -37,12 +37,18 @@ namespace Channel9
 
 		std::vector<Instruction> m_instructions;
 
+		// only valid after call to normalize
+		size_t m_stack_size;
+		
+		typedef std::pair<bool, size_t> pos_info;
+		size_t normalize(size_t stack_size, size_t pos, std::vector<pos_info> &pos_map);
+
 	public:
 		void add(const std::string &instruction, const Value &arg1 = Value::Nil, const Value &arg2 = Value::Nil, const Value &arg3 = Value::Nil)
 		{ add(inum(instruction), arg1, arg2, arg3); }
 		void add(INUM ins, const Value &arg1 = Value::Nil, const Value &arg2 = Value::Nil, const Value &arg3 = Value::Nil)
 		{ add(instruction(ins, arg1, arg2, arg3)); }
-		void add(const Instruction &instruction);
+		void add(Instruction instruction);
 		void set_label(const std::string &label);
 		void set_source_pos(const SourcePos &sp);
 
@@ -54,6 +60,12 @@ namespace Channel9
 		size_t frame(const std::string &name) const;
 		size_t local_count() const;
 		size_t frame_count() const;
+
+		size_t stack_size() const { return m_stack_size; }
+
+		// Turn jmp label references into numeric references.
+		// Returns the maximum stack size.
+		size_t normalize();
 
 		typedef std::vector<Instruction> ivector;
 		typedef ivector::iterator iterator;

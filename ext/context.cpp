@@ -3,10 +3,10 @@
 
 namespace Channel9
 {
-	BytecodeContext::BytecodeContext(Environment *env, IStream *instructions, IStream::iterator pos,
+	RunnableContext::RunnableContext(Environment *env, IStream *instructions,
 		const Value::vector *framevars, VariableFrame *localvars)
-	 : m_environment(env), m_instructions(instructions), m_pos(pos), 
-	   m_framevars(), m_localvars(localvars)
+	 : m_environment(env), m_instructions(instructions), m_pos(instructions->begin()),
+	   m_framevars(), m_localvars(localvars), m_stack(NULL)
 	{
 		if (!m_localvars)
 		{
@@ -19,33 +19,10 @@ namespace Channel9
 			m_framevars = Value::vector(instructions->frame_count(), Value::Undef);
 		}
 	}
-	BytecodeContext::BytecodeContext(Environment *env, IStream *instructions,
-		const Value::vector *framevars, VariableFrame *localvars)
-	 : m_environment(env), m_instructions(instructions), m_pos(instructions->begin()), 
-	   m_framevars(), m_localvars(localvars)
-	{
-		if (!m_localvars)
-		{
-			m_localvars = new VariableFrame(instructions->local_count());
-		}
-		if (framevars)
-		{
-			m_framevars = *framevars;
-		} else {
-			m_framevars = Value::vector(instructions->frame_count(), Value::Undef);
-		}
-	}
-
-	void BytecodeContext::send(Environment *cenv, const Value &val, const Value &ret)
-	{
-		RunnableContext *runnable = new RunnableContext(m_environment, m_instructions, m_pos, &m_framevars, m_localvars);
-		runnable->send(cenv, val, ret);
-	}
-
 	RunnableContext::RunnableContext(Environment *env, IStream *instructions, IStream::iterator pos,
 		const Value::vector *framevars, VariableFrame *localvars)
 	 : m_environment(env), m_instructions(instructions), m_pos(pos),
-	   m_framevars(), m_localvars(localvars)
+	   m_framevars(), m_localvars(localvars), m_stack(NULL)
 	{
 		if (!m_localvars)
 		{
@@ -57,24 +34,36 @@ namespace Channel9
 		} else {
 			m_framevars = Value::vector(instructions->frame_count(), Value::Undef);
 		}
-		m_stack.reserve(8);
+	}
+
+	void RunnableContext::associate_stack()
+	{
+		m_stack = new Value::vector(m_instructions->stack_size(), Value::Undef);
+		m_sp = m_stack->begin();
 	}
 
 	void RunnableContext::jump(const std::string &label)
 	{
 		m_pos = m_instructions->begin() + m_instructions->label_pos(label);
 	}
-	CallableContext *RunnableContext::new_context(const std::string &label)
+	void RunnableContext::jump(size_t pos)
 	{
-		IStream::iterator pos = m_instructions->begin() + m_instructions->label_pos(label);
-		return new BytecodeContext(m_environment, m_instructions, pos, &m_framevars, m_localvars);
+		m_pos = m_instructions->begin() + pos;
 	}
 	
 	void RunnableContext::send(Environment *cenv, const Value &val, const Value &ret)
 	{
-		m_stack.push_back(val);
-		m_stack.push_back(ret);
-		m_environment->run(this);
+		if (m_stack)
+		{
+			push(val);
+			push(ret);
+			m_environment->run(this);
+		} else {
+			RunnableContext *nctx = new RunnableContext(m_environment, m_instructions,
+				m_pos, &m_framevars, m_localvars);
+			nctx->associate_stack();
+			nctx->send(cenv, val, ret);
+		}
 	}
 
 	void RunnableContext::new_scope(bool linked)

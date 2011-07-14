@@ -1,6 +1,7 @@
 #include "instruction.hpp"
 #include <map>
 #include <algorithm>
+#include <sstream>
 
 namespace Channel9
 {
@@ -99,13 +100,116 @@ namespace Channel9
 			INAME_DEF(TUPLE_NEW);
 			INAME_DEF(TUPLE_SPLAT);
 			INAME_DEF(TUPLE_UNPACK);
+			default: break;
 		}
 		return "<unknown>";
+	}
+
+	InstructionInfo iinfo(const Instruction &ins)
+	{
+#		define IINFO(name, in, out, args, terminal) \
+			case name: { InstructionInfo ret = { name, (in), (out), (args), (terminal) }; return ret; }
+
+		switch (ins.instruction)
+		{
+		IINFO(NOP, 0, 0, 0, false);
+		IINFO(DEBUGGER, 0, 0, 1, false);
+
+		IINFO(POP, 1, 0, 0, false);
+		IINFO(PUSH, 0, 1, 1, false);
+		IINFO(SWAP, 2, 2, 0, false);
+		IINFO(DUP_TOP, 1, 2, 0, false);
+
+		IINFO(IS, 1, 1, 1, false);
+		IINFO(IS_EQ, 2, 1, 0, false);
+		IINFO(IS_NOT, 1, 1, 1, false);
+		IINFO(IS_NOT_EQ, 2, 1, 0, false);
+		IINFO(JMP, 0, 0, 1, false);
+		IINFO(JMP_IF, 1, 0, 1, false);
+		IINFO(JMP_IF_NOT, 1, 0, 1, false);
+
+		IINFO(LOCAL_CLEAN_SCOPE, 0, 0, 0, false);
+		IINFO(LOCAL_LINKED_SCOPE, 0, 0, 0, false);
+		IINFO(FRAME_GET, 0, 1, 1, false);
+		IINFO(FRAME_SET, 1, 0, 1, false);
+		IINFO(LOCAL_GET, 0, 1, 2, false);
+		IINFO(LOCAL_SET, 1, 0, 2, false);
+
+		IINFO(CHANNEL_NEW, 0, 1, 1, false);
+		IINFO(CHANNEL_SPECIAL, 0, 1, 1, false);
+		IINFO(CHANNEL_SEND, 3, 2, 0, true);
+		IINFO(CHANNEL_CALL, 2, 2, 0, true);
+		IINFO(CHANNEL_RET, 2, 2, 0, true);
+
+		IINFO(MESSAGE_NEW, 
+			ins.arg2.machine_num + ins.arg3.machine_num, 1,
+			3, false 
+			);
+		IINFO(MESSAGE_SPLAT, 2, 1, 0, false);
+		IINFO(MESSAGE_ADD, 
+			1 + ins.arg1.machine_num, 1, 
+			1, false 
+			);
+		IINFO(MESSAGE_COUNT, 1, 2, 0, false);
+		IINFO(MESSAGE_NAME, 1, 2, 0, false);
+		IINFO(MESSAGE_SYS_UNPACK, 
+			1, 1 + ins.arg1.machine_num, 
+			1, false 
+			);
+		IINFO(MESSAGE_UNPACK, 
+			1, 1 + ins.arg1.machine_num + (ins.arg2.machine_num != 0?1:0) + ins.arg3.machine_num, 
+			3, false 
+			);
+
+		IINFO(STRING_NEW, ins.arg1.machine_num, 1, 1, false);
+		IINFO(STRING_COERCE, 1, 2, 1, false);
+
+		IINFO(TUPLE_NEW, 
+			ins.arg1.machine_num, 1, 
+			1, false 
+			);
+		IINFO(TUPLE_SPLAT, 2, 1, 0, false);
+		IINFO(TUPLE_UNPACK, 
+			1, 1 + ins.arg1.machine_num + (ins.arg2.machine_num != 0?1:0) + ins.arg3.machine_num,
+			3, false 
+			);
+		default: break;
+		}
+		InstructionInfo ret = {NOP};
+		return ret;
 	}
 
 	Instruction instruction(INUM ins, const Value &arg1, const Value &arg2, const Value &arg3)
 	{
 		Instruction instruction = {ins, arg1, arg2, arg3};
 		return instruction;
+	}
+
+	std::string inspect(const Instruction &ins)
+	{
+		std::stringstream str;
+		InstructionInfo info = iinfo(ins);
+		str << iname(ins.instruction) << "(";
+		if (info.argc > 0)
+			str << inspect(ins.arg1);
+		if (info.argc > 1)
+			str << ", " << inspect(ins.arg2);
+		if (info.argc > 2)
+			str << ", " << inspect(ins.arg3);
+		switch (ins.instruction)
+		{
+		case CHANNEL_NEW:
+		case JMP:
+		case JMP_IF:
+		case JMP_IF_NOT:
+		case LOCAL_GET:
+		case LOCAL_SET:
+		case FRAME_GET:
+		case FRAME_SET:
+			str << ", c:" << inspect(ins.arg3);
+		default: break;
+		}
+		str << ")";
+		return str.str();
 	}
 }

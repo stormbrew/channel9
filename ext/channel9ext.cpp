@@ -8,6 +8,8 @@ extern "C" {
 #include "istream.hpp"
 #include "message.hpp"
 
+#include <map>
+
 using namespace Channel9;
 
 typedef VALUE (*ruby_method)(ANYARGS);
@@ -30,7 +32,7 @@ static Value rb_to_c9(VALUE val);
 static VALUE rb_Environment_new(Environment *env);
 static VALUE rb_Message_new(const Message *msg);
 static VALUE rb_CallableContext_new(CallableContext *ctx);
-static VALUE rb_RunnableContext_new(RunnableContext *ctx);
+static VALUE rb_Context_new(RunnableContext *ctx);
 
 class RubyChannel : public CallableContext
 {
@@ -72,8 +74,9 @@ static Value rb_to_c9(VALUE val)
 		return value(rb_id2name(SYM2ID(val)));
 	case T_STRING:
 		return value(STR2CSTR(val));
+	case T_BIGNUM:
 	case T_FIXNUM:
-		return value((long long)FIX2INT(val));
+		return value(NUM2LL(val));
 	case T_ARRAY: {
 		Value::vector tuple;
 		size_t len = RARRAY_LEN(val);
@@ -103,10 +106,6 @@ static Value rb_to_c9(VALUE val)
 			Data_Get_Struct(val, CallableContext, ctx);
 			return value(ctx);
 		} else if (klass == rb_cContext) {
-			BytecodeContext *ctx;
-			Data_Get_Struct(val, BytecodeContext, ctx);
-			return value(ctx);
-		} else if (klass == rb_cRunnableContext) {
 			RunnableContext *ctx;
 			Data_Get_Struct(val, RunnableContext, ctx);
 			return value(ctx);
@@ -136,7 +135,7 @@ static VALUE c9_to_rb(const Value &val)
 	case BTRUE:
 		return Qtrue;
 	case MACHINE_NUM:
-		return INT2FIX(val.machine_num);
+		return LL2NUM(val.machine_num);
 	case FLOAT_NUM:
 		return rb_float_new(val.float_num);
 	case STRING:
@@ -154,7 +153,7 @@ static VALUE c9_to_rb(const Value &val)
 	case CALLABLE_CONTEXT:
 		return rb_CallableContext_new(val.call_ctx);
 	case RUNNABLE_CONTEXT:
-		return rb_RunnableContext_new(val.ret_ctx);
+		return rb_Context_new(val.ret_ctx);
 	default:
 		printf("Unknown value type %d\n", val.m_type);
 		exit(1);
@@ -162,11 +161,19 @@ static VALUE c9_to_rb(const Value &val)
 	return Qnil;
 }
 
+std::map<Environment*, VALUE> c9_env_map;
+
 static VALUE rb_Environment_new(Environment *env)
 {
+	if (c9_env_map.find(env) != c9_env_map.end())
+		return c9_env_map[env];
+	
 	VALUE obj = Data_Wrap_Struct(rb_cEnvironment, 0, 0, env);
 	VALUE debug = Qfalse;
 	rb_obj_call_init(obj, 1, &debug);
+
+	c9_env_map[env] = obj;
+
 	return obj;
 }
 
@@ -175,6 +182,9 @@ static VALUE Environment_new(VALUE self, VALUE debug)
 	Environment *env = new Environment();
 	VALUE obj = Data_Wrap_Struct(rb_cEnvironment, 0, 0, env);
 	rb_obj_call_init(obj, 1, &debug);
+
+	c9_env_map[env] = obj;
+
 	return obj;
 }
 
@@ -298,6 +308,12 @@ static void Init_Channel9_Stream()
 	rb_define_method(rb_cStream, "add_line_info", ruby_method(Stream_add_line_info), 4);
 }
 
+static VALUE rb_Context_new(RunnableContext *ctx)
+{
+	VALUE obj = Data_Wrap_Struct(rb_cContext, 0, 0, ctx);
+	return obj;
+}
+
 static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 {
 	Environment *env;
@@ -306,7 +322,8 @@ static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 	Data_Get_Struct(rb_env, Environment, env);
 	Data_Get_Struct(rb_stream, IStream, stream);
 
-	BytecodeContext *ctx = new BytecodeContext(env, stream);
+	stream->normalize();
+	RunnableContext *ctx = new RunnableContext(env, stream);
 	VALUE obj = Data_Wrap_Struct(rb_cContext, 0, 0, ctx);
 	VALUE argv[2] = {rb_env, rb_stream};
 	rb_obj_call_init(obj, 2, argv);
@@ -316,10 +333,10 @@ static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 static VALUE Context_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret)
 {
 	Environment *cenv;
-	BytecodeContext *ctx;
+	RunnableContext *ctx;
 
 	Data_Get_Struct(rb_cenv, Environment, cenv);
-	Data_Get_Struct(self, BytecodeContext, ctx);
+	Data_Get_Struct(self, RunnableContext, ctx);
 
 	ctx->send(cenv, rb_to_c9(rb_val), rb_to_c9(rb_ret));
 
@@ -364,33 +381,6 @@ static void Init_Channel9_CallableContext()
 	rb_cCallableContext = rb_define_class_under(rb_mChannel9, "CallableContext", rb_cObject);
 	rb_define_method(rb_cCallableContext, "channel_send", ruby_method(CallableContext_channel_send), 3);
 }
-
-static VALUE rb_RunnableContext_new(RunnableContext *ctx)
-{
-	VALUE obj = Data_Wrap_Struct(rb_cRunnableContext, 0, 0, ctx);
-	rb_obj_call_init(obj, 0, 0);
-	return obj;
-}
-
-static VALUE RunnableContext_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret)
-{
-	Environment *cenv;
-	RunnableContext *ctx;
-
-	Data_Get_Struct(rb_cenv, Environment, cenv);
-	Data_Get_Struct(self, RunnableContext, ctx);
-
-	ctx->send(cenv, rb_to_c9(rb_val), rb_to_c9(rb_ret));
-
-	return Qnil;
-}
-
-static void Init_Channel9_RunnableContext()
-{
-	rb_cRunnableContext = rb_define_class_under(rb_mChannel9, "RunnableContext", rb_cObject);
-	rb_define_method(rb_cRunnableContext, "channel_send", ruby_method(RunnableContext_channel_send), 3);
-}
-
 static VALUE rb_Message_new(const Message *msg)
 {
 	VALUE obj = Data_Wrap_Struct(rb_cMessage, 0, 0, (void*)msg);
@@ -405,7 +395,7 @@ static VALUE Message_new(VALUE self, VALUE name, VALUE sysargs, VALUE args)
 	Value c9_sysargs = rb_to_c9(sysargs);
 	Value c9_args = rb_to_c9(args);
 
-	Message *msg = new Message(c9_name.str->c_str(), *c9_sysargs.tuple, *c9_args.tuple);
+	Message *msg = new Message(c9_name.str, *c9_sysargs.tuple, *c9_args.tuple);
 	VALUE obj = Data_Wrap_Struct(rb_cMessage, 0, 0, msg);
 	VALUE argv[3] = {name, sysargs, args};
 	rb_obj_call_init(obj, 3, argv);
@@ -458,7 +448,6 @@ extern "C" void Init_channel9ext()
 	Init_Channel9_Message();
 	Init_Channel9_Undef();
 	Init_Channel9_Context();
-	Init_Channel9_RunnableContext();
 	Init_Channel9_CallableContext();
 
 	Init_Channel9_Primitives();
