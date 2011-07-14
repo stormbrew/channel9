@@ -37,7 +37,7 @@ namespace Channel9
 		{
 			DO_TRACE printf("Entering running state with %p\n", context);
 			m_running = true;
-			IStream::const_iterator it = m_context->next();
+			const Instruction *it = m_context->next();
 			while (m_context && it != m_context->end())
 			{
 				size_t output = -1;
@@ -53,10 +53,10 @@ namespace Channel9
 				DO_TRACE {
 					printf("Instruction: %s@%d\n", 
 						inspect(ins).c_str(),
-						(int)(it - m_context->instructions().begin())
+						(int)(it - &*m_context->instructions().begin())
 						);
 					printf("Stack: %d deep", (int)m_context->stack_count());
-					Value::vector::const_iterator it;
+					const Value *it;
 					for (it = m_context->stack_begin(); it != m_context->stack_pos(); it++)
 					{
 						printf("\n   %s", inspect(*it).c_str());
@@ -194,8 +194,7 @@ namespace Channel9
 
 				case CHANNEL_NEW: {
 					CHECK_STACK(0, 1);
-					RunnableContext *nctx = new RunnableContext(*m_context);
-					nctx->dissociate_stack();
+					RunnableContext *nctx = new_context(*m_context, false);
 					nctx->jump(ins.arg3.machine_num);
 					m_context->push(value(nctx));
 					}
@@ -460,7 +459,7 @@ namespace Channel9
 					printf("Output: %d", (int)output);
 					if ((long)output > 0)
 					{
-						Value::vector::const_iterator it = std::max(
+						const Value *it = std::max(
 							m_context->stack_begin(), m_context->stack_pos() - output);
 						for (; it != m_context->stack_pos(); it++)
 						{
