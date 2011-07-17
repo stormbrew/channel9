@@ -19,20 +19,20 @@ namespace Channel9
 			{
 			case JMP:
 				{
-					size_t branch_pos = label_pos(*ins.arg1.str);
+					size_t branch_pos = label_pos(ins.arg1.str->str());
 					ins.arg3 = value((long long)branch_pos);
 				}
 				break;
 			case JMP_IF:
 			case JMP_IF_NOT:
 				{
-					size_t branch_pos = label_pos(*ins.arg1.str);
+					size_t branch_pos = label_pos(ins.arg1.str->str());
 					ins.arg3 = value((long long)branch_pos);
 				}
 				break;
 			case CHANNEL_NEW:
 				{
-					size_t branch_pos = label_pos(*ins.arg1.str);
+					size_t branch_pos = label_pos(ins.arg1.str->str());
 					ins.arg3 = value((long long)branch_pos);
 				}
 				break;
@@ -120,12 +120,12 @@ namespace Channel9
 		{
 		case LOCAL_SET:
 		case LOCAL_GET:
-			local_id = local(*instruction.arg2.str);
+			local_id = local(instruction.arg2.str->str());
 			instruction.arg3 = value(local_id);
 			break;
 		case FRAME_GET:
 		case FRAME_SET:
-			local_id = frame(*instruction.arg1.str);
+			local_id = frame(instruction.arg1.str->str());
 			instruction.arg3 = value(local_id);
 			break;
 		default:

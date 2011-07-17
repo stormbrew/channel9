@@ -37,4 +37,6 @@ namespace Channel9
 			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra));
 		}
 	};
+
+	extern MemoryPool<8*1024*1024> value_pool;
 }

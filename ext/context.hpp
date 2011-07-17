@@ -12,7 +12,7 @@ namespace Channel9
 	class VariableFrame
 	{
 	private:
-		Value::vector m_locals;
+		std::vector<Value> m_locals;
 		VariableFrame *m_parent_frame;
 
 	protected:

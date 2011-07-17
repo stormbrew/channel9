@@ -6,6 +6,8 @@ namespace Channel9
 	struct Value;
 	class Environment;
 	class CallableContext;
+	struct String;
+	struct Tuple;
 	struct RunnableContext;
 	class IStream;
 	class Message;

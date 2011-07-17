@@ -21,6 +21,16 @@ namespace Channel9
 		else
 			return Value::Nil;
 	}
+
+	const Value &Environment::special_channel(const String &name) const
+	{
+		special_map::const_iterator it = m_specials.find(name.c_str());
+		if (it != m_specials.end())
+			return it->second;
+		else
+			return Value::Nil;
+	}
+
 	void Environment::set_special_channel(const std::string &name, const Value &val)
 	{
 		DO_TRACE printf("set_special_channel(%s, %s)\n", name.c_str(), inspect(val).c_str());
@@ -231,7 +241,7 @@ namespace Channel9
 					break;
 
 				case MESSAGE_NEW: {
-					const std::string *name = ins.arg1.str;
+					const String *name = ins.arg1.str;
 					long long sysarg_count = ins.arg2.machine_num, sysarg_counter = sysarg_count - 1;
 					long long arg_count = ins.arg3.machine_num, arg_counter = arg_count - 1;
 					CHECK_STACK(sysarg_count + arg_count, 1);
@@ -256,7 +266,7 @@ namespace Channel9
 					break;
 				case MESSAGE_SPLAT: {
 					CHECK_STACK(2, 1);
-					const Value::vector &tuple = *m_context->top().tuple; m_context->pop();
+					const Tuple &tuple = *m_context->top().tuple; m_context->pop();
 					const Message &msg = *m_context->top().msg; m_context->pop();
 
 					Message *nmsg = new_message(msg.m_name, msg.sysarg_count(), msg.arg_count() + tuple.size());
@@ -337,13 +347,20 @@ namespace Channel9
 
 					if (splat != 0)
 					{
-						Value::vector splat_tuple;
-						while (pos >= first_count)
+						if (pos >= first_count)
 						{
-							splat_tuple.insert(splat_tuple.begin(), args[pos]);
-							pos -= 1;
+							Tuple *splat_tuple = new_tuple(pos - first_count + 1);
+							Tuple::iterator out = splat_tuple->end();
+							while (pos >= first_count)
+							{
+								--out;
+								*out = args[pos];
+								pos -= 1;
+							}
+							m_context->push(value(splat_tuple));
+						} else {
+							m_context->push(Value::ZTuple);
 						}
-						m_context->push(value(splat_tuple));
 					}
 
 					pos = first_count - 1;
@@ -362,7 +379,7 @@ namespace Channel9
 					break;
 
 				case STRING_COERCE: {
-					const std::string *coerce = ins.arg1.str;
+					const String *coerce = ins.arg1.str;
 					const Value &val = m_context->top();
 					if (val.m_type == STRING)
 					{
@@ -380,12 +397,21 @@ namespace Channel9
 				case STRING_NEW: {
 					long long count = ins.arg1.machine_num, counter = 0;
 					CHECK_STACK(count, 1);
-					std::string res;
+					const Value *sp = m_context->stack_pos() - 1;
+					size_t len = 0;
 					while (count > 0 && counter < count)
 					{
-						const Value &val = m_context->top();
-						assert(val.m_type == STRING);
-						res.append(*val.str);
+						assert(sp[-counter].m_type == STRING);
+						len += sp[-counter].str->length();
+						++counter;
+					}
+					String *res = new_string(len);
+					String::iterator out = res->begin();
+					counter = 0;
+					while (count > 0 && counter < count)
+					{
+						const String *val = m_context->top().str;
+						out = std::copy(val->begin(), val->end(), out);
 						m_context->pop();
 						++counter;
 					}
@@ -396,10 +422,11 @@ namespace Channel9
 				case TUPLE_NEW: {
 					long long count = ins.arg1.machine_num, counter = 0;
 					CHECK_STACK(count, 1);
-					Value::vector tuple(count, Value::Undef);
+					Tuple *tuple = new_tuple(count);
+					Tuple::iterator out = tuple->begin();
 					while (count > 0 && counter < count)
 					{
-						tuple[counter] = m_context->top();
+						*out++ = m_context->top();
 						m_context->pop();
 						++counter;
 					}
@@ -408,10 +435,9 @@ namespace Channel9
 					break;
 				case TUPLE_SPLAT: {
 					CHECK_STACK(2, 1);
-					const Value::vector &tuple2 = *m_context->top().tuple; m_context->pop();
-					const Value::vector &tuple1 = *m_context->top().tuple; m_context->pop();
-					Value::vector tuple = tuple1;
-					tuple.insert(tuple.end(), tuple2.begin(), tuple2.end());
+					const Tuple *tuple2 = m_context->top().tuple; m_context->pop();
+					const Tuple *tuple1 = m_context->top().tuple; m_context->pop();
+					Tuple *tuple = join_tuple(tuple1, tuple2);
 					m_context->push(value(tuple));
 					}
 					break;
@@ -421,7 +447,7 @@ namespace Channel9
 					long long last_count = ins.arg3.machine_num, last_counter = 0;
 					CHECK_STACK(1, 1 + first_count + last_count + (splat?1:0));
 
-					const Value::vector &tuple = *m_context->top().tuple;
+					const Tuple &tuple = *m_context->top().tuple;
 					long long len = tuple.size(), pos = tuple.size() - 1;
 					while (last_counter < last_count && pos >= first_count)
 					{
@@ -436,13 +462,20 @@ namespace Channel9
 
 					if (splat != 0)
 					{
-						Value::vector splat_tuple;
-						while (pos >= first_count)
+						if (pos >= first_count)
 						{
-							splat_tuple.insert(splat_tuple.begin(), tuple[pos]);
-							pos -= 1;
+							Tuple *splat_tuple = new_tuple(pos - first_count + 1);
+							Tuple::iterator out = splat_tuple->end();
+							while (pos >= first_count)
+							{
+								--out;
+								*out = tuple[pos];
+								pos -= 1;
+							}
+							m_context->push(value(splat_tuple));
+						} else {
+							m_context->push(Value::ZTuple);
 						}
-						m_context->push(value(splat_tuple));
 					}
 
 					pos = first_count - 1;
