@@ -8,47 +8,67 @@
 
 namespace Channel9
 {
-	class Message
+	struct Message
 	{
 		const std::string *m_name;
-		Value::vector m_sysargs;
-		Value::vector m_args;
+		size_t m_sysarg_count;
+		size_t m_arg_count;
 
-	public:
-		Message(const std::string *name, 
-			const Value::vector &sysargs = Value::vector(),
-			const Value::vector &args = Value::vector())
-		 : m_name(name), m_sysargs(sysargs), m_args(args)
-		{}
-		Message(const std::string *name, size_t sysargs, size_t args)
-		 : m_name(name), m_sysargs(sysargs, Value::Nil), m_args(args, Value::Nil)
-		{}
+		Value m_data[0];
 
-		void prefix_args(const Value::vector &args);
-		void prefix_arg(const Value &arg);
-		void add_args(const Value::vector &args);
-		void add_arg(const Value &val);
+		typedef Value *iterator;
+		typedef const Value *const_iterator;
 
-		size_t arg_count() const { return m_args.size(); }
+		size_t sysarg_count() const { return m_sysarg_count; }
+		size_t arg_count() const { return m_arg_count; }
+		size_t total_count() const { return m_sysarg_count + m_arg_count; }
+
 		const std::string &name() const { return *m_name; }
-		const Value::vector &args() const { return m_args; }
-		const Value::vector &sysargs() const { return m_sysargs; }
-		Value::vector &args() { return m_args; }
-		Value::vector &sysargs() { return m_sysargs; }
+		const_iterator args() const { return m_data + m_sysarg_count; }
+		const_iterator args_end() const { return m_data + m_sysarg_count + m_arg_count; }
+		const_iterator sysargs() const { return m_data; }
+		const_iterator sysargs_end() const { return m_data + m_sysarg_count; }
 
-		typedef Value::vector::iterator iterator;
-		typedef Value::vector::const_iterator const_iterator;
-
-		iterator begin_sys() { return m_sysargs.begin(); }
-		iterator end_sys() { return m_sysargs.end(); }
-		const_iterator begin_sys() const { return m_sysargs.begin(); }
-		const_iterator end_sys() const { return m_sysargs.end(); }
-
-		iterator begin() { return m_args.begin(); }
-		iterator end() { return m_args.end(); }
-		const_iterator begin() const { return m_args.begin(); }
-		const_iterator end() const { return m_args.end(); }
+		iterator args() { return m_data + m_sysarg_count; }
+		iterator args_end() { return m_data + m_sysarg_count + m_arg_count; }
+		iterator sysargs() { return m_data; }
+		iterator sysargs_end() { return m_data + m_sysarg_count; }
 	};
-	inline Value value(const Message &msg) MAKE_VALUE_PTR(MESSAGE, msg, new Message(msg));
+
+	inline Message *new_message(const std::string *name, size_t sysargs = 0, size_t args = 0)
+	{
+		size_t count = sysargs + args;
+		Message *msg = value_pool.alloc<Message>(sizeof(Value)*count);
+		msg->m_name = name;
+		msg->m_sysarg_count = sysargs;
+		msg->m_arg_count = args;
+		return msg;
+	}
+	template <typename tIter>
+	inline Message *new_message(const std::string *name, size_t sysargs, tIter sysarg_it, size_t args, tIter arg_it)
+	{
+		Message *msg = new_message(name, sysargs, args);
+		Value *out = msg->m_data;
+		while (sysargs != 0)
+		{
+			*out++ = *sysarg_it++;
+			--sysargs;
+		}
+		while (args != 0)
+		{
+			*out++ = *arg_it++;
+			--args;
+		}
+		return msg;
+	}
+	inline Message *new_message(const Message &other)
+	{
+		size_t size = sizeof(Message) + sizeof(Value)*other.total_count();
+		Message *msg = value_pool.alloc<Message>(sizeof(Value)*other.total_count());
+		memcpy(msg, &other, size);
+		return msg;
+	}
+
+	inline Value value(const Message &msg) MAKE_VALUE_PTR(MESSAGE, msg, new_message(msg));
 	inline Value value(const Message *msg) MAKE_VALUE_PTR(MESSAGE, msg, msg);
 }

@@ -3,6 +3,7 @@
 #include "channel9.hpp"
 #include "environment.hpp"
 #include "istream.hpp"
+#include "memory_pool.hpp"
 
 #include <assert.h>
 
@@ -38,19 +39,16 @@ namespace Channel9
 		virtual ~CallableContext() = 0;
 	};
 
-	inline RunnableContext *new_context(const RunnableContext &copy, bool with_stack = false);
+	inline RunnableContext *activate_context(const RunnableContext &copy);
 
 	struct RunnableContext
 	{
-		Environment *m_environment;
 		IStream *m_instructions;
 		const Instruction *m_pos;
 		VariableFrame *m_localvars;
 		Value *m_sp;
 
 		Value m_data[0];
-
-		Environment *env() const { return m_environment; }
 		
 		void send(Environment *cenv, const Value &val, const Value &ret)
 		{
@@ -58,9 +56,9 @@ namespace Channel9
 			{
 				push(val);
 				push(ret);
-				m_environment->run(this);
+				cenv->run(this);
 			} else {
-				RunnableContext *nctx = new_context(*this, true);
+				RunnableContext *nctx = activate_context(*this);
 				nctx->send(cenv, val, ret);
 			}
 		}
@@ -83,7 +81,7 @@ namespace Channel9
 		{ 
 			*m_sp++ = val;
 		}
-		void pop() 
+		void pop()
 		{ 
 			--m_sp; 
 		}
@@ -100,10 +98,9 @@ namespace Channel9
 		void new_scope(bool linked = false);
 	};
 
-	inline RunnableContext *new_context(Environment *env, IStream *instructions, VariableFrame *localvars = NULL, size_t pos = 0)
+	inline RunnableContext *new_context(IStream *instructions, VariableFrame *localvars = NULL, size_t pos = 0)
 	{
 		RunnableContext *ctx = (RunnableContext*)malloc(sizeof(RunnableContext) + sizeof(Value)*instructions->frame_count());
-		ctx->m_environment = env;
 		ctx->m_instructions = instructions;
 		ctx->m_pos = &*instructions->begin();
 		ctx->m_localvars = localvars? localvars : new VariableFrame(instructions->local_count());
@@ -111,16 +108,26 @@ namespace Channel9
 		memset(ctx->m_data, 0, sizeof(Value)*instructions->frame_count());
 		return ctx;
 	}
-	inline RunnableContext *new_context(const RunnableContext &copy, bool with_stack)
+	inline RunnableContext *new_context(const RunnableContext &copy)
 	{
 		size_t frame_count = copy.m_instructions->frame_count();
 		RunnableContext *ctx = (RunnableContext*)malloc(sizeof(RunnableContext) + 
-			sizeof(Value)*(frame_count + (with_stack?copy.m_instructions->stack_size():0)));
+			sizeof(Value)*(frame_count));
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
-		ctx->m_sp = with_stack? ctx->m_data + frame_count : NULL;
+		ctx->m_sp = NULL;
 		return ctx;
 	}
-	inline void delete_context(RunnableContext *ctx) { free(ctx); }
+	extern MemoryPool<8*1024*1024> frame_pool;
+	inline RunnableContext *activate_context(const RunnableContext &copy)
+	{
+		size_t frame_count = copy.m_instructions->frame_count();
+		size_t frame_extra = sizeof(Value)*(frame_count + copy.m_instructions->stack_size());
+		
+		RunnableContext *ctx = frame_pool.alloc<RunnableContext>(frame_extra);
+		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
+		ctx->m_sp = ctx->m_data + frame_count;
+		return ctx;
+	}
 
 	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Message &msg);
 	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);

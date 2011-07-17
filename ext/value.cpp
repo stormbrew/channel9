@@ -5,6 +5,8 @@
 
 namespace Channel9
 {
+	MemoryPool<8*1024*1024> value_pool;
+
 	Value Value::Nil = {{0}, 0};
 	Value Value::True = {{0}, BTRUE};
 	Value Value::False = {{0}, BFALSE};
@@ -75,13 +77,13 @@ namespace Channel9
 		}
 		case MESSAGE: {
 			res << "message:[";
-			Value::vector::const_iterator it;
-			for (it = val.msg->begin_sys(); it != val.msg->end_sys(); it++)
+			Message::const_iterator it;
+			for (it = val.msg->sysargs(); it != val.msg->sysargs_end(); it++)
 				res << inner_inspect(*it) << ",";
 			
 			res << "]." << val.msg->name() << "(";
 
-			for (it = val.msg->begin(); it != val.msg->end(); it++)
+			for (it = val.msg->args(); it != val.msg->args_end(); it++)
 				res << inner_inspect(*it) << ",";
 
 			res << ")";

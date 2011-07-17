@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "channel9.hpp"
+#include "memory_pool.hpp"
 
 namespace Channel9
 {
@@ -87,4 +88,6 @@ namespace Channel9
 	inline Value value(RunnableContext *ret_ctx) MAKE_VALUE_PTR(RUNNABLE_CONTEXT, ret_ctx, ret_ctx);
 
 	std::string inspect(const Value &val);
+
+	extern MemoryPool<8*1024*1024> value_pool;
 }

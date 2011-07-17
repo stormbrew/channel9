@@ -323,7 +323,7 @@ static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 	Data_Get_Struct(rb_stream, IStream, stream);
 
 	stream->normalize();
-	RunnableContext *ctx = new_context(env, stream);
+	RunnableContext *ctx = new_context(stream);
 	VALUE obj = Data_Wrap_Struct(rb_cContext, 0, 0, ctx);
 	VALUE argv[2] = {rb_env, rb_stream};
 	rb_obj_call_init(obj, 2, argv);
@@ -384,18 +384,21 @@ static void Init_Channel9_CallableContext()
 static VALUE rb_Message_new(const Message *msg)
 {
 	VALUE obj = Data_Wrap_Struct(rb_cMessage, 0, 0, (void*)msg);
-	VALUE argv[3] = {ID2SYM(rb_intern(msg->name().c_str())), c9_to_rb(value(msg->sysargs())), c9_to_rb(value(msg->args()))};
+	Value::vector sysargs(msg->sysargs(), msg->sysargs_end()), args(msg->args(), msg->args_end());
+	VALUE argv[3] = {ID2SYM(rb_intern(msg->name().c_str())), c9_to_rb(value(sysargs)), c9_to_rb(value(args))};
 	rb_obj_call_init(obj, 3, argv);	
 	return obj;
 }
 
 static VALUE Message_new(VALUE self, VALUE name, VALUE sysargs, VALUE args)
 {
-	Value c9_name = rb_to_c9(name);
+	Value c9_name = rb_to_c9(rb_funcall(name, rb_intern("to_sym"), 0));
 	Value c9_sysargs = rb_to_c9(sysargs);
 	Value c9_args = rb_to_c9(args);
 
-	Message *msg = new Message(c9_name.str, *c9_sysargs.tuple, *c9_args.tuple);
+	Message *msg = new_message(c9_name.str, 
+		c9_sysargs.tuple->size(), c9_sysargs.tuple->begin(),
+		c9_args.tuple->size(), c9_args.tuple->begin());
 	VALUE obj = Data_Wrap_Struct(rb_cMessage, 0, 0, msg);
 	VALUE argv[3] = {name, sysargs, args};
 	rb_obj_call_init(obj, 3, argv);

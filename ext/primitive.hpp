@@ -13,9 +13,14 @@ namespace Channel9
 		static std::string prim_call("__c9_primitive_call__");
 		DO_TRACE printf("Forwarding primitive call: %s.%s from:%s to class:%s\n", 
 			inspect(oself).c_str(), inspect(value(msg)).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
-		Message fwd(&prim_call, msg.sysargs(), msg.args());
-		fwd.prefix_arg(oself);
-		fwd.prefix_arg(value(msg.name()));
+		Message *fwd = new_message(&prim_call, msg.sysarg_count(), msg.arg_count() + 2);
+		std::copy(msg.sysargs(), msg.sysargs_end(), fwd->sysargs());
+
+		Message::iterator out = fwd->args();
+		*out++ = value(msg.name());
+		*out++ = oself;
+		std::copy(msg.args(), msg.args_end(), out);
+
 		channel_send(cenv, prim_class, value(fwd), ctx);	
 	}
 
@@ -25,7 +30,7 @@ namespace Channel9
 		switch (name.length())
 		{
 		case 1:
-			if (msg.args().size() == 1 && msg.args()[0].m_type == MACHINE_NUM)
+			if (msg.arg_count() == 1 && msg.args()[0].m_type == MACHINE_NUM)
 			{
 				long long other = msg.args()[0].machine_num, self = oself.machine_num;
 				switch (name[0])
@@ -48,7 +53,7 @@ namespace Channel9
 			}
 			break;
 		case 2:
-			if (msg.args().size() == 1 && msg.args()[0].m_type == MACHINE_NUM && name[1] == '=')
+			if (msg.arg_count() == 1 && msg.args()[0].m_type == MACHINE_NUM && name[1] == '=')
 			{
 				long long other = msg.args()[0].machine_num, self = oself.machine_num;
 				switch (name[0])
@@ -77,7 +82,7 @@ namespace Channel9
 		const std::string &name = msg.name();
 		if (name.length() == 1)
 		{
-			if (msg.args().size() == 1 && msg.args()[0].m_type == STRING)
+			if (msg.arg_count() == 1 && msg.args()[0].m_type == STRING)
 			{
 				const std::string &other = *msg.args()[0].str, &self = *oself.str;
 				switch (name[0])
@@ -97,7 +102,7 @@ namespace Channel9
 	{
 		const std::string &name = msg.name();
 		if (name == "at") {
-			if (msg.args().size() == 1 && msg.args()[0].m_type == MACHINE_NUM)
+			if (msg.arg_count() == 1 && msg.args()[0].m_type == MACHINE_NUM)
 			{
 				const Value::vector &self = *oself.tuple;
 				ssize_t idx = (ssize_t)msg.args()[0].machine_num;
