@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
 #include <vector>
 
 #include "channel9.hpp"
+#include "string.hpp"
 #include "memory_pool.hpp"
 
 namespace Channel9
@@ -28,8 +28,8 @@ namespace Channel9
 		union {
 			long long machine_num;
 			double float_num;
-			const std::string *str;
-			const std::vector<Value> *tuple;
+			const String *str;
+			const Tuple *tuple;
 			const Message *msg;
 			CallableContext *call_ctx;
 			RunnableContext *ret_ctx;
@@ -44,8 +44,6 @@ namespace Channel9
 		static Value One;
 		static Value ZTuple;
 		static Value ZString;
-		
-		typedef std::vector<Value> vector;
 	} __attribute__((__packed__));
 
 	bool complex_compare(const Value &l, const Value &r);
@@ -81,13 +79,12 @@ namespace Channel9
 	inline Value value(long long machine_num) MAKE_VALUE(MACHINE_NUM, machine_num);
 	inline Value value(double float_num) MAKE_VALUE(FLOAT_NUM, float_num);
 
-	inline Value value(const std::string &str) MAKE_VALUE_PTR(STRING, str, new std::string(str));
-	inline Value value(const std::vector<Value> &tuple) MAKE_VALUE_PTR(TUPLE, tuple, new std::vector<Value>(tuple));
+	inline Value value(const std::string &str) MAKE_VALUE_PTR(STRING, str, new_string(str));
+	inline Value value(const String *str) MAKE_VALUE_PTR(STRING, str, str);
 
 	inline Value value(CallableContext *call_ctx) MAKE_VALUE_PTR(CALLABLE_CONTEXT, call_ctx, call_ctx);
 	inline Value value(RunnableContext *ret_ctx) MAKE_VALUE_PTR(RUNNABLE_CONTEXT, ret_ctx, ret_ctx);
 
 	std::string inspect(const Value &val);
-
-	extern MemoryPool<8*1024*1024> value_pool;
 }
+#include "tuple.hpp"

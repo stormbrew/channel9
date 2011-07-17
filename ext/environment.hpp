@@ -19,6 +19,7 @@ namespace Channel9
 		Environment();
 
 		const Value &special_channel(const std::string &name) const;
+		const Value &special_channel(const String &name) const;
 		void set_special_channel(const std::string &name, const Value &val);
 
 		void run(RunnableContext *context);

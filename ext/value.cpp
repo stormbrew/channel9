@@ -13,8 +13,8 @@ namespace Channel9
 	Value Value::Undef = {{0}, UNDEF};
 	Value Value::Zero = {{0}, MACHINE_NUM};
 	Value Value::One = {{1}, MACHINE_NUM};
-	Value Value::ZTuple = value(Value::vector());
-	Value Value::ZString = value(std::string());
+	Value Value::ZTuple = value(&Channel9::ZTuple);
+	Value Value::ZString = value(&Channel9::ZString);
 
 	bool complex_compare(const Value &l, const Value &r)
 	{
@@ -59,7 +59,7 @@ namespace Channel9
 		}
 		case TUPLE: {
 			res << "tuple[" << val.tuple->size() << "]:(";
-			Value::vector::const_iterator it;
+			Tuple::const_iterator it;
 			int count = 0;
 			for (it = val.tuple->begin(); it != val.tuple->end(); ++it)
 			{
@@ -81,7 +81,7 @@ namespace Channel9
 			for (it = val.msg->sysargs(); it != val.msg->sysargs_end(); it++)
 				res << inner_inspect(*it) << ",";
 			
-			res << "]." << val.msg->name() << "(";
+			res << "]." << *val.msg->name() << "(";
 
 			for (it = val.msg->args(); it != val.msg->args_end(); it++)
 				res << inner_inspect(*it) << ",";

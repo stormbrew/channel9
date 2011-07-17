@@ -10,10 +10,10 @@ namespace Channel9
 {
 	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Message &msg)
 	{
-		static std::string prim_call("__c9_primitive_call__");
+		static String *prim_call = new_string("__c9_primitive_call__");
 		DO_TRACE printf("Forwarding primitive call: %s.%s from:%s to class:%s\n", 
 			inspect(oself).c_str(), inspect(value(msg)).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
-		Message *fwd = new_message(&prim_call, msg.sysarg_count(), msg.arg_count() + 2);
+		Message *fwd = new_message(prim_call, msg.sysarg_count(), msg.arg_count() + 2);
 		std::copy(msg.sysargs(), msg.sysargs_end(), fwd->sysargs());
 
 		Message::iterator out = fwd->args();
@@ -26,7 +26,7 @@ namespace Channel9
 
 	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg)
 	{
-		const std::string &name = msg.name();
+		const String &name = *msg.name();
 		switch (name.length())
 		{
 		case 1:
@@ -66,7 +66,7 @@ namespace Channel9
 			}
 			break;
 		default:
-			if (msg.name() == "to_string_primitive")
+			if (name == "to_string_primitive")
 			{
 				std::stringstream str;
 				str << oself.machine_num;
@@ -79,16 +79,16 @@ namespace Channel9
 
 	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg)
 	{
-		const std::string &name = msg.name();
+		const String &name = *msg.name();
 		if (name.length() == 1)
 		{
 			if (msg.arg_count() == 1 && msg.args()[0].m_type == STRING)
 			{
-				const std::string &other = *msg.args()[0].str, &self = *oself.str;
+				const String *other = msg.args()[0].str, *self = oself.str;
 				switch (name[0])
 				{
 				case '+':
-					return channel_send(cenv, ctx, value(self + other), Value::Nil);
+					return channel_send(cenv, ctx, value(join_string(self, other)), Value::Nil);
 				}
 			}
 		} else if (name == "length") {
@@ -100,11 +100,11 @@ namespace Channel9
 
 	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg)
 	{
-		const std::string &name = msg.name();
+		const String &name = *msg.name();
 		if (name == "at") {
 			if (msg.arg_count() == 1 && msg.args()[0].m_type == MACHINE_NUM)
 			{
-				const Value::vector &self = *oself.tuple;
+				const Tuple &self = *oself.tuple;
 				ssize_t idx = (ssize_t)msg.args()[0].machine_num;
 				if (idx >= 0 && (size_t)idx < self.size())
 				{

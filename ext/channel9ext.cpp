@@ -78,11 +78,12 @@ static Value rb_to_c9(VALUE val)
 	case T_FIXNUM:
 		return value(NUM2LL(val));
 	case T_ARRAY: {
-		Value::vector tuple;
 		size_t len = RARRAY_LEN(val);
+		Tuple *tuple = new_tuple(len);
+		Tuple::iterator out = tuple->begin();
 		for (size_t i = 0; i < len; ++i)
 		{
-			tuple.push_back(rb_to_c9(rb_ary_entry(val, i)));
+			*out++ = rb_to_c9(rb_ary_entry(val, i));
 		}
 		return value(tuple);
 		}
@@ -142,7 +143,7 @@ static VALUE c9_to_rb(const Value &val)
 		return rb_str_new2(val.str->c_str());
 	case TUPLE: {
 		VALUE ary = rb_ary_new();
-		for (Value::vector::const_iterator it = val.tuple->begin(); it != val.tuple->end(); ++it)
+		for (Tuple::const_iterator it = val.tuple->begin(); it != val.tuple->end(); ++it)
 		{
 			rb_ary_push(ary, c9_to_rb(*it));
 		}
@@ -384,21 +385,43 @@ static void Init_Channel9_CallableContext()
 static VALUE rb_Message_new(const Message *msg)
 {
 	VALUE obj = Data_Wrap_Struct(rb_cMessage, 0, 0, (void*)msg);
-	Value::vector sysargs(msg->sysargs(), msg->sysargs_end()), args(msg->args(), msg->args_end());
-	VALUE argv[3] = {ID2SYM(rb_intern(msg->name().c_str())), c9_to_rb(value(sysargs)), c9_to_rb(value(args))};
+	VALUE sysargs = rb_ary_new();
+	VALUE args = rb_ary_new();
+
+	Message::const_iterator it;
+	for (it = msg->sysargs(); it != msg->sysargs_end(); it++)
+	{
+		rb_ary_push(sysargs, c9_to_rb(*it));
+	}
+	for (it = msg->args(); it != msg->args_end(); it++)
+	{
+		rb_ary_push(args, c9_to_rb(*it));
+	}
+
+	VALUE argv[3] = {ID2SYM(rb_intern(msg->name()->c_str())), sysargs, args};
 	rb_obj_call_init(obj, 3, argv);	
 	return obj;
 }
 
 static VALUE Message_new(VALUE self, VALUE name, VALUE sysargs, VALUE args)
 {
-	Value c9_name = rb_to_c9(rb_funcall(name, rb_intern("to_sym"), 0));
-	Value c9_sysargs = rb_to_c9(sysargs);
-	Value c9_args = rb_to_c9(args);
+	size_t sysarg_count = RARRAY_LEN(sysargs), arg_count = RARRAY_LEN(args);
+	Value c9_name = rb_to_c9(name);
+	assert(c9_name.m_type == STRING);
 
-	Message *msg = new_message(c9_name.str, 
-		c9_sysargs.tuple->size(), c9_sysargs.tuple->begin(),
-		c9_args.tuple->size(), c9_args.tuple->begin());
+	Message *msg = new_message(c9_name.str, sysarg_count, arg_count);
+
+	Message::iterator out;
+	size_t i;
+	for (out = msg->sysargs(), i = 0; i < sysarg_count; i++)
+	{
+		*out++ = rb_to_c9(rb_ary_entry(sysargs, i));
+	}
+	for (out = msg->args(), i = 0; i < arg_count; i++)
+	{
+		*out++ = rb_to_c9(rb_ary_entry(args, i));
+	}
+
 	VALUE obj = Data_Wrap_Struct(rb_cMessage, 0, 0, msg);
 	VALUE argv[3] = {name, sysargs, args};
 	rb_obj_call_init(obj, 3, argv);
