@@ -3,6 +3,8 @@
 
 namespace Channel9
 {
+	MemoryPool<8*1024*1024> frame_pool;
+
 	void RunnableContext::jump(const std::string &label)
 	{
 		m_pos = &*m_instructions->begin() + m_instructions->label_pos(label);

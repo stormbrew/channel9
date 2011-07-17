@@ -194,7 +194,7 @@ namespace Channel9
 
 				case CHANNEL_NEW: {
 					CHECK_STACK(0, 1);
-					RunnableContext *nctx = new_context(*m_context, false);
+					RunnableContext *nctx = new_context(*m_context);
 					nctx->jump(ins.arg3.machine_num);
 					m_context->push(value(nctx));
 					}
@@ -236,7 +236,7 @@ namespace Channel9
 					long long arg_count = ins.arg3.machine_num, arg_counter = arg_count - 1;
 					CHECK_STACK(sysarg_count + arg_count, 1);
 					
-					Message *msg = new Message(name, sysarg_count, arg_count);
+					Message *msg = new_message(name, sysarg_count, arg_count);
 
 					while (arg_count > 0 && arg_counter >= 0)
 					{
@@ -259,25 +259,31 @@ namespace Channel9
 					const Value::vector &tuple = *m_context->top().tuple; m_context->pop();
 					const Message &msg = *m_context->top().msg; m_context->pop();
 
-					Message nmsg = msg;
-					nmsg.add_args(tuple);
+					Message *nmsg = new_message(msg.m_name, msg.sysarg_count(), msg.arg_count() + tuple.size());
+					std::copy(msg.sysargs(), msg.sysargs_end(), nmsg->sysargs());
+					std::copy(msg.args(), msg.args_end(), nmsg->args());
+					std::copy(tuple.begin(), tuple.end(), nmsg->args() + msg.arg_count());
 					m_context->push(value(nmsg));
 					}
 					break;
 				case MESSAGE_ADD: {
 					long long count = ins.arg1.machine_num, counter = 0;
 					CHECK_STACK(1 + count, 1);
-					Value::vector tuple(count, Value::Undef);
+					const Message &msg = *(m_context->stack_pos() - 1 - count)->msg;
+
+					Message *nmsg = new_message(msg.m_name, msg.sysarg_count(), msg.arg_count() + count);
+					std::copy(msg.sysargs(), msg.sysargs_end(), nmsg->sysargs());
+					std::copy(msg.args(), msg.args_end(), nmsg->args());
+
+					Message::iterator out = nmsg->args() + msg.arg_count();
 					while (count > 0 && counter < count)
 					{
-						tuple[count] = m_context->top();
+						*out++ = m_context->top();
 						m_context->pop();
 						++counter;
 					}
+					m_context->pop(); // this is the message we pulled directly off the stack before.
 
-					const Message &msg = *m_context->top().msg; m_context->pop();
-					Message nmsg = msg;
-					nmsg.add_args(tuple);
 					m_context->push(value(nmsg));
 					}
 					break;
@@ -293,15 +299,16 @@ namespace Channel9
 					long long count = ins.arg1.machine_num, pos = count - 1;
 					CHECK_STACK(1, 1 + count);
 
-					const Value::vector &tuple = m_context->top().msg->sysargs();
-					long long len = tuple.size();
+					const Message *msg = m_context->top().msg;
+					Message::const_iterator args = msg->sysargs();
+					long long len = (long long)msg->sysarg_count();
 
 					while (pos >= 0)
 					{
 						if (pos >= len)
 							m_context->push(Value::Undef);
 						else
-							m_context->push(tuple[pos]);
+							m_context->push(args[pos]);
 						
 						pos -= 1;
 					}
@@ -313,14 +320,16 @@ namespace Channel9
 					long long last_count = ins.arg3.machine_num, last_counter = 0;
 					CHECK_STACK(1, 1 + first_count + last_count + (splat?1:0));
 
-					const Value::vector &tuple = m_context->top().msg->args();
-					long long len = tuple.size(), pos = tuple.size() - 1;
+					const Message *msg = m_context->top().msg;
+					Message::const_iterator args = msg->args();
+					long long len = (long long)msg->arg_count(), pos = len - 1;
+
 					while (last_counter < last_count && pos >= first_count)
 					{
 						if (pos >= len)
 							m_context->push(Value::Nil);
 						else
-							m_context->push(tuple[pos]);
+							m_context->push(args[pos]);
 
 						pos -= 1;
 						last_counter += 1;
@@ -331,7 +340,7 @@ namespace Channel9
 						Value::vector splat_tuple;
 						while (pos >= first_count)
 						{
-							splat_tuple.insert(splat_tuple.begin(), tuple[pos]);
+							splat_tuple.insert(splat_tuple.begin(), args[pos]);
 							pos -= 1;
 						}
 						m_context->push(value(splat_tuple));
@@ -344,7 +353,7 @@ namespace Channel9
 						if (pos >= len)
 							m_context->push(Value::Nil);
 						else
-							m_context->push(tuple[pos]);
+							m_context->push(args[pos]);
 
 						pos -= 1;
 						first_counter += 1;
@@ -363,7 +372,7 @@ namespace Channel9
 					} else {
 						CHECK_STACK(1, -1);
 						m_context->pop();
-						channel_send(this, val, value(new Message(coerce)), value(m_context));
+						channel_send(this, val, value(new_message(coerce)), value(m_context));
 					}
 					}
 					break;
