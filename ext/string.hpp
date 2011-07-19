@@ -3,6 +3,7 @@
 #include "memory_pool.hpp"
 
 #include <string>
+#include <string.h>
 #include <algorithm>
 #include <assert.h>
 

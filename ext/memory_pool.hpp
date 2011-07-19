@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdlib.h>
+
 namespace Channel9
 {
 	template <size_t area_size>

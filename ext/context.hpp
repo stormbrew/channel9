@@ -6,6 +6,7 @@
 #include "memory_pool.hpp"
 
 #include <assert.h>
+#include <stdio.h>
 
 namespace Channel9
 {
