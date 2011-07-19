@@ -30,10 +30,10 @@ namespace Channel9
 
 		String *substr(size_t off, size_t len) const;
 
-		const char *c_str() const 
-		{ 
-			const_cast<char*>(m_data)[m_count] = 0; 
-			return m_data; 
+		const char *c_str() const
+		{
+			const_cast<char*>(m_data)[m_count] = 0;
+			return m_data;
 		}
 		const std::string str() const
 		{
@@ -45,8 +45,8 @@ namespace Channel9
 			return this == &r || (m_count == r.m_count && std::equal(m_data, m_data + m_count, r.m_data));
 		}
 		bool equal(const std::string &str) const
-		{ 
-			return m_count == str.length() && std::equal(str.begin(), str.end(), m_data); 
+		{
+			return m_count == str.length() && std::equal(str.begin(), str.end(), m_data);
 		}
 		bool equal(const char *str) const
 		{
@@ -93,7 +93,7 @@ namespace Channel9
 			ret = value_pool.alloc<String>(len + 1);
 			ret->m_count = len;
 		}
-		
+
 		return ret;
 	}
 	template <typename tIter>
@@ -142,3 +142,4 @@ namespace Channel9
 		return out;
 	}
 }
+
