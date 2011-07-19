@@ -5,7 +5,7 @@
 
 namespace Channel9
 {
-	MemoryPool<8*1024*1024> value_pool;
+	MemoryPool value_pool(8*1024*1024);
 
 	Value Value::Nil = {{0}, 0};
 	Value Value::True = {{0}, BTRUE};
@@ -101,5 +101,10 @@ namespace Channel9
 	std::string inspect(const Value &val)
 	{
 		return std::string("<") + inner_inspect(val) + ">";
+	}
+
+	void GCRef::scan()
+	{
+		gc_mark(m_val);
 	}
 }

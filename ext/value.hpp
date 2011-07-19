@@ -4,7 +4,6 @@
 
 #include "channel9.hpp"
 #include "string.hpp"
-#include "memory_pool.hpp"
 
 namespace Channel9
 {
@@ -86,5 +85,23 @@ namespace Channel9
 	inline Value value(RunnableContext *ret_ctx) MAKE_VALUE_PTR(RUNNABLE_CONTEXT, ret_ctx, ret_ctx);
 
 	std::string inspect(const Value &val);
+
+	void gc_mark(const Value &val);
+
+	class GCRef : private GCRoot
+	{
+	private:
+		const Value &m_val;
+
+	public:
+		GCRef(MemoryPool &pool, const Value &val)
+		 : GCRoot(pool), m_val(val)
+		{}
+
+		void scan();
+
+		const Value &operator*() const { return m_val; }
+		const Value &operator->() const { return m_val; }
+	};
 }
 #include "tuple.hpp"
