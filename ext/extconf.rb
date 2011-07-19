@@ -1,8 +1,11 @@
+#!/usr/bin/ruby
+
 require 'mkmf'
 
 channel9ext = "channel9ext"
 
-$CFLAGS = "-Wall -Werror -Winline"
+$CFLAGS = "-Wall -Werror -frtti" # -Winline"
+$LDFLAGS = "-lstdc++"
 
 if enable_config("trace")
   $CFLAGS << " -DTRACE"

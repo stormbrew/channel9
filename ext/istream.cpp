@@ -1,5 +1,6 @@
 #include "istream.hpp"
 #include <assert.h>
+#include <stdio.h>
 
 namespace Channel9
 {
