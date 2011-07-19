@@ -3,10 +3,11 @@
 #include <map>
 
 #include "channel9.hpp"
+#include "memory_pool.hpp"
 
 namespace Channel9
 {
-	class Environment
+	class Environment : private GCRoot
 	{
 	private:
 		typedef std::map<std::string, Value> special_map;
@@ -23,6 +24,8 @@ namespace Channel9
 		void set_special_channel(const std::string &name, const Value &val);
 
 		void run(RunnableContext *context);
+
+		void scan();
 		
 		RunnableContext *context() const { return m_context; }
 	};

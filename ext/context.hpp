@@ -117,17 +117,18 @@ namespace Channel9
 		ctx->m_sp = NULL;
 		return ctx;
 	}
-	extern MemoryPool<8*1024*1024> frame_pool;
 	inline RunnableContext *activate_context(const RunnableContext &copy)
 	{
 		size_t frame_count = copy.m_instructions->frame_count();
 		size_t frame_extra = sizeof(Value)*(frame_count + copy.m_instructions->stack_size());
 		
-		RunnableContext *ctx = frame_pool.alloc<RunnableContext>(frame_extra);
+		RunnableContext *ctx = value_pool.alloc<RunnableContext>(frame_extra);
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_sp = ctx->m_data + frame_count;
 		return ctx;
 	}
+
+	RunnableContext *gc_mark(const RunnableContext *ctx);
 
 	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Message &msg);
 	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);

@@ -10,7 +10,7 @@
 namespace Channel9
 {
 	Environment::Environment()
-	 : m_context(NULL), m_running(false)
+	 : GCRoot(value_pool), m_context(NULL), m_running(false)
 	{}
 
 	const Value &Environment::special_channel(const std::string &name) const
@@ -35,6 +35,11 @@ namespace Channel9
 	{
 		DO_TRACE printf("set_special_channel(%s, %s)\n", name.c_str(), inspect(val).c_str());
 		m_specials[name] = val;
+	}
+
+	void Environment::scan()
+	{
+		m_context = gc_mark(m_context);
 	}
 
 	void Environment::run(RunnableContext *context)
