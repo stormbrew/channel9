@@ -45,8 +45,8 @@ namespace Channel9
 				break;
 			}
 
-			DO_TRACE printf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], max: %d\n", 
-				(int)pos-1, inspect(ins).c_str(), 
+			DO_TRACE printf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], max: %d\n",
+				(int)pos-1, inspect(ins).c_str(),
 				(int)stack_size, (int)insinfo.in, (int)insinfo.out, (int)(stack_size - insinfo.in + insinfo.out),
 				(int)max_size);
 			assert(stack_size >= insinfo.in);
@@ -112,7 +112,7 @@ namespace Channel9
 		m_stack_size = normalize(stack_size, pos, pos_map);
 		DO_TRACE printf("Found max stack of stream to be %d\n", (int)m_stack_size);
 		return m_stack_size;
-	}		 
+	}
 
 	void IStream::add(Instruction instruction)
 	{
@@ -196,3 +196,4 @@ namespace Channel9
 		return m_frames.size();
 	}
 }
+

@@ -50,7 +50,7 @@ namespace Channel9
 		Value *m_sp;
 
 		Value m_data[0];
-		
+
 		void send(Environment *cenv, const Value &val, const Value &ret)
 		{
 			if (m_sp)
@@ -63,7 +63,7 @@ namespace Channel9
 				nctx->send(cenv, val, ret);
 			}
 		}
-	
+
 		const IStream &instructions() { return *m_instructions; }
 		const Instruction *next() { return m_pos++; }
 		const Instruction *peek() const { return m_pos; }
@@ -78,13 +78,13 @@ namespace Channel9
 		const Value *stack_begin() const { return m_data + m_instructions->frame_count(); }
 		const Value *stack_pos() const { return m_sp; }
 		size_t stack_count() const { return m_sp - stack_begin(); }
-		void push(const Value &val) 
-		{ 
+		void push(const Value &val)
+		{
 			*m_sp++ = val;
 		}
 		void pop()
-		{ 
-			--m_sp; 
+		{
+			--m_sp;
 		}
 		const Value &top() const { return *(m_sp-1); }
 
@@ -112,7 +112,7 @@ namespace Channel9
 	inline RunnableContext *new_context(const RunnableContext &copy)
 	{
 		size_t frame_count = copy.m_instructions->frame_count();
-		RunnableContext *ctx = (RunnableContext*)malloc(sizeof(RunnableContext) + 
+		RunnableContext *ctx = (RunnableContext*)malloc(sizeof(RunnableContext) +
 			sizeof(Value)*(frame_count));
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_sp = NULL;
@@ -123,7 +123,7 @@ namespace Channel9
 	{
 		size_t frame_count = copy.m_instructions->frame_count();
 		size_t frame_extra = sizeof(Value)*(frame_count + copy.m_instructions->stack_size());
-		
+
 		RunnableContext *ctx = frame_pool.alloc<RunnableContext>(frame_extra);
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_sp = ctx->m_data + frame_count;
@@ -181,3 +181,4 @@ namespace Channel9
 }
 
 #include "primitive.hpp"
+
