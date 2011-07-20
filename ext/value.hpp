@@ -121,22 +121,26 @@ namespace Channel9
 
 	std::string inspect(const Value &val);
 
-	void gc_mark(const Value &val);
-
+	template <typename tVal>
 	class GCRef : private GCRoot
 	{
 	private:
-		const Value &m_val;
+		tVal m_val;
 
 	public:
-		GCRef(MemoryPool &pool, const Value &val)
-		 : GCRoot(pool), m_val(val)
+		GCRef(const tVal &val)
+		 : GCRoot(value_pool), m_val(val)
 		{}
 
-		void scan();
+		void scan()
+		{
+			gc_reallocate(&m_val);
+		}
 
-		const Value &operator*() const { return m_val; }
-		const Value &operator->() const { return m_val; }
+		const tVal &operator*() const { return m_val; }
+		tVal &operator*() { return m_val; }
+		const tVal &operator->() const { return m_val; }
+		tVal &operator->() { return m_val; }
 	};
 }
 #include "tuple.hpp"

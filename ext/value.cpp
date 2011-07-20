@@ -28,7 +28,7 @@ namespace Channel9
 		}
 	}
 
-	inline void gc_reallocate(Value *from)
+	void gc_reallocate(Value *from)
 	{
 		switch (type(*from))
 		{
@@ -56,7 +56,7 @@ namespace Channel9
 		default: break;
 		}
 	}
-	inline void gc_scan(const Value &from)
+	void gc_scan(const Value &from)
 	{
 		switch (type(from))
 		{
@@ -147,10 +147,5 @@ namespace Channel9
 	std::string inspect(const Value &val)
 	{
 		return std::string("<") + inner_inspect(val) + ">";
-	}
-
-	void GCRef::scan()
-	{
-		gc_mark(m_val);
 	}
 }

@@ -89,20 +89,24 @@ namespace Channel9
 					return (uchar *)(data->m_data);
 				}
 
-				if(m_cur_chunk->m_next){ //advance
+				if(m_cur_chunk->m_next)
+				{ //advance
 					m_cur_chunk = m_cur_chunk->m_next;
-				}else{ // if(m_in_gc){ //allocate a new chunk
-					int new_size = m_cur_chunk->m_capacity * GROWTH;
+				} else { 
+					if(m_in_gc)
+					{ //allocate a new chunk
+						int new_size = m_cur_chunk->m_capacity * GROWTH;
 
-					Chunk * c = (Chunk *)malloc(sizeof(Chunk) + new_size);
-					c->m_next = NULL;
-					c->m_capacity = new_size;
-					c->m_used = 0;
+						Chunk * c = (Chunk *)malloc(sizeof(Chunk) + new_size);
+						c->m_next = NULL;
+						c->m_capacity = new_size;
+						c->m_used = 0;
 
-					m_cur_chunk->m_next = c;
-					m_cur_chunk = c;
-//				}else{
-//					collect();
+						m_cur_chunk->m_next = c;
+						m_cur_chunk = c;
+					} else {
+						collect();
+					}
 				}
 			}
 			return NULL;
