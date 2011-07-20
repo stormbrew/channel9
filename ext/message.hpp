@@ -68,6 +68,6 @@ namespace Channel9
 		return msg;
 	}
 
-	inline Value value(const Message &msg) MAKE_VALUE_PTR(MESSAGE, msg, new_message(msg));
-	inline Value value(const Message *msg) MAKE_VALUE_PTR(MESSAGE, msg, msg);
+	inline Value value(const Message &msg) { return make_value_ptr(MESSAGE, new_message(msg)); }
+	inline Value value(const Message *msg) { return make_value_ptr(MESSAGE, msg); }
 }

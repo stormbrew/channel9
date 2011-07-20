@@ -54,7 +54,6 @@ namespace Channel9
 			return len == m_count && std::equal(str, str + len, m_data);
 		}
 	};
-	static String ZString = {0};
 
 	inline bool operator==(const String &l, const String &r)
 	{
@@ -87,12 +86,8 @@ namespace Channel9
 
 	inline String *new_string(size_t len)
 	{
-		String *ret = &ZString;
-		if (len > 0)
-		{
-			ret = value_pool.alloc<String>(len + 1);
-			ret->m_count = len;
-		}
+		String *ret = value_pool.alloc<String>(len + 1);
+		ret->m_count = len;
 
 		return ret;
 	}
