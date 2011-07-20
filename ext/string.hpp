@@ -114,6 +114,17 @@ namespace Channel9
 		return new_string(str.begin(), str.end());
 	}
 
+	inline void gc_reallocate(String **from)
+	{
+		String *nstr = value_pool.alloc<String>((*from)->m_count);
+		memcpy(nstr, *from, sizeof(String) + (*from)->m_count);
+		*from = nstr;
+	}
+	inline void gc_scan(String *from)
+	{
+		// nothing to scan. Here for completeness' sake.
+	}
+
 	inline String *join_string(const String *l, const String *r)
 	{
 		String *ret = new_string(l->m_count + r->m_count);
