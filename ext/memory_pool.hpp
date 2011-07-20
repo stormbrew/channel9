@@ -73,31 +73,7 @@ namespace Channel9
 
 		std::set<GCRoot*> m_roots;
 
-		void collect()
-		{
-			m_in_gc = true;
-
-			//switch pools
-			m_cur_pool = !m_cur_pool;
-			m_cur_chunk = m_pools[m_cur_pool];
-
-			//clear this pool
-			Chunk * c = m_cur_chunk;
-			while(c){
-				c->m_used = 0;
-				c = c->m_next;
-			}
-
-			std::set<GCRoot*>::iterator it;
-			for (it = m_roots.begin(); it != m_roots.end(); it++)
-			{
-				(*it)->scan();
-			}
-
-			//copy stuff over?
-
-			m_in_gc = false;
-		}
+		void collect();
 
 		uchar *next(size_t size, uint32_t type)
 		{
