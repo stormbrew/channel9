@@ -14,6 +14,7 @@ using namespace Channel9;
 
 typedef VALUE (*ruby_method)(ANYARGS);
 typedef void (*mark_method)();
+typedef void (*free_method)();
 
 VALUE rb_mChannel9;
 VALUE rb_mPrimitive;
@@ -30,7 +31,7 @@ VALUE rb_Undef;
 static VALUE c9_to_rb(const Value &val);
 static Value rb_to_c9(VALUE val);
 static VALUE rb_Environment_new(Environment *env);
-static VALUE rb_Message_new(const Message *msg);
+static VALUE rb_Message_new(Message *msg);
 static VALUE rb_CallableContext_new(CallableContext *ctx);
 static VALUE rb_Context_new(RunnableContext *ctx);
 
@@ -61,6 +62,42 @@ public:
 	void scan()
 	{}
 };
+
+
+template <typename tVal>
+GCRef<tVal> *get_gc_ref_p(VALUE obj)
+{
+	GCRef<tVal> *rptr;
+	Data_Get_Struct(obj, GCRef<tVal>, rptr);
+	return rptr;
+}
+
+template <typename tVal>
+GCRef<tVal> &get_gc_ref(VALUE obj)
+{
+	return *get_gc_ref_p<tVal>(obj);
+}
+
+template <typename tVal>
+tVal &get_gc_val(VALUE obj)
+{
+	return **get_gc_ref_p<tVal>(obj);
+}
+
+template <typename tVal>
+struct stupid_shim_for_old_gcc {
+	static void free_gc_ref(VALUE obj)
+	{
+		delete get_gc_ref_p<tVal>(obj);
+	}
+};
+
+template <typename tVal>
+VALUE wrap_gc_ref(VALUE klass, const GCRef<tVal> &ref)
+{
+	GCRef<tVal> *rptr = new GCRef<tVal>(ref);
+	return Data_Wrap_Struct(klass, 0, free_method(&stupid_shim_for_old_gcc<tVal>::free_gc_ref), rptr);
+}
 
 static Value rb_to_c9(VALUE val)
 {
@@ -110,12 +147,10 @@ static Value rb_to_c9(VALUE val)
 			Data_Get_Struct(val, CallableContext, ctx);
 			return value(ctx);
 		} else if (klass == rb_cContext) {
-			RunnableContext *ctx;
-			Data_Get_Struct(val, RunnableContext, ctx);
+			RunnableContext *ctx = get_gc_val<RunnableContext*>(val);
 			return value(ctx);
 		} else if (klass == rb_cMessage) {
-			Message *msg;
-			Data_Get_Struct(val, Message, msg);
+			Message *msg = get_gc_val<Message*>(val);
 			return value(*msg);
 		}
 		}
@@ -317,7 +352,7 @@ static void Init_Channel9_Stream()
 
 static VALUE rb_Context_new(RunnableContext *ctx)
 {
-	VALUE obj = Data_Wrap_Struct(rb_cContext, 0, 0, ctx);
+	VALUE obj = wrap_gc_ref(rb_cContext, gc_ref(ctx));
 	return obj;
 }
 
@@ -331,7 +366,7 @@ static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 
 	stream->normalize();
 	RunnableContext *ctx = new_context(stream);
-	VALUE obj = Data_Wrap_Struct(rb_cContext, 0, 0, ctx);
+	VALUE obj = wrap_gc_ref(rb_cContext, gc_ref(ctx));
 	VALUE argv[2] = {rb_env, rb_stream};
 	rb_obj_call_init(obj, 2, argv);
 	return obj;
@@ -340,10 +375,9 @@ static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 static VALUE Context_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret)
 {
 	Environment *cenv;
-	RunnableContext *ctx;
-
 	Data_Get_Struct(rb_cenv, Environment, cenv);
-	Data_Get_Struct(self, RunnableContext, ctx);
+
+	RunnableContext *ctx = get_gc_val<RunnableContext*>(self);
 
 	ctx->send(cenv, rb_to_c9(rb_val), rb_to_c9(rb_ret));
 
@@ -388,9 +422,9 @@ static void Init_Channel9_CallableContext()
 	rb_cCallableContext = rb_define_class_under(rb_mChannel9, "CallableContext", rb_cObject);
 	rb_define_method(rb_cCallableContext, "channel_send", ruby_method(CallableContext_channel_send), 3);
 }
-static VALUE rb_Message_new(const Message *msg)
+static VALUE rb_Message_new(Message *msg)
 {
-	VALUE obj = Data_Wrap_Struct(rb_cMessage, 0, 0, (void*)msg);
+	VALUE obj = wrap_gc_ref(rb_cMessage, gc_ref(msg));
 	VALUE sysargs = rb_ary_new();
 	VALUE args = rb_ary_new();
 
@@ -428,7 +462,7 @@ static VALUE Message_new(VALUE self, VALUE name, VALUE sysargs, VALUE args)
 		*out++ = rb_to_c9(rb_ary_entry(args, i));
 	}
 
-	VALUE obj = Data_Wrap_Struct(rb_cMessage, 0, 0, msg);
+	VALUE obj = wrap_gc_ref(rb_cMessage, gc_ref(msg));
 	VALUE argv[3] = {name, sysargs, args};
 	rb_obj_call_init(obj, 3, argv);
 	return obj;
