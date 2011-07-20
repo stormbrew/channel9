@@ -32,32 +32,43 @@ namespace Channel9
 		static const float GROWTH = 1.2;
 		enum
 		{
-			FORWARD          = 0x0, //already been moved
+			GC_FORWARD          = 0x0, //already been moved
 
-			STRING           = 0x3,
-			TUPLE            = 0x4,
-			MESSAGE          = 0x5,
-			CALLABLE_CONTEXT = 0x6,
-			RUNNABLE_CONTEXT = 0x7,
+			GC_STRING           = 0x3,
+			GC_TUPLE            = 0x4,
+			GC_MESSAGE          = 0x5,
+			GC_CALLABLE_CONTEXT = 0x6,
+			GC_RUNNABLE_CONTEXT = 0x7,
 		};
 
 
 		typedef unsigned char uchar;
 
-		struct Data {
+		struct Data
+		{
 			uint32_t m_type;
 			uint32_t m_count; //number of bytes of memory in this allocation
 			uchar    m_data[0]; //the actual data, 8 byte aligned
 		};
 
-		struct Chunk {
+		struct Chunk
+		{
 			Chunk *  m_next; //linked list of chunks
 			uint32_t m_capacity; //in bytes
 			uint32_t m_used;     //in bytes
 			uchar    m_data[0];  //actual memory
 
-			uchar * alloc(size_t size){
-				if(m_used + size <= m_capacity){
+			void init(uint32_t capacity)
+			{
+				m_next = NULL;
+				m_capacity = capacity;
+				m_used = 0;
+			}
+
+			uchar * alloc(size_t size)
+			{
+				if(m_used + size <= m_capacity)
+				{
 					uchar * ret = m_data + m_used;
 					m_used += size;
 					return ret;
@@ -92,15 +103,13 @@ namespace Channel9
 				if(m_cur_chunk->m_next)
 				{ //advance
 					m_cur_chunk = m_cur_chunk->m_next;
-				} else { 
+				} else {
 					if(m_in_gc)
 					{ //allocate a new chunk
 						int new_size = m_cur_chunk->m_capacity * GROWTH;
 
 						Chunk * c = (Chunk *)malloc(sizeof(Chunk) + new_size);
-						c->m_next = NULL;
-						c->m_capacity = new_size;
-						c->m_used = 0;
+						c->init(new_size);
 
 						m_cur_chunk->m_next = c;
 						m_cur_chunk = c;
@@ -118,23 +127,19 @@ namespace Channel9
 		 : m_cur_pool(0), m_in_gc(false)
 		{
 			m_pools[0] = (Chunk *)malloc(sizeof(Chunk) + initial_size);
-			m_pools[0]->m_next = NULL;
-			m_pools[0]->m_capacity = initial_size;
-			m_pools[0]->m_used = 0;
+			m_pools[0]->init(initial_size);
 
 			m_pools[1] = (Chunk *)malloc(sizeof(Chunk) + initial_size);
-			m_pools[1]->m_next = NULL;
-			m_pools[1]->m_capacity = initial_size;
-			m_pools[1]->m_used = 0;
+			m_pools[1]->init(initial_size);
 
 			m_cur_chunk = m_pools[m_cur_pool];
 		}
 
-//		template <String>          String          *alloc(size_t extra = 0) { return alloc<String         >(extra, STRING          ); }
-//		template <Tuple>           Tuple           *alloc(size_t extra = 0) { return alloc<Tuple          >(extra, TUPLE           ); }
-//		template <Message>         Message         *alloc(size_t extra = 0) { return alloc<Message        >(extra, MESSAGE         ); }
-//		template <CallableContext> CallableContext *alloc(size_t extra = 0) { return alloc<CallableContext>(extra, CALLABLE_CONTEXT); }
-//		template <RunnableContext> RunnableContext *alloc(size_t extra = 0) { return alloc<RunnableContext>(extra, RUNNABLE_CONTEXT); }
+//		template <String>          String          *alloc(size_t extra = 0) { return alloc<String         >(extra, GC_STRING          ); }
+//		template <Tuple>           Tuple           *alloc(size_t extra = 0) { return alloc<Tuple          >(extra, GC_TUPLE           ); }
+//		template <Message>         Message         *alloc(size_t extra = 0) { return alloc<Message        >(extra, GC_MESSAGE         ); }
+//		template <CallableContext> CallableContext *alloc(size_t extra = 0) { return alloc<CallableContext>(extra, GC_CALLABLE_CONTEXT); }
+//		template <RunnableContext> RunnableContext *alloc(size_t extra = 0) { return alloc<RunnableContext>(extra, GC_RUNNABLE_CONTEXT); }
 
 		template <typename tObj>
 		tObj *alloc(size_t extra = 0, uint32_t type = 0)
