@@ -30,38 +30,38 @@ namespace Channel9
 		switch (name.length())
 		{
 		case 1:
-			if (msg.arg_count() == 1 && msg.args()[0].m_type == MACHINE_NUM)
+			if (msg.arg_count() == 1 && is_number(msg.args()[0]))
 			{
 				long long other = msg.args()[0].machine_num, self = oself.machine_num;
 				switch (name[0])
 				{
 				case '+':
-					return channel_send(cenv, ctx, value(self + other), Value::Nil);
+					return channel_send(cenv, ctx, value(self + other), Nil);
 				case '-':
-					return channel_send(cenv, ctx, value(self - other), Value::Nil);
+					return channel_send(cenv, ctx, value(self - other), Nil);
 				case '*':
-					return channel_send(cenv, ctx, value(self * other), Value::Nil);
+					return channel_send(cenv, ctx, value(self * other), Nil);
 				case '/':
-					return channel_send(cenv, ctx, value(self / other), Value::Nil);
+					return channel_send(cenv, ctx, value(self / other), Nil);
 				case '%':
-					return channel_send(cenv, ctx, value(self % other), Value::Nil);
+					return channel_send(cenv, ctx, value(self % other), Nil);
 				case '<':
-					return channel_send(cenv, ctx, bvalue(self < other), Value::Nil);
+					return channel_send(cenv, ctx, bvalue(self < other), Nil);
 				case '>':
-					return channel_send(cenv, ctx, bvalue(self > other), Value::Nil);
+					return channel_send(cenv, ctx, bvalue(self > other), Nil);
 				}
 			}
 			break;
 		case 2:
-			if (msg.arg_count() == 1 && msg.args()[0].m_type == MACHINE_NUM && name[1] == '=')
+			if (msg.arg_count() == 1 && is_number(msg.args()[0]) && name[1] == '=')
 			{
 				long long other = msg.args()[0].machine_num, self = oself.machine_num;
 				switch (name[0])
 				{
 				case '<':
-					return channel_send(cenv, ctx, bvalue(self <= other), Value::Nil);
+					return channel_send(cenv, ctx, bvalue(self <= other), Nil);
 				case '>':
-					return channel_send(cenv, ctx, bvalue(self >= other), Value::Nil);
+					return channel_send(cenv, ctx, bvalue(self >= other), Nil);
 				}
 			}
 			break;
@@ -70,7 +70,7 @@ namespace Channel9
 			{
 				std::stringstream str;
 				str << oself.machine_num;
-				return channel_send(cenv, ctx, value(str.str()), Value::Nil);
+				return channel_send(cenv, ctx, value(str.str()), Nil);
 			}
 		}
 		Value def = cenv->special_channel("Channel9::Primitive::Number");
@@ -82,17 +82,17 @@ namespace Channel9
 		const String &name = *msg.name();
 		if (name.length() == 1)
 		{
-			if (msg.arg_count() == 1 && msg.args()[0].m_type == STRING)
+			if (msg.arg_count() == 1 && is(msg.args()[0], STRING))
 			{
-				const String *other = msg.args()[0].str, *self = oself.str;
+				const String *other = ptr<String>(msg.args()[0]), *self = ptr<String>(oself);
 				switch (name[0])
 				{
 				case '+':
-					return channel_send(cenv, ctx, value(join_string(self, other)), Value::Nil);
+					return channel_send(cenv, ctx, value(join_string(self, other)), Nil);
 				}
 			}
 		} else if (name == "length") {
-			return channel_send(cenv, ctx, value((long long)oself.str->length()), Value::Nil);
+			return channel_send(cenv, ctx, value((long long)ptr<String>(oself)->length()), Nil);
 		}
 		Value def = cenv->special_channel("Channel9::Primitive::String");
 		forward_primitive_call(cenv, def, ctx, oself, msg);
@@ -102,19 +102,19 @@ namespace Channel9
 	{
 		const String &name = *msg.name();
 		if (name == "at") {
-			if (msg.arg_count() == 1 && msg.args()[0].m_type == MACHINE_NUM)
+			if (msg.arg_count() == 1 && is_number(msg.args()[0]))
 			{
-				const Tuple &self = *oself.tuple;
+				const Tuple &self = *ptr<Tuple>(oself);
 				ssize_t idx = (ssize_t)msg.args()[0].machine_num;
 				if (idx >= 0 && (size_t)idx < self.size())
 				{
-					return channel_send(cenv, ctx, self[idx], Value::Nil);
+					return channel_send(cenv, ctx, self[idx], Nil);
 				} else if (idx < 0 && (ssize_t)self.size() >= -idx) {
-					return channel_send(cenv, ctx, self[self.size() - idx], Value::Nil);
+					return channel_send(cenv, ctx, self[self.size() - idx], Nil);
 				}
 			}
 		} else if (name == "length") {
-			return channel_send(cenv, ctx, value((long long)oself.tuple->size()), Value::Nil);
+			return channel_send(cenv, ctx, value((long long)ptr<Tuple>(oself)->size()), Nil);
 		}
 
 		Value def = cenv->special_channel("Channel9::Primitive::Tuple");

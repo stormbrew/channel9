@@ -1,5 +1,6 @@
 #include "istream.hpp"
 #include <assert.h>
+#include <stdio.h>
 
 namespace Channel9
 {
@@ -19,20 +20,20 @@ namespace Channel9
 			{
 			case JMP:
 				{
-					size_t branch_pos = label_pos(ins.arg1.str->str());
+					size_t branch_pos = label_pos(ptr<String>(ins.arg1)->str());
 					ins.arg3 = value((long long)branch_pos);
 				}
 				break;
 			case JMP_IF:
 			case JMP_IF_NOT:
 				{
-					size_t branch_pos = label_pos(ins.arg1.str->str());
+					size_t branch_pos = label_pos(ptr<String>(ins.arg1)->str());
 					ins.arg3 = value((long long)branch_pos);
 				}
 				break;
 			case CHANNEL_NEW:
 				{
-					size_t branch_pos = label_pos(ins.arg1.str->str());
+					size_t branch_pos = label_pos(ptr<String>(ins.arg1)->str());
 					ins.arg3 = value((long long)branch_pos);
 				}
 				break;
@@ -44,8 +45,8 @@ namespace Channel9
 				break;
 			}
 
-			DO_TRACE printf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], max: %d\n", 
-				(int)pos-1, inspect(ins).c_str(), 
+			DO_TRACE printf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], max: %d\n",
+				(int)pos-1, inspect(ins).c_str(),
 				(int)stack_size, (int)insinfo.in, (int)insinfo.out, (int)(stack_size - insinfo.in + insinfo.out),
 				(int)max_size);
 			assert(stack_size >= insinfo.in);
@@ -111,7 +112,7 @@ namespace Channel9
 		m_stack_size = normalize(stack_size, pos, pos_map);
 		DO_TRACE printf("Found max stack of stream to be %d\n", (int)m_stack_size);
 		return m_stack_size;
-	}		 
+	}
 
 	void IStream::add(Instruction instruction)
 	{
@@ -120,12 +121,12 @@ namespace Channel9
 		{
 		case LOCAL_SET:
 		case LOCAL_GET:
-			local_id = local(instruction.arg2.str->str());
+			local_id = local(ptr<String>(instruction.arg2)->str());
 			instruction.arg3 = value(local_id);
 			break;
 		case FRAME_GET:
 		case FRAME_SET:
-			local_id = frame(instruction.arg1.str->str());
+			local_id = frame(ptr<String>(instruction.arg1)->str());
 			instruction.arg3 = value(local_id);
 			break;
 		default:
@@ -195,3 +196,4 @@ namespace Channel9
 		return m_frames.size();
 	}
 }
+

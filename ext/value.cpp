@@ -7,23 +7,19 @@ namespace Channel9
 {
 	MemoryPool value_pool(8*1024*1024);
 
-	Value Value::Nil = {{0}, 0};
-	Value Value::True = {{0}, BTRUE};
-	Value Value::False = {{0}, BFALSE};
-	Value Value::Undef = {{0}, UNDEF};
-	Value Value::Zero = {{0}, MACHINE_NUM};
-	Value Value::One = {{1}, MACHINE_NUM};
-	Value Value::ZTuple = value(&Channel9::ZTuple);
-	Value Value::ZString = value(&Channel9::ZString);
+	Value Nil = {NIL};
+	Value True = {BTRUE};
+	Value False = {BFALSE};
+	Value Undef = {UNDEF};
 
 	bool complex_compare(const Value &l, const Value &r)
 	{
-		switch (l.m_type)
+		switch (type(l))
 		{
 		case STRING:
-			return *l.str == *r.str;
+			return *ptr<String>(l) == *ptr<String>(r);
 		case TUPLE:
-			return *l.tuple == *r.tuple;
+			return *ptr<Tuple>(l) == *ptr<Tuple>(r);
 		default:
 			return false; // all others compare memory-wise.
 		}
@@ -32,36 +28,37 @@ namespace Channel9
 	std::string inner_inspect(const Value &val)
 	{
 		std::stringstream res;
-		switch (val.m_type)
+		switch (type(val))
 		{
 		case NIL: return "nil";
 		case UNDEF: return "undef";
 		case BFALSE: return "false";
 		case BTRUE: return "true";
-		case MACHINE_NUM: {
+		case POSITIVE_NUMBER:
+		case NEGATIVE_NUMBER: {
 			res << "num:";
 			res << val.machine_num;
 			break;
 		}
-		case FLOAT_NUM: {
-			res << "float:";
-			res << val.float_num;
-			break;
-		}
+//		case FLOAT_NUM: {
+//			res << "float:";
+//			res << val.float_num;
+//			break;
+//		}
 		case STRING: {
 			res << "str:'";
-			if (val.str->length() > 128)
-				res << val.str->substr(0, 128) << "...";
+			if (ptr<String>(val)->length() > 128)
+				res << ptr<String>(val)->substr(0, 128) << "...";
 			else
-				res << *val.str;
+				res << *ptr<String>(val);
 			res << "'";
 			break;
 		}
 		case TUPLE: {
-			res << "tuple[" << val.tuple->size() << "]:(";
+			res << "tuple[" << ptr<Tuple>(val)->size() << "]:(";
 			Tuple::const_iterator it;
 			int count = 0;
-			for (it = val.tuple->begin(); it != val.tuple->end(); ++it)
+			for (it = ptr<Tuple>(val)->begin(); it != ptr<Tuple>(val)->end(); ++it)
 			{
 				if (count < 5)
 				{
@@ -78,22 +75,22 @@ namespace Channel9
 		case MESSAGE: {
 			res << "message:[";
 			Message::const_iterator it;
-			for (it = val.msg->sysargs(); it != val.msg->sysargs_end(); it++)
+			for (it = ptr<Message>(val)->sysargs(); it != ptr<Message>(val)->sysargs_end(); it++)
 				res << inner_inspect(*it) << ",";
 			
-			res << "]." << *val.msg->name() << "(";
+			res << "]." << *ptr<Message>(val)->name() << "(";
 
-			for (it = val.msg->args(); it != val.msg->args_end(); it++)
+			for (it = ptr<Message>(val)->args(); it != ptr<Message>(val)->args_end(); it++)
 				res << inner_inspect(*it) << ",";
 
 			res << ")";
 			break;
 		}
 		case CALLABLE_CONTEXT:
-			res << "call_ctx:" << val.call_ctx;
+			res << "call_ctx:" << ptr<CallableContext>(val);
 			break;
 		case RUNNABLE_CONTEXT:
-			res << "ret_ctx:" << val.ret_ctx;
+			res << "ret_ctx:" << ptr<RunnableContext>(val);
 			break;
 		}
 		return res.str();

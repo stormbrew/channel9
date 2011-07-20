@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <string>
 
 #include "channel9.hpp"
 #include "memory_pool.hpp"
@@ -30,3 +31,4 @@ namespace Channel9
 		RunnableContext *context() const { return m_context; }
 	};
 }
+

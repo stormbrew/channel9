@@ -41,7 +41,6 @@ namespace Channel9
 			return m_count == vec.size() && std::equal(vec.begin(), vec.end(), m_data); 
 		}
 	};
-	static Tuple ZTuple = {0};
 
 	inline bool operator==(const Tuple &l, const Tuple &r)
 	{
@@ -74,12 +73,8 @@ namespace Channel9
 
 	inline Tuple *new_tuple(size_t len)
 	{
-		Tuple *ret = &ZTuple;
-		if (len > 0)
-		{
-			ret = value_pool.alloc<Tuple>(sizeof(Value)*len);
-			ret->m_count = len;
-		}
+		Tuple *ret = value_pool.alloc<Tuple>(sizeof(Value)*len);
+		ret->m_count = len;
 		
 		return ret;
 	}
@@ -110,6 +105,6 @@ namespace Channel9
 		return ret;
 	}
 
-	inline Value value(const std::vector<Value> &tuple) MAKE_VALUE_PTR(TUPLE, tuple, new_tuple(tuple));
-	inline Value value(const Tuple *tuple) MAKE_VALUE_PTR(TUPLE, tuple, tuple);
+	inline Value value(const std::vector<Value> &tuple) { return make_value_ptr(TUPLE, new_tuple(tuple)); }
+	inline Value value(const Tuple *tuple) { return make_value_ptr(TUPLE, tuple); }
 }

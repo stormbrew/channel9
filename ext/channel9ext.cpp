@@ -65,11 +65,11 @@ static Value rb_to_c9(VALUE val)
 	switch (type)
 	{
 	case T_NIL:
-		return Value::Nil;
+		return Nil;
 	case T_FALSE:
-		return Value::False;
+		return False;
 	case T_TRUE:
-		return Value::True;
+		return True;
 	case T_SYMBOL:
 		return value(rb_id2name(SYM2ID(val)));
 	case T_STRING:
@@ -97,7 +97,7 @@ static Value rb_to_c9(VALUE val)
 				STR2CSTR(rb_any_to_s(val)), inspect(c9val).c_str());
 			return c9val;
 		} else if (val == rb_Undef) {
-			return Value::Undef;
+			return Undef;
 		}
 		break;
 	case T_DATA: {
@@ -120,12 +120,12 @@ static Value rb_to_c9(VALUE val)
 	}
 	rb_raise(rb_eRuntimeError, "Could not convert object %s (%d) to c9 object.", 
 		STR2CSTR(rb_any_to_s(val)), type);
-	return Value::Nil;
+	return Nil;
 }
 
 static VALUE c9_to_rb(const Value &val)
 {
-	switch (val.m_type)
+	switch (type(val))
 	{
 	case NIL:
 		return Qnil;
@@ -135,28 +135,30 @@ static VALUE c9_to_rb(const Value &val)
 		return Qfalse;
 	case BTRUE:
 		return Qtrue;
-	case MACHINE_NUM:
+	case POSITIVE_NUMBER:
+	case NEGATIVE_NUMBER:
 		return LL2NUM(val.machine_num);
-	case FLOAT_NUM:
-		return rb_float_new(val.float_num);
+//	case FLOAT_NUM:
+//		return rb_float_new(val.float_num);
 	case STRING:
-		return rb_str_new2(val.str->c_str());
+		return rb_str_new2(ptr<String>(val)->c_str());
 	case TUPLE: {
 		VALUE ary = rb_ary_new();
-		for (Tuple::const_iterator it = val.tuple->begin(); it != val.tuple->end(); ++it)
+		Tuple *tuple = ptr<Tuple>(val);
+		for (Tuple::const_iterator it = tuple->begin(); it != tuple->end(); ++it)
 		{
 			rb_ary_push(ary, c9_to_rb(*it));
 		}
 		return ary;
 		}
 	case MESSAGE:
-		return rb_Message_new(val.msg);
+		return rb_Message_new(ptr<Message>(val));
 	case CALLABLE_CONTEXT:
-		return rb_CallableContext_new(val.call_ctx);
+		return rb_CallableContext_new(ptr<CallableContext>(val));
 	case RUNNABLE_CONTEXT:
-		return rb_Context_new(val.ret_ctx);
+		return rb_Context_new(ptr<RunnableContext>(val));
 	default:
-		printf("Unknown value type %d\n", val.m_type);
+		printf("Unknown value type %llu\n", type(val));
 		exit(1);
 	}
 	return Qnil;
@@ -259,10 +261,11 @@ static VALUE Stream_new(VALUE self)
 
 static VALUE Stream_add_instruction(VALUE self, VALUE name, VALUE args)
 {
+	Instruction instruction = {NOP, {0}, {0}, {0}};
+
 	IStream *stream;
 	Data_Get_Struct(self, IStream, stream);
 
-	Instruction instruction;
 	instruction.instruction = inum(STR2CSTR(name));
 
 	size_t argc = RARRAY_LEN(args);
@@ -407,9 +410,9 @@ static VALUE Message_new(VALUE self, VALUE name, VALUE sysargs, VALUE args)
 {
 	size_t sysarg_count = RARRAY_LEN(sysargs), arg_count = RARRAY_LEN(args);
 	Value c9_name = rb_to_c9(name);
-	assert(c9_name.m_type == STRING);
+	assert(is(c9_name, STRING));
 
-	Message *msg = new_message(c9_name.str, sysarg_count, arg_count);
+	Message *msg = new_message(ptr<String>(c9_name), sysarg_count, arg_count);
 
 	Message::iterator out;
 	size_t i;

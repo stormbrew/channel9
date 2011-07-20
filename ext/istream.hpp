@@ -44,9 +44,9 @@ namespace Channel9
 		size_t normalize(size_t stack_size, size_t pos, std::vector<pos_info> &pos_map);
 
 	public:
-		void add(const std::string &instruction, const Value &arg1 = Value::Nil, const Value &arg2 = Value::Nil, const Value &arg3 = Value::Nil)
+		void add(const std::string &instruction, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil)
 		{ add(inum(instruction), arg1, arg2, arg3); }
-		void add(INUM ins, const Value &arg1 = Value::Nil, const Value &arg2 = Value::Nil, const Value &arg3 = Value::Nil)
+		void add(INUM ins, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil)
 		{ add(instruction(ins, arg1, arg2, arg3)); }
 		void add(Instruction instruction);
 		void set_label(const std::string &label);

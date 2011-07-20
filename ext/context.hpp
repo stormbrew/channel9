@@ -6,6 +6,7 @@
 #include "memory_pool.hpp"
 
 #include <assert.h>
+#include <stdio.h>
 
 namespace Channel9
 {
@@ -23,7 +24,7 @@ namespace Channel9
 
 	public:
 		VariableFrame(size_t local_count, VariableFrame *parent = NULL)
-		 : m_locals(local_count, Value::Undef), m_parent_frame(parent)
+		 : m_locals(local_count, Undef), m_parent_frame(parent)
 		{}
 
 		const Value &lookup(size_t id) const { return *(m_locals.begin() + id); }
@@ -49,7 +50,7 @@ namespace Channel9
 		Value *m_sp;
 
 		Value m_data[0];
-		
+
 		void send(Environment *cenv, const Value &val, const Value &ret)
 		{
 			if (m_sp)
@@ -62,7 +63,7 @@ namespace Channel9
 				nctx->send(cenv, val, ret);
 			}
 		}
-	
+
 		const IStream &instructions() { return *m_instructions; }
 		const Instruction *next() { return m_pos++; }
 		const Instruction *peek() const { return m_pos; }
@@ -77,13 +78,13 @@ namespace Channel9
 		const Value *stack_begin() const { return m_data + m_instructions->frame_count(); }
 		const Value *stack_pos() const { return m_sp; }
 		size_t stack_count() const { return m_sp - stack_begin(); }
-		void push(const Value &val) 
-		{ 
+		void push(const Value &val)
+		{
 			*m_sp++ = val;
 		}
 		void pop()
-		{ 
-			--m_sp; 
+		{
+			--m_sp;
 		}
 		const Value &top() const { return *(m_sp-1); }
 
@@ -111,7 +112,7 @@ namespace Channel9
 	inline RunnableContext *new_context(const RunnableContext &copy)
 	{
 		size_t frame_count = copy.m_instructions->frame_count();
-		RunnableContext *ctx = (RunnableContext*)malloc(sizeof(RunnableContext) + 
+		RunnableContext *ctx = (RunnableContext*)malloc(sizeof(RunnableContext) +
 			sizeof(Value)*(frame_count));
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_sp = NULL;
@@ -121,8 +122,8 @@ namespace Channel9
 	{
 		size_t frame_count = copy.m_instructions->frame_count();
 		size_t frame_extra = sizeof(Value)*(frame_count + copy.m_instructions->stack_size());
-		
 		RunnableContext *ctx = value_pool.alloc<RunnableContext>(frame_extra);
+
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_sp = ctx->m_data + frame_count;
 		return ctx;
@@ -136,48 +137,50 @@ namespace Channel9
 	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);
 	inline void channel_send(Environment *env, const Value &channel, const Value &val, const Value &ret)
 	{
-		switch (channel.m_type)
+		switch (type(channel))
 		{
 		case RUNNABLE_CONTEXT:
-			channel.ret_ctx->send(env, val, ret);
+			ptr<RunnableContext>(channel)->send(env, val, ret);
 			break;
 		case CALLABLE_CONTEXT:
-			channel.call_ctx->send(env, val, ret);
+			ptr<CallableContext>(channel)->send(env, val, ret);
 			break;
 		case NIL: {
 			const Value &def = env->special_channel("Channel9::Primitive::NilC");
-			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
 			}
 		case UNDEF: {
 			const Value &def = env->special_channel("Channel9::Primitive::UndefC");
-			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
 			}
 		case BFALSE: {
 			const Value &def = env->special_channel("Channel9::Primitive::TrueC");
-			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
 			}
 		case BTRUE: {
 			const Value &def = env->special_channel("Channel9::Primitive::FalseC");
-			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
 			}
 		case MESSAGE: {
 			const Value &def = env->special_channel("Channel9::Primitive::Message");
-			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
 			}
-		case MACHINE_NUM:
-			number_channel_simple(env, ret, channel, *val.msg);
+		case POSITIVE_NUMBER:
+		case NEGATIVE_NUMBER:
+			number_channel_simple(env, ret, channel, *ptr<Message>(val));
 			break;
 		case STRING:
-			string_channel_simple(env, ret, channel, *val.msg);
+			string_channel_simple(env, ret, channel, *ptr<Message>(val));
 			break;
 		case TUPLE:
-			tuple_channel_simple(env, ret, channel, *val.msg);
+			tuple_channel_simple(env, ret, channel, *ptr<Message>(val));
 			break;
 		default:
-			printf("Built-in Channel for %d not yet implemented.\n", channel.m_type);
+			printf("Built-in Channel for %llu not yet implemented.\n", type(channel) >> 60);
 			exit(1);
 		}
 	}
 }
 
 #include "primitive.hpp"
+
