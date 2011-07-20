@@ -29,7 +29,7 @@ namespace Channel9
 	inline VariableFrame *new_variable_frame(IStream *instructions, VariableFrame *parent = NULL)
 	{
 		size_t local_count = instructions->local_count();
-		VariableFrame *frame = value_pool.alloc<VariableFrame>(local_count * sizeof(Value));
+		VariableFrame *frame = value_pool.alloc<VariableFrame>(local_count * sizeof(Value), MemoryPool::GC_VARIABLE_FRAME);
 		frame->m_instructions = instructions;
 		frame->m_parent_frame = parent;
 		for (size_t i = 0; i < local_count; i++)
@@ -42,7 +42,7 @@ namespace Channel9
 	inline void gc_reallocate(VariableFrame **from)
 	{
 		size_t local_count = (*from)->m_instructions->local_count();
-		VariableFrame *nframe = value_pool.alloc<VariableFrame>(local_count * sizeof(Value));
+		VariableFrame *nframe = value_pool.alloc<VariableFrame>(local_count * sizeof(Value), MemoryPool::GC_VARIABLE_FRAME);
 		memcpy(nframe, *from, sizeof(VariableFrame) + local_count * sizeof(Value));
 		(*from) = nframe;
 	}
@@ -57,3 +57,4 @@ namespace Channel9
 		}
 	}
 }
+

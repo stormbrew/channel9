@@ -37,8 +37,8 @@ namespace Channel9
 			return this == &r || (m_count == r.m_count && std::equal(m_data, m_data + m_count, r.m_data));
 		}
 		bool equal(const std::vector<Value> &vec) const
-		{ 
-			return m_count == vec.size() && std::equal(vec.begin(), vec.end(), m_data); 
+		{
+			return m_count == vec.size() && std::equal(vec.begin(), vec.end(), m_data);
 		}
 	};
 
@@ -73,9 +73,9 @@ namespace Channel9
 
 	inline Tuple *new_tuple(size_t len)
 	{
-		Tuple *ret = value_pool.alloc<Tuple>(sizeof(Value)*len);
+		Tuple *ret = value_pool.alloc<Tuple>(sizeof(Value)*len, MemoryPool::GC_TUPLE);
 		ret->m_count = len;
-		
+
 		return ret;
 	}
 	template <typename tIter>
@@ -99,7 +99,7 @@ namespace Channel9
 
 	inline void gc_reallocate(Tuple **from)
 	{
-		Tuple *ntuple = value_pool.alloc<Tuple>((*from)->m_count * sizeof(Value));
+		Tuple *ntuple = value_pool.alloc<Tuple>((*from)->m_count * sizeof(Value), MemoryPool::GC_TUPLE);
 		memcpy(ntuple, *from, sizeof(Tuple) + (*from)->m_count * sizeof(Value));
 		*from = ntuple;
 	}
@@ -122,3 +122,4 @@ namespace Channel9
 	inline Value value(const std::vector<Value> &tuple) { return make_value_ptr(TUPLE, new_tuple(tuple)); }
 	inline Value value(const Tuple *tuple) { return make_value_ptr(TUPLE, tuple); }
 }
+
