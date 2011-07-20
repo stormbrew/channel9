@@ -57,6 +57,9 @@ public:
 		rb_funcall(m_val, rb_intern("channel_send"), 3,
 			rb_Environment_new(env), c9_to_rb(val), c9_to_rb(ret));
 	}
+
+	void scan()
+	{}
 };
 
 static Value rb_to_c9(VALUE val)
