@@ -42,7 +42,7 @@ namespace Channel9
 		if (frame)
 			return frame->lookup(id);
 		else
-			return Value::Nil;
+			return Nil;
 	}
 	void VariableFrame::set(size_t id, size_t depth, const Value &val)
 	{

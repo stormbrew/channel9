@@ -78,8 +78,8 @@ namespace Channel9
 		Value arg2;
 		Value arg3;
 	};
-	Instruction instruction(INUM instruction, const Value &arg1 = Value::Nil, const Value &arg2 = Value::Nil, const Value &arg3 = Value::Nil);
-	inline Instruction instruction(const std::string &ins, const Value &arg1 = Value::Nil, const Value &arg2 = Value::Nil, const Value &arg3 = Value::Nil)
+	Instruction instruction(INUM instruction, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil);
+	inline Instruction instruction(const std::string &ins, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil)
 	{ 
 		return instruction(inum(ins), arg1, arg2); 
 	}

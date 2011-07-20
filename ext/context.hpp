@@ -24,7 +24,7 @@ namespace Channel9
 
 	public:
 		VariableFrame(size_t local_count, VariableFrame *parent = NULL)
-		 : m_locals(local_count, Value::Undef), m_parent_frame(parent)
+		 : m_locals(local_count, Undef), m_parent_frame(parent)
 		{}
 
 		const Value &lookup(size_t id) const { return *(m_locals.begin() + id); }
@@ -136,45 +136,46 @@ namespace Channel9
 	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);
 	inline void channel_send(Environment *env, const Value &channel, const Value &val, const Value &ret)
 	{
-		switch (channel.m_type)
+		switch (type(channel))
 		{
 		case RUNNABLE_CONTEXT:
-			channel.ret_ctx->send(env, val, ret);
+			ptr<RunnableContext>(channel)->send(env, val, ret);
 			break;
 		case CALLABLE_CONTEXT:
-			channel.call_ctx->send(env, val, ret);
+			ptr<CallableContext>(channel)->send(env, val, ret);
 			break;
 		case NIL: {
 			const Value &def = env->special_channel("Channel9::Primitive::NilC");
-			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
 			}
 		case UNDEF: {
 			const Value &def = env->special_channel("Channel9::Primitive::UndefC");
-			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
 			}
 		case BFALSE: {
 			const Value &def = env->special_channel("Channel9::Primitive::TrueC");
-			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
 			}
 		case BTRUE: {
 			const Value &def = env->special_channel("Channel9::Primitive::FalseC");
-			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
 			}
 		case MESSAGE: {
 			const Value &def = env->special_channel("Channel9::Primitive::Message");
-			return forward_primitive_call(env, def, ret, channel, *val.msg);
+			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
 			}
-		case MACHINE_NUM:
-			number_channel_simple(env, ret, channel, *val.msg);
+		case POSITIVE_NUMBER:
+		case NEGATIVE_NUMBER:
+			number_channel_simple(env, ret, channel, *ptr<Message>(val));
 			break;
 		case STRING:
-			string_channel_simple(env, ret, channel, *val.msg);
+			string_channel_simple(env, ret, channel, *ptr<Message>(val));
 			break;
 		case TUPLE:
-			tuple_channel_simple(env, ret, channel, *val.msg);
+			tuple_channel_simple(env, ret, channel, *ptr<Message>(val));
 			break;
 		default:
-			printf("Built-in Channel for %d not yet implemented.\n", channel.m_type);
+			printf("Built-in Channel for %llu not yet implemented.\n", type(channel) >> 60);
 			exit(1);
 		}
 	}

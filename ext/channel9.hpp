@@ -3,7 +3,7 @@
 namespace Channel9
 {
 	// Forward declare stuff to avoid loops in headers.
-	struct Value;
+	union Value;
 	class Environment;
 	class CallableContext;
 	struct String;
