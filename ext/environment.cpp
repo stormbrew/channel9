@@ -39,7 +39,11 @@ namespace Channel9
 
 	void Environment::scan()
 	{
-		m_context = gc_mark(m_context);
+		gc_reallocate(&m_context);
+		for (special_map::iterator it = m_specials.begin(); it != m_specials.end(); it++)
+		{
+			gc_reallocate(&it->second);
+		}
 	}
 
 	void Environment::run(RunnableContext *context)
