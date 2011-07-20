@@ -27,9 +27,7 @@ namespace Channel9
 
 	class MemoryPool
 	{
-	private:
-
-		static const float GROWTH = 1.2;
+	public:
 		enum
 		{
 			GC_FORWARD          = 0x0, //already been moved
@@ -39,7 +37,12 @@ namespace Channel9
 			GC_MESSAGE          = 0x5,
 			GC_CALLABLE_CONTEXT = 0x6,
 			GC_RUNNABLE_CONTEXT = 0x7,
+			GC_VARIABLE_FRAME   = 0x8,
 		};
+
+	private:
+
+		static const float GROWTH = 1.2;
 
 
 		typedef unsigned char uchar;
@@ -135,14 +138,8 @@ namespace Channel9
 			m_cur_chunk = m_pools[m_cur_pool];
 		}
 
-//		template <String>          String          *alloc(size_t extra = 0) { return alloc<String         >(extra, GC_STRING          ); }
-//		template <Tuple>           Tuple           *alloc(size_t extra = 0) { return alloc<Tuple          >(extra, GC_TUPLE           ); }
-//		template <Message>         Message         *alloc(size_t extra = 0) { return alloc<Message        >(extra, GC_MESSAGE         ); }
-//		template <CallableContext> CallableContext *alloc(size_t extra = 0) { return alloc<CallableContext>(extra, GC_CALLABLE_CONTEXT); }
-//		template <RunnableContext> RunnableContext *alloc(size_t extra = 0) { return alloc<RunnableContext>(extra, GC_RUNNABLE_CONTEXT); }
-
 		template <typename tObj>
-		tObj *alloc(size_t extra = 0, uint32_t type = 0)
+		tObj *alloc(size_t extra, uint32_t type)
 		{
 			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type));
 		}

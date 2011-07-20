@@ -86,7 +86,7 @@ namespace Channel9
 
 	inline String *new_string(size_t len)
 	{
-		String *ret = value_pool.alloc<String>(len + 1);
+		String *ret = value_pool.alloc<String>(len + 1, MemoryPool::GC_STRING);
 		ret->m_count = len;
 
 		return ret;
@@ -116,7 +116,7 @@ namespace Channel9
 
 	inline void gc_reallocate(String **from)
 	{
-		String *nstr = value_pool.alloc<String>((*from)->m_count + 1);
+		String *nstr = value_pool.alloc<String>((*from)->m_count + 1, MemoryPool::GC_STRING);
 		memcpy(nstr, *from, sizeof(String) + (*from)->m_count);
 		*from = nstr;
 	}
