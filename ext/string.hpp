@@ -3,6 +3,7 @@
 #include "memory_pool.hpp"
 
 #include <string>
+#include <string.h>
 #include <algorithm>
 #include <assert.h>
 
@@ -29,10 +30,10 @@ namespace Channel9
 
 		String *substr(size_t off, size_t len) const;
 
-		const char *c_str() const 
-		{ 
-			const_cast<char*>(m_data)[m_count] = 0; 
-			return m_data; 
+		const char *c_str() const
+		{
+			const_cast<char*>(m_data)[m_count] = 0;
+			return m_data;
 		}
 		const std::string str() const
 		{
@@ -44,8 +45,8 @@ namespace Channel9
 			return this == &r || (m_count == r.m_count && std::equal(m_data, m_data + m_count, r.m_data));
 		}
 		bool equal(const std::string &str) const
-		{ 
-			return m_count == str.length() && std::equal(str.begin(), str.end(), m_data); 
+		{
+			return m_count == str.length() && std::equal(str.begin(), str.end(), m_data);
 		}
 		bool equal(const char *str) const
 		{
@@ -53,7 +54,6 @@ namespace Channel9
 			return len == m_count && std::equal(str, str + len, m_data);
 		}
 	};
-	static String ZString = {0};
 
 	inline bool operator==(const String &l, const String &r)
 	{
@@ -86,13 +86,9 @@ namespace Channel9
 
 	inline String *new_string(size_t len)
 	{
-		String *ret = &ZString;
-		if (len > 0)
-		{
-			ret = value_pool.alloc<String>(len + 1);
-			ret->m_count = len;
-		}
-		
+		String *ret = value_pool.alloc<String>(len + 1);
+		ret->m_count = len;
+
 		return ret;
 	}
 	template <typename tIter>
@@ -141,3 +137,4 @@ namespace Channel9
 		return out;
 	}
 }
+

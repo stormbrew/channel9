@@ -1,6 +1,7 @@
 #pragma once
 
 #include <set>
+#include <stdlib.h>
 
 namespace Channel9
 {

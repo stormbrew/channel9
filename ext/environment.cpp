@@ -19,7 +19,7 @@ namespace Channel9
 		if (it != m_specials.end())
 			return it->second;
 		else
-			return Value::Nil;
+			return Nil;
 	}
 
 	const Value &Environment::special_channel(const String &name) const
@@ -28,7 +28,7 @@ namespace Channel9
 		if (it != m_specials.end())
 			return it->second;
 		else
-			return Value::Nil;
+			return Nil;
 	}
 
 	void Environment::set_special_channel(const std::string &name, const Value &val)
@@ -171,14 +171,14 @@ namespace Channel9
 				case FRAME_GET: {
 					CHECK_STACK(0, 1);
 					size_t frameid = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("Getting frame var %s (%d)\n", ins.arg1.str->c_str(), (int)frameid);
+					DO_TRACE printf("Getting frame var %s (%d)\n", ptr<String>(ins.arg1)->c_str(), (int)frameid);
 					m_context->push(m_context->get_framevar(frameid));
 					}
 					break;
 				case FRAME_SET: {
 					CHECK_STACK(1, 0);
 					size_t frameid = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("Setting frame var %s (%d) to: %s\n", ins.arg1.str->c_str(), (int)frameid, inspect(m_context->top()).c_str());
+					DO_TRACE printf("Setting frame var %s (%d) to: %s\n", ptr<String>(ins.arg1)->c_str(), (int)frameid, inspect(m_context->top()).c_str());
 					m_context->set_framevar(frameid, m_context->top());
 					m_context->pop();
 					}
@@ -187,7 +187,7 @@ namespace Channel9
 					CHECK_STACK(0, 1);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("local_get %u@%u: %d\n", (unsigned)localid, (unsigned)depth, m_context->get_localvar(localid, depth).m_type);
+					DO_TRACE printf("local_get %u@%u: %llu\n", (unsigned)localid, (unsigned)depth, type(m_context->get_localvar(localid, depth)));
 					if (depth == 0)
 						m_context->push(m_context->get_localvar(localid));
 					else
@@ -198,7 +198,7 @@ namespace Channel9
 					CHECK_STACK(1, 0);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("local_set %u@%u: %d\n", (unsigned)localid, (unsigned)depth, m_context->top().m_type);
+					DO_TRACE printf("local_set %u@%u: %llu\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
 					if (depth == 0)
 						m_context->set_localvar(localid, m_context->top());
 					else
@@ -216,7 +216,7 @@ namespace Channel9
 					break;
 				case CHANNEL_SPECIAL:
 					CHECK_STACK(0, 1);
-					m_context->push(special_channel(*ins.arg1.str));
+					m_context->push(special_channel(*ptr<String>(ins.arg1)));
 					break;
 				case CHANNEL_SEND: {
 					CHECK_STACK(3, -1);
@@ -246,7 +246,7 @@ namespace Channel9
 					break;
 
 				case MESSAGE_NEW: {
-					const String *name = ins.arg1.str;
+					const String *name = ptr<String>(ins.arg1);
 					long long sysarg_count = ins.arg2.machine_num, sysarg_counter = sysarg_count - 1;
 					long long arg_count = ins.arg3.machine_num, arg_counter = arg_count - 1;
 					CHECK_STACK(sysarg_count + arg_count, 1);
@@ -271,8 +271,8 @@ namespace Channel9
 					break;
 				case MESSAGE_SPLAT: {
 					CHECK_STACK(2, 1);
-					const Tuple &tuple = *m_context->top().tuple; m_context->pop();
-					const Message &msg = *m_context->top().msg; m_context->pop();
+					const Tuple &tuple = *ptr<Tuple>(m_context->top()); m_context->pop();
+					const Message &msg = *ptr<Message>(m_context->top()); m_context->pop();
 
 					Message *nmsg = new_message(msg.m_name, msg.sysarg_count(), msg.arg_count() + tuple.size());
 					std::copy(msg.sysargs(), msg.sysargs_end(), nmsg->sysargs());
@@ -284,7 +284,7 @@ namespace Channel9
 				case MESSAGE_ADD: {
 					long long count = ins.arg1.machine_num, counter = 0;
 					CHECK_STACK(1 + count, 1);
-					const Message &msg = *(m_context->stack_pos() - 1 - count)->msg;
+					const Message &msg = *ptr<Message>(*(m_context->stack_pos() - 1 - count));
 
 					Message *nmsg = new_message(msg.m_name, msg.sysarg_count(), msg.arg_count() + count);
 					std::copy(msg.sysargs(), msg.sysargs_end(), nmsg->sysargs());
@@ -304,24 +304,24 @@ namespace Channel9
 					break;
 				case MESSAGE_COUNT:
 					CHECK_STACK(1, 2);
-					m_context->push(value((long long)m_context->top().msg->arg_count()));
+					m_context->push(value((long long)ptr<Message>(m_context->top())->arg_count()));
 					break;
 				case MESSAGE_NAME:
 					CHECK_STACK(1, 2);
-					m_context->push(value(m_context->top().msg->name()));
+					m_context->push(value(ptr<Message>(m_context->top())->name()));
 					break;
 				case MESSAGE_SYS_UNPACK: {
 					long long count = ins.arg1.machine_num, pos = count - 1;
 					CHECK_STACK(1, 1 + count);
 
-					const Message *msg = m_context->top().msg;
+					const Message *msg = ptr<Message>(m_context->top());
 					Message::const_iterator args = msg->sysargs();
 					long long len = (long long)msg->sysarg_count();
 
 					while (pos >= 0)
 					{
 						if (pos >= len)
-							m_context->push(Value::Undef);
+							m_context->push(Undef);
 						else
 							m_context->push(args[pos]);
 						
@@ -335,14 +335,14 @@ namespace Channel9
 					long long last_count = ins.arg3.machine_num, last_counter = 0;
 					CHECK_STACK(1, 1 + first_count + last_count + (splat?1:0));
 
-					const Message *msg = m_context->top().msg;
+					const Message *msg = ptr<Message>(m_context->top());
 					Message::const_iterator args = msg->args();
 					long long len = (long long)msg->arg_count(), pos = len - 1;
 
 					while (last_counter < last_count && pos >= first_count)
 					{
 						if (pos >= len)
-							m_context->push(Value::Nil);
+							m_context->push(Nil);
 						else
 							m_context->push(args[pos]);
 
@@ -364,7 +364,7 @@ namespace Channel9
 							}
 							m_context->push(value(splat_tuple));
 						} else {
-							m_context->push(Value::ZTuple);
+							m_context->push(value(new_tuple(0)));
 						}
 					}
 
@@ -373,7 +373,7 @@ namespace Channel9
 					while (first_counter < first_count && pos >= 0)
 					{
 						if (pos >= len)
-							m_context->push(Value::Nil);
+							m_context->push(Nil);
 						else
 							m_context->push(args[pos]);
 
@@ -384,13 +384,13 @@ namespace Channel9
 					break;
 
 				case STRING_COERCE: {
-					const String *coerce = ins.arg1.str;
+					const String *coerce = ptr<String>(ins.arg1);
 					const Value &val = m_context->top();
-					if (val.m_type == STRING)
+					if (is(val, STRING))
 					{
 						CHECK_STACK(1, 2);
 						// push a nil like we called the method.
-						m_context->push(Value::Nil);
+						m_context->push(Nil);
 					} else {
 						CHECK_STACK(1, -1);
 						m_context->pop();
@@ -406,8 +406,8 @@ namespace Channel9
 					size_t len = 0;
 					while (count > 0 && counter < count)
 					{
-						assert(sp[-counter].m_type == STRING);
-						len += sp[-counter].str->length();
+						assert(is(sp[-counter], STRING));
+						len += ptr<String>(sp[-counter])->length();
 						++counter;
 					}
 					String *res = new_string(len);
@@ -415,7 +415,7 @@ namespace Channel9
 					counter = 0;
 					while (count > 0 && counter < count)
 					{
-						const String *val = m_context->top().str;
+						const String *val = ptr<String>(m_context->top());
 						out = std::copy(val->begin(), val->end(), out);
 						m_context->pop();
 						++counter;
@@ -440,8 +440,8 @@ namespace Channel9
 					break;
 				case TUPLE_SPLAT: {
 					CHECK_STACK(2, 1);
-					const Tuple *tuple2 = m_context->top().tuple; m_context->pop();
-					const Tuple *tuple1 = m_context->top().tuple; m_context->pop();
+					const Tuple *tuple2 = ptr<Tuple>(m_context->top()); m_context->pop();
+					const Tuple *tuple1 = ptr<Tuple>(m_context->top()); m_context->pop();
 					Tuple *tuple = join_tuple(tuple1, tuple2);
 					m_context->push(value(tuple));
 					}
@@ -452,12 +452,12 @@ namespace Channel9
 					long long last_count = ins.arg3.machine_num, last_counter = 0;
 					CHECK_STACK(1, 1 + first_count + last_count + (splat?1:0));
 
-					const Tuple &tuple = *m_context->top().tuple;
+					const Tuple &tuple = *ptr<Tuple>(m_context->top());
 					long long len = tuple.size(), pos = tuple.size() - 1;
 					while (last_counter < last_count && pos >= first_count)
 					{
 						if (pos >= len)
-							m_context->push(Value::Nil);
+							m_context->push(Nil);
 						else
 							m_context->push(tuple[pos]);
 
@@ -479,7 +479,7 @@ namespace Channel9
 							}
 							m_context->push(value(splat_tuple));
 						} else {
-							m_context->push(Value::ZTuple);
+							m_context->push(value(new_tuple(0)));
 						}
 					}
 
@@ -488,7 +488,7 @@ namespace Channel9
 					while (first_counter < first_count && pos >= 0)
 					{
 						if (pos >= len)
-							m_context->push(Value::Nil);
+							m_context->push(Nil);
 						else
 							m_context->push(tuple[pos]);
 
