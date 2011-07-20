@@ -116,7 +116,7 @@ namespace Channel9
 
 	inline void gc_reallocate(String **from)
 	{
-		String *nstr = value_pool.alloc<String>((*from)->m_count);
+		String *nstr = value_pool.alloc<String>((*from)->m_count + 1);
 		memcpy(nstr, *from, sizeof(String) + (*from)->m_count);
 		*from = nstr;
 	}
