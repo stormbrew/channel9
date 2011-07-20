@@ -19,11 +19,15 @@ namespace Channel9
 		CALLABLE_CONTEXT= 0x6000000000000000ULL,
 		RUNNABLE_CONTEXT= 0x7000000000000000ULL,
 
-		FALSY_MASK 		= 0xc000000000000000ULL, // bit pattern 11 indicates falsy.
+		// top two bits in pattern 10 indicates falsy,
+		// all others are truthy.
+		FALSY_MASK 		= 0xc000000000000000ULL,
+		FALSY_PATTERN	= 0x8000000000000000ULL,
 
-		NIL 			= 0xc000000000000000ULL,
-		UNDEF 			= 0xd000000000000000ULL,
-		BFALSE 			= 0xe000000000000000ULL,
+		NIL 			= 0x8000000000000000ULL,
+		UNDEF 			= 0x9000000000000000ULL,
+		BFALSE 			= 0xA000000000000000ULL,
+		// don't use    = 0xB000000000000000ULL,
 
 		NEGATIVE_NUMBER = 0xf000000000000000ULL,
 
@@ -64,7 +68,7 @@ namespace Channel9
 	{
 		return type(val) == t;
 	}
-	inline bool is_truthy(const Value &val) { return !((val.raw & FALSY_MASK) == FALSY_MASK); }
+	inline bool is_truthy(const Value &val) { return !((val.raw & FALSY_MASK) == FALSY_PATTERN); }
 	inline bool is_number(const Value &val) { ValueType t = type(val); return t == POSITIVE_NUMBER || t == NEGATIVE_NUMBER; }
 	inline bool same_type(const Value &l, const Value &r)
 	{
