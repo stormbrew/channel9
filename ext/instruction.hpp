@@ -87,4 +87,11 @@ namespace Channel9
 	InstructionInfo iinfo(const Instruction &ins);
 
 	std::string inspect(const Instruction &ins);
+
+	inline void gc_scan(Instruction *ins)
+	{
+		gc_reallocate(&ins->arg1);
+		gc_reallocate(&ins->arg2);
+		gc_reallocate(&ins->arg3);
+	}
 }

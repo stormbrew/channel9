@@ -76,4 +76,12 @@ namespace Channel9
 		const_iterator begin() const { return m_instructions.begin(); }
 		const_iterator end() const { return m_instructions.end(); }
 	};
+
+	inline void gc_scan(IStream *stream)
+	{
+		for (IStream::iterator it = stream->begin(); it != stream->end(); it++)
+		{
+			gc_scan(&*it);
+		}
+	}
 }

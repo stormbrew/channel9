@@ -1,5 +1,8 @@
 #include "value.hpp"
+#include "string.hpp"
+#include "tuple.hpp"
 #include "message.hpp"
+#include "context.hpp"
 
 #include <sstream>
 
@@ -22,6 +25,52 @@ namespace Channel9
 			return *ptr<Tuple>(l) == *ptr<Tuple>(r);
 		default:
 			return false; // all others compare memory-wise.
+		}
+	}
+
+	inline void gc_reallocate(Value *from)
+	{
+		switch (type(*from))
+		{
+		case STRING: {
+			String *str = ptr<String>(*from);
+			gc_reallocate(&str);
+			*from = make_value_ptr(STRING, str);
+			break;
+		}
+		case TUPLE: {
+			Tuple *tuple = ptr<Tuple>(*from);
+			gc_reallocate(&tuple);
+			*from = make_value_ptr(TUPLE, tuple);
+		}
+		case MESSAGE: {
+			Message *msg = ptr<Message>(*from);
+			gc_reallocate(&msg);
+			*from = make_value_ptr(MESSAGE, msg);
+		}
+		case RUNNABLE_CONTEXT: {
+			RunnableContext *ctx = ptr<RunnableContext>(*from);
+			gc_reallocate(&ctx);
+			*from = make_value_ptr(RUNNABLE_CONTEXT, ctx);
+		}
+		default: break;
+		}
+	}
+	inline void gc_scan(const Value &from)
+	{
+		switch (type(from))
+		{
+		case STRING:
+			return gc_scan(ptr<String>(from));
+		case TUPLE:
+			return gc_scan(ptr<Tuple>(from));
+		case MESSAGE:
+			return gc_scan(ptr<Message>(from));
+		case CALLABLE_CONTEXT:
+			return gc_scan(ptr<CallableContext>(from));
+		case RUNNABLE_CONTEXT:
+			return gc_scan(ptr<RunnableContext>(from));
+		default: break;
 		}
 	}
 

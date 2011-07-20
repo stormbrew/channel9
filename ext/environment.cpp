@@ -241,7 +241,7 @@ namespace Channel9
 					break;
 
 				case MESSAGE_NEW: {
-					const String *name = ptr<String>(ins.arg1);
+					String *name = ptr<String>(ins.arg1);
 					long long sysarg_count = ins.arg2.machine_num, sysarg_counter = sysarg_count - 1;
 					long long arg_count = ins.arg3.machine_num, arg_counter = arg_count - 1;
 					CHECK_STACK(sysarg_count + arg_count, 1);
@@ -379,7 +379,7 @@ namespace Channel9
 					break;
 
 				case STRING_COERCE: {
-					const String *coerce = ptr<String>(ins.arg1);
+					String *coerce = ptr<String>(ins.arg1);
 					const Value &val = m_context->top();
 					if (is(val, STRING))
 					{

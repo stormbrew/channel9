@@ -97,6 +97,20 @@ namespace Channel9
 		return new_tuple(str.begin(), str.end());
 	}
 
+	inline void gc_reallocate(Tuple **from)
+	{
+		Tuple *ntuple = value_pool.alloc<Tuple>((*from)->m_count * sizeof(Value));
+		memcpy(ntuple, *from, sizeof(Tuple) + (*from)->m_count * sizeof(Value));
+		*from = ntuple;
+	}
+	inline void gc_scan(Tuple *from)
+	{
+		for (size_t i = 0; i < from->m_count; i++)
+		{
+			gc_reallocate(&from->m_data[i]);
+		}
+	}
+
 	inline Tuple *join_tuple(const Tuple *l, const Tuple *r)
 	{
 		Tuple *ret = new_tuple(l->m_count + r->m_count);
