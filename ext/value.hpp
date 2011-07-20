@@ -131,6 +131,9 @@ namespace Channel9
 		GCRef(const tVal &val)
 		 : GCRoot(value_pool), m_val(val)
 		{}
+		GCRef(const GCRef<tVal> &ref)
+		 : GCRoot(value_pool), m_val(ref.m_val)
+		{}
 
 		void scan()
 		{
@@ -142,6 +145,12 @@ namespace Channel9
 		const tVal &operator->() const { return m_val; }
 		tVal &operator->() { return m_val; }
 	};
+
+	template <typename tVal>
+	inline GCRef<tVal> gc_ref(const tVal &val)
+	{
+		return GCRef<tVal>(val);
+	}
 }
 #include "tuple.hpp"
 
