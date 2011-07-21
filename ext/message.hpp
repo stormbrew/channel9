@@ -43,6 +43,15 @@ namespace Channel9
 		msg->m_arg_count = args;
 		return msg;
 	}
+	inline Message *new_message(const Value &name, size_t sysargs = 0, size_t args = 0)
+	{
+		size_t count = sysargs + args;
+		Message *msg = value_pool.alloc<Message>(sizeof(Value)*count, MemoryPool::GC_MESSAGE);
+		msg->m_name = ptr<String>(name);
+		msg->m_sysarg_count = sysargs;
+		msg->m_arg_count = args;
+		return msg;
+	}
 	template <typename tIter>
 	inline Message *new_message(String *name, size_t sysargs, tIter sysarg_it, size_t args, tIter arg_it)
 	{
