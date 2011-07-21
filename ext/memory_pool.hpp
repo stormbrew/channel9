@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <assert.h>
 
+#include <stdio.h>
+
 namespace Channel9
 {
 	class MemoryPool;
@@ -156,11 +158,16 @@ namespace Channel9
 		{
 			Data * old = (Data*)(from) - 1;
 
-			if(old->m_type == GC_FORWARD)
+			if(old->m_type == GC_FORWARD){
+				printf("Move %X, type %X => %X\n", (unsigned int)from, old->m_type, (unsigned int)(*(tObj**)from));
 				return *(tObj**)from;
+			}
 
 			tObj * n = (tObj*)next(old->m_count, old->m_type);
 			memcpy(n, from, old->m_count);
+
+			printf("Move %X, type %X <= %X\n", (unsigned int)from, old->m_type, (unsigned int)n);
+
 			old->m_type = GC_FORWARD;
 			*(tObj**)from = n;
 			return n;
