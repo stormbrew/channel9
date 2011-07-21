@@ -85,7 +85,7 @@ namespace Channel9
 			m_cur_chunk->m_next = c;
 		}
 
-		printf("Done GC\n");
+		DO_TRACE printf("Done GC\n");
 
 		m_in_gc = false;
 	}

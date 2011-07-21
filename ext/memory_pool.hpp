@@ -52,7 +52,8 @@ namespace Channel9
 
 		struct Data
 		{
-			uint32_t m_type;
+			uint16_t m_type;
+			uint16_t m_pool;
 			uint32_t m_count; //number of bytes of memory in this allocation
 			uchar    m_data[0]; //the actual data, 8 byte aligned
 
@@ -106,6 +107,7 @@ namespace Channel9
 
 				if(data){
 					data->m_type = type;
+					data->m_pool = m_cur_pool;
 					data->m_count = size;
 					return data->m_data;
 				}
@@ -157,6 +159,11 @@ namespace Channel9
 		tObj *move(tObj * from)
 		{
 			Data * old = (Data*)(from) - 1;
+
+			if(old->m_pool == m_cur_pool){
+				DO_TRACE printf("Move %p, type %X already moved\n", from, old->m_type);
+				return from;
+			}
 
 			if(old->m_type == GC_FORWARD){
 				DO_TRACE printf("Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
