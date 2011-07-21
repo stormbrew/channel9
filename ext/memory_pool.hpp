@@ -159,14 +159,14 @@ namespace Channel9
 			Data * old = (Data*)(from) - 1;
 
 			if(old->m_type == GC_FORWARD){
-				printf("Move %X, type %X => %X\n", (unsigned int)from, old->m_type, (unsigned int)(*(tObj**)from));
+				DO_TRACE printf("Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
 				return *(tObj**)from;
 			}
 
 			tObj * n = (tObj*)next(old->m_count, old->m_type);
 			memcpy(n, from, old->m_count);
 
-			printf("Move %X, type %X <= %X\n", (unsigned int)from, old->m_type, (unsigned int)n);
+			DO_TRACE printf("Move %p, type %X <= %p\n", from, old->m_type, n);
 
 			old->m_type = GC_FORWARD;
 			*(tObj**)from = n;
