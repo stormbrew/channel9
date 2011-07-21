@@ -47,7 +47,9 @@ namespace Channel9
 	{
 		size_t local_count = from->m_instructions->local_count();
 		gc_scan(from->m_instructions);
-		gc_reallocate(&from->m_parent_frame);
+		if (from->m_parent_frame)
+			gc_reallocate(&from->m_parent_frame);
+			
 		for (size_t i = 0; i < local_count; i++)
 		{
 			gc_reallocate(&from->m_locals[i]);

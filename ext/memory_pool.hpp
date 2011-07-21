@@ -3,6 +3,7 @@
 #include <set>
 #include <stdlib.h>
 #include <stdint.h>
+#include <assert.h>
 
 namespace Channel9
 {
@@ -52,6 +53,8 @@ namespace Channel9
 			uint32_t m_type;
 			uint32_t m_count; //number of bytes of memory in this allocation
 			uchar    m_data[0]; //the actual data, 8 byte aligned
+
+			Data *next() const { return (Data*)((uchar*)(this + 1) + m_count); }
 		};
 
 		struct Chunk
@@ -93,6 +96,7 @@ namespace Channel9
 
 		uchar *next(size_t size, uint32_t type)
 		{
+			assert(type != GC_FORWARD); // never alloc a forwarding ref.
 			size += (8 - size % 8) % 8; //8 byte align
 
 			while(1){
@@ -110,7 +114,7 @@ namespace Channel9
 				} else {
 					if(m_in_gc)
 					{ //allocate a new chunk
-						int new_size = m_cur_chunk->m_capacity * GROWTH;
+						size_t new_size = m_cur_chunk->m_capacity * GROWTH;
 
 						Chunk * c = (Chunk *)malloc(sizeof(Chunk) + new_size);
 						c->init(new_size);
@@ -148,7 +152,7 @@ namespace Channel9
 		template <typename tObj>
 		tObj *move(tObj * from)
 		{
-			Data * old = (Data*)(from - sizeof(Data));
+			Data * old = (Data*)(from) - 1;
 
 			if(old->m_type == GC_FORWARD)
 				return *(tObj**)from;

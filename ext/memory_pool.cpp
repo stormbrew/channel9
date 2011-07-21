@@ -55,13 +55,14 @@ namespace Channel9
 		//scan the new heap copying in the reachable set
 		for(Chunk * c = m_pools[m_cur_pool]; c; c = c->m_next)
 		{
-			for(Data * d = c->begin(); d != c->end(); d += d->m_count + sizeof(Data))
+			for(Data * d = c->begin(); d != c->end(); d = d->next())
 			{
+				assert(d->m_type != GC_FORWARD); // newly built heap, can't be forwards.
 				switch(d->m_type)
 				{
 				case GC_STRING:  gc_scan( (String*) (d->m_data)); break;
-				case GC_TUPLE:   gc_scan( (String*) (d->m_data)); break;
-				case GC_MESSAGE: gc_scan( (String*) (d->m_data)); break;
+				case GC_TUPLE:   gc_scan( (Tuple*) (d->m_data)); break;
+				case GC_MESSAGE: gc_scan( (Message*) (d->m_data)); break;
 				case GC_CALLABLE_CONTEXT: gc_scan( (CallableContext*) (d->m_data)); break;
 				case GC_RUNNABLE_CONTEXT: gc_scan( (RunnableContext*) (d->m_data)); break;
 				case GC_VARIABLE_FRAME:   gc_scan( (VariableFrame*)   (d->m_data)); break;
