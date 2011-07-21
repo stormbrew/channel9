@@ -36,6 +36,8 @@ namespace Channel9
 		m_in_gc = true;
 
 		//switch pools
+		printf("Start GC, old pool %X, new pool %X\n", (unsigned int)(m_pools[m_cur_pool]), (unsigned int)(m_pools[!m_cur_pool]));
+
 		m_cur_pool = !m_cur_pool;
 		m_cur_chunk = m_pools[m_cur_pool];
 
@@ -44,6 +46,8 @@ namespace Channel9
 		{
 			c->m_used = 0;
 		}
+
+		printf("Scan roots\n");
 
 		//scan the roots
 		std::set<GCRoot*>::iterator it;
@@ -55,8 +59,10 @@ namespace Channel9
 		//scan the new heap copying in the reachable set
 		for(Chunk * c = m_pools[m_cur_pool]; c; c = c->m_next)
 		{
+			printf("Scan Chunk %X\n", (unsigned int)c);
 			for(Data * d = c->begin(); d != c->end(); d = d->next())
 			{
+				printf("Scan Obj %X, type %X\n", (unsigned int)(d->m_data), d->m_type);
 				switch(d->m_type)
 				{
 				case GC_STRING:  gc_scan( (String*)  (d->m_data)); break;
@@ -78,6 +84,8 @@ namespace Channel9
 			Chunk * c = new_chunk(new_size);
 			m_cur_chunk->m_next = c;
 		}
+
+		printf("Done GC\n");
 
 		m_in_gc = false;
 	}
