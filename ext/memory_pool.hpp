@@ -161,19 +161,19 @@ namespace Channel9
 			Data * old = (Data*)(from) - 1;
 
 			if(old->m_pool == m_cur_pool){
-				DO_TRACE printf("Move %p, type %X already moved\n", from, old->m_type);
+				DO_TRACEGC printf("Move %p, type %X already moved\n", from, old->m_type);
 				return from;
 			}
 
 			if(old->m_type == GC_FORWARD){
-				DO_TRACE printf("Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
+				DO_TRACEGC printf("Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
 				return *(tObj**)from;
 			}
 
 			tObj * n = (tObj*)next(old->m_count, old->m_type);
 			memcpy(n, from, old->m_count);
 
-			DO_TRACE printf("Move %p, type %X <= %p\n", from, old->m_type, n);
+			DO_TRACEGC printf("Move %p, type %X <= %p\n", from, old->m_type, n);
 
 			old->m_type = GC_FORWARD;
 			*(tObj**)from = n;
