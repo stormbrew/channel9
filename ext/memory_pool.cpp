@@ -57,15 +57,16 @@ namespace Channel9
 		{
 			for(Data * d = c->begin(); d != c->end(); d = d->next())
 			{
-				assert(d->m_type != GC_FORWARD); // newly built heap, can't be forwards.
 				switch(d->m_type)
 				{
-				case GC_STRING:  gc_scan( (String*) (d->m_data)); break;
-				case GC_TUPLE:   gc_scan( (Tuple*) (d->m_data)); break;
+				case GC_STRING:  gc_scan( (String*)  (d->m_data)); break;
+				case GC_TUPLE:   gc_scan( (Tuple*)   (d->m_data)); break;
 				case GC_MESSAGE: gc_scan( (Message*) (d->m_data)); break;
 				case GC_CALLABLE_CONTEXT: gc_scan( (CallableContext*) (d->m_data)); break;
 				case GC_RUNNABLE_CONTEXT: gc_scan( (RunnableContext*) (d->m_data)); break;
 				case GC_VARIABLE_FRAME:   gc_scan( (VariableFrame*)   (d->m_data)); break;
+				case GC_FORWARD: assert(d->m_type != GC_FORWARD); // newly built heap, can't be forwards.
+				default: assert(false && "Unknown GC type");
 				}
 			}
 		}
@@ -74,8 +75,7 @@ namespace Channel9
 		{//still on the last chunk, must be fairly full, allocate an extra chunk
 			int new_size = m_cur_chunk->m_capacity * GROWTH;
 
-			Chunk * c = (Chunk *)malloc(sizeof(Chunk) + new_size);
-			c->init(new_size);
+			Chunk * c = new_chunk(new_size);
 			m_cur_chunk->m_next = c;
 		}
 

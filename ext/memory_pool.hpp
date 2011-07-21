@@ -31,7 +31,7 @@ namespace Channel9
 	public:
 		enum
 		{
-			GC_FORWARD          = 0x0, //already been moved
+			GC_FORWARD          = 0xF, //already been moved
 
 			GC_STRING           = 0x3,
 			GC_TUPLE            = 0x4,
@@ -116,8 +116,7 @@ namespace Channel9
 					{ //allocate a new chunk
 						size_t new_size = m_cur_chunk->m_capacity * GROWTH;
 
-						Chunk * c = (Chunk *)malloc(sizeof(Chunk) + new_size);
-						c->init(new_size);
+						Chunk * c = new_chunk(new_size);
 
 						m_cur_chunk->m_next = c;
 						m_cur_chunk = c;
@@ -129,16 +128,19 @@ namespace Channel9
 			return NULL;
 		}
 
+		Chunk * new_chunk(size_t size)
+		{
+			Chunk * c = (Chunk *)malloc(sizeof(Chunk) + size);
+			c->init(size);
+			return c;
+		}
 
 	public:
 		MemoryPool(size_t initial_size)
 		 : m_cur_pool(0), m_in_gc(false)
 		{
-			m_pools[0] = (Chunk *)malloc(sizeof(Chunk) + initial_size);
-			m_pools[0]->init(initial_size);
-
-			m_pools[1] = (Chunk *)malloc(sizeof(Chunk) + initial_size);
-			m_pools[1]->init(initial_size);
+			m_pools[0] = new_chunk(initial_size);
+			m_pools[1] = new_chunk(initial_size);
 
 			m_cur_chunk = m_pools[m_cur_pool];
 		}
