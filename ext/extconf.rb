@@ -11,6 +11,10 @@ if enable_config("trace")
   $CFLAGS << " -DTRACE"
 end
 
+if enable_config("tracegc")
+  $CFLAGS << " -DTRACEGC"
+end
+
 if enable_config("debug")
   $CFLAGS << " -DDEBUG -O0 -g"
 else

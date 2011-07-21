@@ -36,7 +36,7 @@ namespace Channel9
 		m_in_gc = true;
 
 		//switch pools
-		DO_TRACE printf("Start GC, old pool %p, new pool %p\n", m_pools[m_cur_pool], m_pools[!m_cur_pool]);
+		DO_TRACEGC printf("Start GC, old pool %p, new pool %p\n", m_pools[m_cur_pool], m_pools[!m_cur_pool]);
 
 		m_cur_pool = !m_cur_pool;
 		m_cur_chunk = m_pools[m_cur_pool];
@@ -47,7 +47,7 @@ namespace Channel9
 			c->m_used = 0;
 		}
 
-		DO_TRACE printf("Scan roots\n");
+		DO_TRACEGC printf("Scan roots\n");
 
 		//scan the roots
 		std::set<GCRoot*>::iterator it;
@@ -59,10 +59,10 @@ namespace Channel9
 		//scan the new heap copying in the reachable set
 		for(Chunk * c = m_pools[m_cur_pool]; c; c = c->m_next)
 		{
-			DO_TRACE printf("Scan Chunk %p\n", c);
+			DO_TRACEGC printf("Scan Chunk %p\n", c);
 			for(Data * d = c->begin(); d != c->end(); d = d->next())
 			{
-				DO_TRACE printf("Scan Obj %p, type %X\n", d->m_data, d->m_type);
+				DO_TRACEGC printf("Scan Obj %p, type %X\n", d->m_data, d->m_type);
 				switch(d->m_type)
 				{
 				case GC_STRING:  gc_scan( (String*)  (d->m_data)); break;
@@ -85,7 +85,7 @@ namespace Channel9
 			m_cur_chunk->m_next = c;
 		}
 
-		DO_TRACE printf("Done GC\n");
+		DO_TRACEGC printf("Done GC\n");
 
 		m_in_gc = false;
 	}
