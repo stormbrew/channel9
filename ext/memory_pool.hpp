@@ -78,6 +78,8 @@ namespace Channel9
 				}
 				return NULL;
 			}
+			Data * begin(){ return (Data *) m_data; }
+			Data * end()  { return (Data *) (m_data + m_used); }
 		};
 
 		Chunk * m_pools[2]; //two sets of pools, each garbage collection swaps between them, active is stored in m_cur_pool
