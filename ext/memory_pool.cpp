@@ -45,12 +45,14 @@ namespace Channel9
 			c->m_used = 0;
 		}
 
+		//scan the roots
 		std::set<GCRoot*>::iterator it;
 		for (it = m_roots.begin(); it != m_roots.end(); it++)
 		{
 			(*it)->scan();
 		}
 
+		//scan the new heap copying in the reachable set
 		for(Chunk * c = m_pools[m_cur_pool]; c; c = c->m_next)
 		{
 			for(Data * d = c->begin(); d != c->end(); d += d->m_count + sizeof(Data))
@@ -65,6 +67,15 @@ namespace Channel9
 				case GC_VARIABLE_FRAME:   gc_scan( (VariableFrame*)   (d->m_data)); break;
 				}
 			}
+		}
+
+		if(m_cur_chunk->m_next == NULL) //TODO: better heuristic for when to allocate a new chunk
+		{//still on the last chunk, must be fairly full, allocate an extra chunk
+			int new_size = m_cur_chunk->m_capacity * GROWTH;
+
+			Chunk * c = (Chunk *)malloc(sizeof(Chunk) + new_size);
+			c->init(new_size);
+			m_cur_chunk->m_next = c;
 		}
 
 		m_in_gc = false;
