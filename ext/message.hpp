@@ -70,7 +70,7 @@ namespace Channel9
 
 	inline void gc_reallocate(Message **from)
 	{
-		*from = new_message(**from);
+		*from = value_pool.move<Message>(*from);
 	}
 	inline void gc_scan(Message *from)
 	{

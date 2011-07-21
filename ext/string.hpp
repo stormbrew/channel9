@@ -116,9 +116,7 @@ namespace Channel9
 
 	inline void gc_reallocate(String **from)
 	{
-		String *nstr = value_pool.alloc<String>((*from)->m_count + 1, MemoryPool::GC_STRING);
-		memcpy(nstr, *from, sizeof(String) + (*from)->m_count);
-		*from = nstr;
+		*from = value_pool.move<String>(*from);
 	}
 	inline void gc_scan(String *from)
 	{

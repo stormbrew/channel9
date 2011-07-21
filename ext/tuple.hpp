@@ -99,9 +99,7 @@ namespace Channel9
 
 	inline void gc_reallocate(Tuple **from)
 	{
-		Tuple *ntuple = value_pool.alloc<Tuple>((*from)->m_count * sizeof(Value), MemoryPool::GC_TUPLE);
-		memcpy(ntuple, *from, sizeof(Tuple) + (*from)->m_count * sizeof(Value));
-		*from = ntuple;
+		*from = value_pool.move<Tuple>(*from);
 	}
 	inline void gc_scan(Tuple *from)
 	{

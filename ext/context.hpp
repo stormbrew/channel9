@@ -112,16 +112,9 @@ namespace Channel9
 		return ctx;
 	}
 
-	inline void gc_reallocate(RunnableContext **ctx)
+	inline void gc_reallocate(RunnableContext **from)
 	{
-		size_t val_count = (*ctx)->m_instructions->frame_count();
-		if ((*ctx)->m_sp)
-		{
-			val_count += (*ctx)->m_instructions->stack_size();
-		}
-		RunnableContext *nctx = value_pool.alloc<RunnableContext>(sizeof(Value)*val_count, MemoryPool::GC_RUNNABLE_CONTEXT);
-		memcpy(*ctx, nctx, sizeof(RunnableContext) + sizeof(Value) * val_count);
-		*ctx = nctx;
+		*from = value_pool.move<RunnableContext>(*from);
 	}
 	inline void gc_scan(RunnableContext *ctx)
 	{
