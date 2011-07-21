@@ -126,7 +126,7 @@ namespace Channel9
 			Message::const_iterator it;
 			for (it = ptr<Message>(val)->sysargs(); it != ptr<Message>(val)->sysargs_end(); it++)
 				res << inner_inspect(*it) << ",";
-			
+
 			res << "]." << *ptr<Message>(val)->name() << "(";
 
 			for (it = ptr<Message>(val)->args(); it != ptr<Message>(val)->args_end(); it++)
@@ -149,3 +149,4 @@ namespace Channel9
 		return std::string("<") + inner_inspect(val) + ">";
 	}
 }
+

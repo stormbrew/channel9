@@ -68,11 +68,11 @@ namespace Channel9
 				m_used = 0;
 			}
 
-			uchar * alloc(size_t size)
+			Data * alloc(size_t size)
 			{
 				if(m_used + size <= m_capacity)
 				{
-					uchar * ret = m_data + m_used;
+					Data * ret = (Data*)(m_data + m_used);
 					m_used += size;
 					return ret;
 				}
@@ -94,13 +94,12 @@ namespace Channel9
 			size += (8 - size % 8) % 8; //8 byte align
 
 			while(1){
-				uchar * ptr = m_cur_chunk->alloc(size + sizeof(Data));
+				Data * data = m_cur_chunk->alloc(size + sizeof(Data));
 
-				if(ptr){
-					Data * data = (Data *)ptr;
+				if(data){
 					data->m_type = type;
 					data->m_count = size;
-					return (uchar *)(data->m_data);
+					return data->m_data;
 				}
 
 				if(m_cur_chunk->m_next)
@@ -144,6 +143,20 @@ namespace Channel9
 			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type));
 		}
 
+		template <typename tObj>
+		tObj *move(tObj * from)
+		{
+			Data * old = (Data*)(from - sizeof(Data));
+
+			if(old->m_type == GC_FORWARD)
+				return *(tObj**)from;
+
+			tObj * n = (tObj*)next(old->m_count, old->m_type);
+			memcpy(n, from, old->m_count);
+			old->m_type = GC_FORWARD;
+			*(tObj**)from = n;
+			return n;
+		}
 
 		void unregister_root(GCRoot *root);
 		void register_root(GCRoot *root);

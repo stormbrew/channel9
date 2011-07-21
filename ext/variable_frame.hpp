@@ -41,10 +41,7 @@ namespace Channel9
 
 	inline void gc_reallocate(VariableFrame **from)
 	{
-		size_t local_count = (*from)->m_instructions->local_count();
-		VariableFrame *nframe = value_pool.alloc<VariableFrame>(local_count * sizeof(Value), MemoryPool::GC_VARIABLE_FRAME);
-		memcpy(nframe, *from, sizeof(VariableFrame) + local_count * sizeof(Value));
-		(*from) = nframe;
+		*from = value_pool.move<VariableFrame>(*from);
 	}
 	inline void gc_scan(VariableFrame *from)
 	{
