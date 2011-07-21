@@ -8,7 +8,7 @@
 
 namespace Channel9
 {
-	MemoryPool value_pool(8*1024*1024);
+	MemoryPool value_pool(1024);
 
 	Value Nil = {NIL};
 	Value True = {BTRUE};

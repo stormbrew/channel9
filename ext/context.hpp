@@ -114,7 +114,10 @@ namespace Channel9
 
 	inline void gc_reallocate(RunnableContext **from)
 	{
-		*from = value_pool.move<RunnableContext>(*from);
+		RunnableContext *nctx = value_pool.move<RunnableContext>(*from);
+		if (nctx->m_sp)
+			nctx->m_sp = nctx->m_data + ((*from)->m_sp - (*from)->m_data);
+		*from = nctx;
 	}
 	inline void gc_scan(RunnableContext *ctx)
 	{
