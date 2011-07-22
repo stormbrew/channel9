@@ -90,7 +90,7 @@ namespace Channel9
 			{
 				uint32_t * i = (uint32_t *) m_data,
 				         * e = (uint32_t *) (m_data + m_capacity);
-				for(; i != e; ++i)
+				for(; i < e; ++i)
 					*i = 0xDEADBEEF;
 			}
 		};
