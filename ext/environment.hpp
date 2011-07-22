@@ -5,6 +5,8 @@
 
 #include "channel9.hpp"
 #include "memory_pool.hpp"
+#include "instruction.hpp"
+#include "value.hpp"
 
 namespace Channel9
 {
@@ -16,6 +18,15 @@ namespace Channel9
 		RunnableContext *m_context;
 		bool m_running;
 		special_map m_specials;
+
+		// These put important Value data where the garbage
+		// collector can find them while running an instruction.
+		Instruction m_ipos;
+		Value m_vstack[4]; // very important any given instruction not overload this
+		size_t m_vspos;
+
+		const Value &vstore(const Value &val) { return m_vstack[m_vspos++] = val; }
+		void clear_vstore() { m_vspos = 0; }
 
 	public:
 		Environment();

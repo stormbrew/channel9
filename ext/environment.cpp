@@ -10,7 +10,8 @@
 namespace Channel9
 {
 	Environment::Environment()
-	 : GCRoot(value_pool), m_context(NULL), m_running(false)
+	 : GCRoot(value_pool), m_context(NULL), m_running(false),
+	   m_vstack(), m_vspos(0)
 	{}
 
 	const Value &Environment::special_channel(const std::string &name) const
@@ -40,6 +41,11 @@ namespace Channel9
 	void Environment::scan()
 	{
 		gc_reallocate(&m_context);
+		gc_scan(&m_ipos);
+		for (size_t i = 0; i < m_vspos; i++)
+		{
+			gc_reallocate(&m_vstack[i]);
+		}
 		for (special_map::iterator it = m_specials.begin(); it != m_specials.end(); it++)
 		{
 			gc_reallocate(&it->second);
@@ -48,6 +54,7 @@ namespace Channel9
 
 	void Environment::run(RunnableContext *context)
 	{
+		const Instruction &ins = m_ipos;
 		m_context = context;
 		if (!context)
 		{
@@ -56,8 +63,8 @@ namespace Channel9
 		{
 			DO_TRACE printf("Entering running state with %p\n", context);
 			m_running = true;
-			const Instruction *it = m_context->next();
-			while (m_context && it != m_context->end())
+			const Instruction *ipos = m_context->next();
+			while (m_context && ipos != m_context->end())
 			{
 				size_t output = -1;
 				size_t expected = -1;
@@ -68,11 +75,12 @@ namespace Channel9
 					output = (out); \
 				}
 
-				const Instruction &ins = *it;
+				m_ipos = *ipos;
+
 				DO_TRACE {
 					printf("Instruction: %s@%d\n", 
 						inspect(ins).c_str(),
-						(int)(it - &*m_context->instructions().begin())
+						(int)(ipos - &*m_context->instructions().begin())
 						);
 					printf("Stack: %d deep", (int)m_context->stack_count());
 					const Value *it;
@@ -213,9 +221,11 @@ namespace Channel9
 
 				case CHANNEL_NEW: {
 					CHECK_STACK(0, 1);
-					RunnableContext *nctx = new_context(*m_context);
+					const Value &octx = vstore(value(m_context));
+					RunnableContext *nctx = new_context(octx);
 					nctx->jump(ins.arg3.machine_num);
 					m_context->push(value(nctx));
+					clear_vstore();
 					}
 					break;
 				case CHANNEL_SPECIAL:
@@ -224,28 +234,32 @@ namespace Channel9
 					break;
 				case CHANNEL_SEND: {
 					CHECK_STACK(3, -1);
-					Value val = m_context->top(); m_context->pop();
-					Value ret = m_context->top(); m_context->pop();
-					Value channel = m_context->top(); m_context->pop();
+					const Value &val = vstore(m_context->top()); m_context->pop();
+					const Value &ret = vstore(m_context->top()); m_context->pop();
+					const Value &channel = vstore(m_context->top()); m_context->pop();
 
 					channel_send(this, channel, val, ret);
+					clear_vstore();
 					}
 					break;
 				case CHANNEL_CALL:{
 					CHECK_STACK(2, -1);
-					Value val = m_context->top(); m_context->pop();
-					Value channel = m_context->top(); m_context->pop();
+					const Value &val = vstore(m_context->top()); m_context->pop();
+					const Value &channel = vstore(m_context->top()); m_context->pop();
+					const Value &ret = vstore(value(m_context));
 
-					channel_send(this, channel, val, value(m_context));
+					channel_send(this, channel, val, ret);
+					clear_vstore();
 					}
 					break;
 				case CHANNEL_RET:{
 					CHECK_STACK(2, -1);
-					Value val = m_context->top(); m_context->pop();
-					Value channel = m_context->top(); m_context->pop();
+					const Value &val = vstore(m_context->top()); m_context->pop();
+					const Value &channel = vstore(m_context->top()); m_context->pop();
 
 					// TODO: Special channel for invalid returns.
-					channel_send(this, channel, val, value(m_context));
+					channel_send(this, channel, val, Nil);
+					clear_vstore();
 					}
 					break;
 
@@ -389,7 +403,7 @@ namespace Channel9
 
 				case STRING_COERCE: {
 					const Value &coerce = ins.arg1;
-					const Value &val = m_context->top();
+					const Value &val = vstore(m_context->top());
 					if (is(val, STRING))
 					{
 						CHECK_STACK(1, 2);
@@ -401,6 +415,7 @@ namespace Channel9
 						channel_send(this, val, value(new_message(coerce)), value(m_context));
 					}
 					}
+					clear_vstore();
 					break;
 
 				case STRING_NEW: {
@@ -525,7 +540,7 @@ namespace Channel9
 						assert(m_context->stack_count() == expected);
 				}
 
-				it = m_context->next();
+				ipos = m_context->next();
 			}
 			DO_TRACE printf("Exiting running state with context %p\n", m_context);
 			m_running = false;
