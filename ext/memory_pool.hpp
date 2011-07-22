@@ -99,6 +99,11 @@ namespace Channel9
 
 		uchar *next(size_t size, uint32_t type)
 		{
+			assert(size < 10000);
+
+			if(!m_in_gc)
+				DO_TRACEGC printf("Alloc %u type %x ... ", size, type);
+
 			assert(type != GC_FORWARD); // never alloc a forwarding ref.
 			size += (8 - size % 8) % 8; //8 byte align
 
@@ -109,6 +114,10 @@ namespace Channel9
 					data->m_type = type;
 					data->m_pool = m_cur_pool;
 					data->m_count = size;
+
+					if(!m_in_gc)
+						DO_TRACEGC printf("alloc return %p\n", data->m_data);
+
 					return data->m_data;
 				}
 
