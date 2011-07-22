@@ -83,6 +83,8 @@ namespace Channel9
 
 			Chunk * c = new_chunk(new_size);
 			m_cur_chunk->m_next = c;
+
+			DO_TRACEGC printf("Alloc new trailing chunk\n");
 		}
 
 		DO_TRACEGC printf("Done GC\n");
