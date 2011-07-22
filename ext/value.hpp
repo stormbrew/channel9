@@ -49,13 +49,6 @@ namespace Channel9
 		RunnableContext *ret_ctx_p;
 	};
 
-	template <typename tPtr>
-	tPtr *ptr(const Value &val)
-	{
-		DO_DEBUG value_pool.validate((tPtr*)(val.raw & VALUE_MASK));
-		return (tPtr*)(val.raw & VALUE_MASK);
-	}
-
 	extern Value Nil;
 	extern Value True;
 	extern Value False;
@@ -94,6 +87,13 @@ namespace Channel9
 	}
 
 	inline const Value &bvalue(bool truthy) { return truthy ? True : False; }
+
+	template <typename tPtr>
+	tPtr *ptr(const Value &val)
+	{
+		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) value_pool.validate((tPtr*)(val.raw & VALUE_MASK));
+		return (tPtr*)(val.raw & VALUE_MASK);
+	}
 
 	template <typename tPtr>
 	inline Value make_value_ptr(ValueType type, tPtr value)
