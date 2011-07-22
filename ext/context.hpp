@@ -101,6 +101,14 @@ namespace Channel9
 		ctx->m_sp = NULL;
 		return ctx;
 	}
+	inline RunnableContext *new_context(const Value &copy)
+	{
+		size_t frame_count = ptr<RunnableContext>(copy)->m_instructions->frame_count();
+		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), MemoryPool::GC_RUNNABLE_CONTEXT);
+		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
+		ctx->m_sp = NULL;
+		return ctx;		
+	}
 	inline RunnableContext *activate_context(const RunnableContext &copy)
 	{
 		size_t frame_count = copy.m_instructions->frame_count();
