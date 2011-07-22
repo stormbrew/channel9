@@ -89,11 +89,11 @@ namespace Channel9
 			res << val.machine_num;
 			break;
 		}
-//		case FLOAT_NUM: {
-//			res << "float:";
-//			res << val.float_num;
-//			break;
-//		}
+		case FLOAT_NUM: {
+			res << "float:";
+			res << float_num(val);
+			break;
+		}
 		case STRING: {
 			res << "str:'";
 			if (ptr<String>(val)->length() > 128)
