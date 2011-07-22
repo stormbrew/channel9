@@ -102,7 +102,7 @@ namespace Channel9
 			assert(size < 10000);
 
 			if(!m_in_gc)
-				DO_TRACEGC printf("Alloc %u type %x ... ", size, type);
+				DO_TRACEGC printf("Alloc %u type %x ... ", (unsigned)size, type);
 
 			assert(type != GC_FORWARD); // never alloc a forwarding ref.
 			size += (8 - size % 8) % 8; //8 byte align
