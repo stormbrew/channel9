@@ -172,6 +172,14 @@ namespace Channel9
 		}
 
 		template <typename tObj>
+		void validate(tObj * from)
+		{
+			Data * ptr = (Data*)(from) - 1;
+			if(!m_in_gc)
+				assert(ptr->m_pool == m_cur_pool);
+		}
+
+		template <typename tObj>
 		tObj *move(tObj * from)
 		{
 			Data * old = (Data*)(from) - 1;

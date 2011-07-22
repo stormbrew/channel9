@@ -52,6 +52,7 @@ namespace Channel9
 	template <typename tPtr>
 	tPtr *ptr(const Value &val)
 	{
+		DO_DEBUG value_pool.validate((tPtr*)(val.raw & VALUE_MASK));
 		return (tPtr*)(val.raw & VALUE_MASK);
 	}
 
