@@ -86,6 +86,13 @@ namespace Channel9
 			}
 			Data * begin(){ return (Data *) m_data; }
 			Data * end()  { return (Data *) (m_data + m_used); }
+			void deadbeef()
+			{
+				uint32_t * i = (uint32_t *) m_data,
+				         * e = (uint32_t *) (m_data + m_capacity);
+				for(; i != e; ++i)
+					*i = 0xDEADBEEF;
+			}
 		};
 
 		Chunk * m_pools[2]; //two sets of pools, each garbage collection swaps between them, active is stored in m_cur_pool

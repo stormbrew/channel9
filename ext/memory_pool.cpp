@@ -87,6 +87,14 @@ namespace Channel9
 			DO_TRACEGC printf("Alloc new trailing chunk\n");
 		}
 
+		for(Chunk * c = m_pools[!m_cur_chunk]; c; c = c->m_next)
+		{
+			DO_DEBUG c->deadbeef();
+			c->m_used = 0;
+		}
+
+
+
 		DO_TRACEGC printf("Done GC\n");
 
 		m_in_gc = false;
