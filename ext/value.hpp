@@ -40,7 +40,7 @@ namespace Channel9
 	{
 		unsigned long long raw;
 		long long machine_num;
-//		double float_num; // commented out until I can get this done properly.
+		double float_num;
 
 		const String *str_p;
 		const Tuple *tuple_p;
@@ -102,13 +102,22 @@ namespace Channel9
 		return val;
 	}
 	inline Value value(long long machine_num)
-	{
+	{//cut off the top 4 bits, maintaining the sign
 		unsigned long long type = (unsigned long long)(machine_num >> 4) & TYPE_MASK;
 		unsigned long long num = type | ((unsigned long long)(machine_num) & VALUE_MASK);
 		Value val = {((unsigned long long)(num))};
 		return val;
 	}
-//	inline Value value(double float_num) MAKE_VALUE(FLOAT_NUM, float_num);
+	inline Value value(double float_num)
+	{//cut off the bottom 4 bits of precision
+		unsigned long long num = FLOAT_NUM | (((unsigned long long)float_num) >> 4);
+		Value val = {((unsigned long long)(num))};
+		return val;
+	}
+	inline double float_num(Value val)
+	{
+		return (double)(val.raw << 4);
+	}
 
 	inline Value value(const std::string &str) { return make_value_ptr(STRING, new_string(str)); }
 	inline Value value(const String *str) { return make_value_ptr(STRING, str); }
