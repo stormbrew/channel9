@@ -606,11 +606,12 @@ module Channel9
             builder.local_set(find_local_depth(splatarg, true), splatarg)
           end
           if (blockarg)
-            no_yield_label = builder.make_label("call.no_yield")
-            transform_colon3(:Proc)
+            no_yield_label = builder.make_label("no_yield")
             builder.frame_get("yield")
             builder.dup_top
             builder.jmp_if_not(no_yield_label)
+            transform_colon3(:Proc)
+            builder.swap
             builder.message_new(:new_from_prim, 0, 1)
             builder.channel_call
             builder.pop
@@ -1209,6 +1210,7 @@ module Channel9
           end
           builder.pop # don't want the result of the individual assignments.
         end
+        builder.pop # tuple from the tuple_unpack is still there.
       end
 
       # If given a nil value, assumes the rhs is
@@ -1664,11 +1666,13 @@ module Channel9
       end
 
       def transform_rescue(try, *handlers)
-        try_label = builder.make_label("try")
-        rescue_label = builder.make_label("rescue")
-        retry_label = builder.make_label("rescue.retry")
-        not_raise_label = builder.make_label("rescue.not_raise")
-        done_label = builder.make_label("rescue.done")
+        prefix = builder.make_label("rescue")
+        try_label = prefix + "try"
+        rescue_label = prefix + "rescue"
+        retry_label = prefix + "retry"
+        not_raise_label = prefix + "not_raise"
+        handled_label = prefix + "handled"
+        done_label = prefix + "done"
 
         # Set the unwinder.
         builder.channel_special(:unwinder)
@@ -1702,7 +1706,7 @@ module Channel9
 
           builder.message_unpack(1,0,0)
 
-          with_state(:rescue_done => done_label) do
+          with_state(:rescue_done => handled_label) do
             handlers.each do |handler|
               transform(handler)
             end
@@ -1715,10 +1719,12 @@ module Channel9
         builder.swap
         builder.channel_ret
 
-        builder.set_label(done_label)
+        builder.set_label(handled_label)
         # get rid of the unwind message.
         builder.swap
         builder.pop
+
+        builder.set_label(done_label)
       end
 
       def transform_ensure(body, ens)
