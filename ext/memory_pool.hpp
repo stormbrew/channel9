@@ -58,7 +58,7 @@ namespace Channel9
 			uchar    m_data[0]; //the actual data, 8 byte aligned
 
 			Data *next() const { return (Data*)((uchar*)(this + 1) + m_count); }
-			static Data *for_ptr(void *ptr) { return (Data*)ptr - 1; }
+			static Data *ptr_for(const void *ptr) { return (Data*)ptr - 1; }
 		};
 
 		struct Chunk
