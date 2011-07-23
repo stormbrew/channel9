@@ -84,4 +84,11 @@ namespace Channel9
 			gc_scan(&*it);
 		}
 	}
+
+	// purely for GCRef, just calls scan, thus reallocates the objects
+	// pointed to. Doesn't alter the pointer.
+	inline void gc_reallocate(IStream **stream)
+	{
+		gc_scan(*stream);
+	}
 }
