@@ -336,7 +336,7 @@ module Channel9
       end
 
       def add_method(name, channel = nil, &cb)
-        raise "BOOM: Invalid channel #{channel}" if !channel.kind_of?(CallableContext) && !cb
+        raise "BOOM: Invalid channel #{channel}" if !channel.kind_of?(Context) && !cb
         channel ||= CallbackChannel.new(&cb)
         @instance_methods[name] = channel
       end
