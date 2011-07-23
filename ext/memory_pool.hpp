@@ -150,6 +150,7 @@ namespace Channel9
 
 		Chunk * new_chunk(size_t size)
 		{
+			size += (8 - size % 8) % 8; //8 byte align
 			Chunk * c = (Chunk *)malloc(sizeof(Chunk) + size);
 			c->init(size);
 			return c;
