@@ -35,19 +35,6 @@ namespace Channel9
 
 		Value m_data[0];
 
-		void send(Environment *cenv, const Value &val, const Value &ret)
-		{
-			if (m_sp)
-			{
-				push(val);
-				push(ret);
-				cenv->run(this);
-			} else {
-				RunnableContext *nctx = activate_context(*this);
-				nctx->send(cenv, val, ret);
-			}
-		}
-
 		const IStream &instructions() { return *m_instructions; }
 		const Instruction *next() { return m_pos++; }
 		const Instruction *peek() const { return m_pos; }
@@ -95,6 +82,7 @@ namespace Channel9
 	}
 	inline RunnableContext *new_context(const RunnableContext &copy)
 	{
+		value_pool.validate(&copy);
 		size_t frame_count = copy.m_instructions->frame_count();
 		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), MemoryPool::GC_RUNNABLE_CONTEXT);
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
@@ -109,13 +97,14 @@ namespace Channel9
 		ctx->m_sp = NULL;
 		return ctx;		
 	}
-	inline RunnableContext *activate_context(const RunnableContext &copy)
+	inline RunnableContext *activate_context(const Value &copy)
 	{
-		size_t frame_count = copy.m_instructions->frame_count();
-		size_t frame_extra = sizeof(Value)*(frame_count + copy.m_instructions->stack_size());
+		IStream *istream = ptr<RunnableContext>(copy)->m_instructions;
+		size_t frame_count = istream->frame_count();
+		size_t frame_extra = sizeof(Value)*(frame_count + istream->stack_size());
 		RunnableContext *ctx = value_pool.alloc<RunnableContext>(frame_extra, MemoryPool::GC_RUNNABLE_CONTEXT);
 
-		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
+		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_sp = ctx->m_data + frame_count;
 		return ctx;
 	}
@@ -153,8 +142,15 @@ namespace Channel9
 	{
 		switch (type(channel))
 		{
-		case RUNNABLE_CONTEXT:
-			ptr<RunnableContext>(channel)->send(env, val, ret);
+		case RUNNABLE_CONTEXT: {
+			RunnableContext *ctx = ptr<RunnableContext>(channel);
+			if (!ctx->m_sp)
+				ctx = activate_context(channel);
+
+			ctx->push(val);
+			ctx->push(ret);
+			env->run(ctx);
+			}
 			break;
 		case CALLABLE_CONTEXT:
 			ptr<CallableContext>(channel)->send(env, val, ret);

@@ -379,7 +379,8 @@ static VALUE Context_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE
 
 	RunnableContext *ctx = get_gc_val<RunnableContext*>(self);
 
-	ctx->send(cenv, rb_to_c9(rb_val), rb_to_c9(rb_ret));
+	// TODO: This will probably not garbage collect properly.
+	channel_send(cenv, value(ctx), rb_to_c9(rb_val), rb_to_c9(rb_ret));
 
 	return Qnil;
 }
