@@ -58,6 +58,7 @@ namespace Channel9
 			uchar    m_data[0]; //the actual data, 8 byte aligned
 
 			Data *next() const { return (Data*)((uchar*)(this + 1) + m_count); }
+			static Data *for_ptr(void *ptr) { return (Data*)ptr - 1; }
 		};
 
 		struct Chunk
@@ -175,9 +176,10 @@ namespace Channel9
 		template <typename tObj>
 		void validate(tObj * from)
 		{
-			Data * ptr = (Data*)(from) - 1;
 			if(!m_in_gc)
-				assert(ptr->m_pool == m_cur_pool);
+			{
+				assert(Data::ptr_for(from)->m_pool == m_cur_pool);
+			}
 		}
 
 		template <typename tObj>
