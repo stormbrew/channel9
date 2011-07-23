@@ -24,6 +24,12 @@ namespace Channel9
 		ctx->scan();
 	}
 
+	// purely for gcref, just calls gc_scan. Doesn't move the pointer.
+	inline void gc_reallocate(CallableContext **ctx)
+	{
+		(*ctx)->scan();
+	}
+
 	inline RunnableContext *activate_context(const RunnableContext &copy);
 
 	struct RunnableContext

@@ -29,7 +29,7 @@ VALUE rb_cUndef;
 VALUE rb_Undef;
 
 static VALUE c9_to_rb(const Value &val);
-static Value rb_to_c9(VALUE val);
+static GCRef<Value> rb_to_c9(VALUE val);
 static VALUE rb_Environment_new(Environment *env);
 static VALUE rb_Message_new(Message *msg);
 static VALUE rb_CallableContext_new(CallableContext *ctx);
@@ -68,6 +68,7 @@ template <typename tVal>
 GCRef<tVal> *get_gc_ref_p(VALUE obj)
 {
 	GCRef<tVal> *rptr;
+	assert(TYPE(obj) == T_DATA);
 	Data_Get_Struct(obj, GCRef<tVal>, rptr);
 	return rptr;
 }
@@ -86,9 +87,9 @@ tVal &get_gc_val(VALUE obj)
 
 template <typename tVal>
 struct stupid_shim_for_old_gcc {
-	static void free_gc_ref(VALUE obj)
+	static void free_gc_ref(GCRef<tVal> *obj)
 	{
-		delete get_gc_ref_p<tVal>(obj);
+		delete obj;
 	}
 };
 
@@ -99,7 +100,7 @@ VALUE wrap_gc_ref(VALUE klass, const GCRef<tVal> &ref)
 	return Data_Wrap_Struct(klass, 0, free_method(&stupid_shim_for_old_gcc<tVal>::free_gc_ref), rptr);
 }
 
-static Value rb_to_c9(VALUE val)
+static GCRef<Value> rb_to_c9(VALUE val)
 {
 	int type = TYPE(val);
 	switch (type)
@@ -123,7 +124,7 @@ static Value rb_to_c9(VALUE val)
 		Tuple::iterator out = tuple->begin();
 		for (size_t i = 0; i < len; ++i)
 		{
-			*out++ = rb_to_c9(rb_ary_entry(val, i));
+			*out++ = *rb_to_c9(rb_ary_entry(val, i));
 		}
 		return value(tuple);
 		}
@@ -143,8 +144,7 @@ static Value rb_to_c9(VALUE val)
 	case T_DATA: {
 		VALUE klass = rb_class_of(val);
 		if (klass == rb_cCallableContext) {
-			CallableContext *ctx;
-			Data_Get_Struct(val, CallableContext, ctx);
+			CallableContext *ctx = get_gc_val<CallableContext*>(val);
 			return value(ctx);
 		} else if (klass == rb_cContext) {
 			RunnableContext *ctx = get_gc_val<RunnableContext*>(val);
@@ -232,6 +232,7 @@ static VALUE Environment_new(VALUE self, VALUE debug)
 static VALUE Environment_special_channel(VALUE self, VALUE name)
 {
 	Environment *env;
+	assert(TYPE(self) == T_DATA);
 	Data_Get_Struct(self, Environment, env);
 	switch (TYPE(name))
 	{
@@ -243,11 +244,12 @@ static VALUE Environment_special_channel(VALUE self, VALUE name)
 static VALUE Environment_set_special_channel(VALUE self, VALUE name, VALUE channel)
 {
 	Environment *env;
+	assert(TYPE(self) == T_DATA);
 	Data_Get_Struct(self, Environment, env);
 	switch (TYPE(name))
 	{
-	case T_SYMBOL: env->set_special_channel(rb_id2name(SYM2ID(name)), rb_to_c9(channel)); break;
-	case T_STRING: env->set_special_channel(STR2CSTR(name), rb_to_c9(channel)); break;
+	case T_SYMBOL: env->set_special_channel(rb_id2name(SYM2ID(name)), *rb_to_c9(channel)); break;
+	case T_STRING: env->set_special_channel(STR2CSTR(name), *rb_to_c9(channel)); break;
 	}
 	return Qnil;
 }
@@ -255,6 +257,7 @@ static VALUE Environment_set_special_channel(VALUE self, VALUE name, VALUE chann
 static VALUE Environment_current_context(VALUE self)
 {
 	Environment *env;
+	assert(TYPE(self) == T_DATA);
 	Data_Get_Struct(self, Environment, env);
 
 	RunnableContext *ctx = env->context();
@@ -268,10 +271,11 @@ static VALUE Environment_set_current_context(VALUE self, VALUE rb_ctx)
 {
 	Environment *env;
 	RunnableContext *ctx = NULL;
+	assert(TYPE(self) == T_DATA);
 	Data_Get_Struct(self, Environment, env);
 	if (rb_ctx != Qnil)
 	{
-		Data_Get_Struct(rb_ctx, RunnableContext, ctx);
+		ctx = get_gc_val<RunnableContext*>(rb_ctx);
 	}
 
 	env->run(ctx);
@@ -292,7 +296,7 @@ static void Init_Channel9_Environment()
 static VALUE Stream_new(VALUE self)
 {
 	IStream *stream = new IStream();
-	VALUE obj = Data_Wrap_Struct(rb_cStream, 0, 0, stream);
+	VALUE obj = wrap_gc_ref(rb_cStream, gc_ref(stream));
 	rb_obj_call_init(obj, 0, 0);
 	return obj;
 }
@@ -301,42 +305,42 @@ static VALUE Stream_add_instruction(VALUE self, VALUE name, VALUE args)
 {
 	Instruction instruction = {NOP, {0}, {0}, {0}};
 
-	IStream *stream;
-	Data_Get_Struct(self, IStream, stream);
+	assert(TYPE(self) == T_DATA);
+	GCRef<IStream*> stream = get_gc_ref<IStream*>(self);
 
 	instruction.instruction = inum(STR2CSTR(name));
 
 	size_t argc = RARRAY_LEN(args);
 	if (argc > 0)
-		instruction.arg1 = rb_to_c9(rb_ary_entry(args, 0));
+		instruction.arg1 = *rb_to_c9(rb_ary_entry(args, 0));
 	
 	if (argc > 1)
-		instruction.arg2 = rb_to_c9(rb_ary_entry(args, 1));
+		instruction.arg2 = *rb_to_c9(rb_ary_entry(args, 1));
 
 	if (argc > 2)
-		instruction.arg3 = rb_to_c9(rb_ary_entry(args, 2));
+		instruction.arg3 = *rb_to_c9(rb_ary_entry(args, 2));
 
-	stream->add(instruction);
+	(*stream)->add(instruction);
 
 	return self;
 }
 
 static VALUE Stream_add_label(VALUE self, VALUE name)
 {
-	IStream *stream;
-	Data_Get_Struct(self, IStream, stream);
+	assert(TYPE(self) == T_DATA);
+	GCRef<IStream*> stream = get_gc_ref<IStream*>(self);
 
-	stream->set_label(STR2CSTR(name));
+	(*stream)->set_label(STR2CSTR(name));
 
 	return self;
 }
 
 static VALUE Stream_add_line_info(VALUE self, VALUE file, VALUE line, VALUE pos, VALUE extra)
 {
-	IStream *stream;
-	Data_Get_Struct(self, IStream, stream);
+	assert(TYPE(self) == T_DATA);
+	GCRef<IStream*> stream = get_gc_ref<IStream*>(self);
 
-	stream->set_source_pos(SourcePos(STR2CSTR(file), FIX2INT(line), FIX2INT(pos), STR2CSTR(extra)));
+	(*stream)->set_source_pos(SourcePos(STR2CSTR(file), FIX2INT(line), FIX2INT(pos), STR2CSTR(extra)));
 
 	return self;
 }
@@ -359,13 +363,14 @@ static VALUE rb_Context_new(RunnableContext *ctx)
 static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 {
 	Environment *env;
-	IStream *stream;
 
+	assert(TYPE(rb_env) == T_DATA);
 	Data_Get_Struct(rb_env, Environment, env);
-	Data_Get_Struct(rb_stream, IStream, stream);
+	assert(TYPE(rb_stream) == T_DATA);
+	GCRef<IStream*> stream = get_gc_ref<IStream*>(rb_stream);
 
-	stream->normalize();
-	RunnableContext *ctx = new_context(stream);
+	(*stream)->normalize();
+	RunnableContext *ctx = new_context(*stream);
 	VALUE obj = wrap_gc_ref(rb_cContext, gc_ref(ctx));
 	VALUE argv[2] = {rb_env, rb_stream};
 	rb_obj_call_init(obj, 2, argv);
@@ -375,12 +380,14 @@ static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 static VALUE Context_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret)
 {
 	Environment *cenv;
+	assert(TYPE(rb_cenv) == T_DATA);
 	Data_Get_Struct(rb_cenv, Environment, cenv);
 
-	RunnableContext *ctx = get_gc_val<RunnableContext*>(self);
+	GCRef<Value> ctx = value(get_gc_val<RunnableContext*>(self));
+	GCRef<Value> val = rb_to_c9(rb_val);
+	GCRef<Value> ret = rb_to_c9(rb_ret);
 
-	// TODO: This will probably not garbage collect properly.
-	channel_send(cenv, value(ctx), rb_to_c9(rb_val), rb_to_c9(rb_ret));
+	channel_send(cenv, *ctx, *val, *ret);
 
 	return Qnil;
 }
@@ -399,7 +406,7 @@ static VALUE rb_CallableContext_new(CallableContext *ctx)
 	{
 		return robj->data();
 	} else {
-		VALUE obj = Data_Wrap_Struct(rb_cCallableContext, 0, 0, ctx);
+		VALUE obj = wrap_gc_ref(rb_cCallableContext, gc_ref(ctx));
 		rb_obj_call_init(obj, 0, 0);
 		return obj;
 	}
@@ -408,12 +415,13 @@ static VALUE rb_CallableContext_new(CallableContext *ctx)
 static VALUE CallableContext_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret)
 {
 	Environment *cenv;
-	CallableContext *ctx;
-
+	assert(TYPE(rb_cenv) == T_DATA);
 	Data_Get_Struct(rb_cenv, Environment, cenv);
-	Data_Get_Struct(self, CallableContext, ctx);
 
-	ctx->send(cenv, rb_to_c9(rb_val), rb_to_c9(rb_ret));
+	assert(TYPE(self) == T_DATA);
+	CallableContext *ctx = get_gc_val<CallableContext*>(self);
+
+	ctx->send(cenv, *rb_to_c9(rb_val), *rb_to_c9(rb_ret));
 
 	return Qnil;
 }
@@ -447,23 +455,22 @@ static VALUE rb_Message_new(Message *msg)
 static VALUE Message_new(VALUE self, VALUE name, VALUE sysargs, VALUE args)
 {
 	size_t sysarg_count = RARRAY_LEN(sysargs), arg_count = RARRAY_LEN(args);
-	Value c9_name = rb_to_c9(name);
-	assert(is(c9_name, STRING));
+	GCRef<Value> c9_name = rb_to_c9(name);
+	assert(is(*c9_name, STRING));
 
-	Message *msg = new_message(ptr<String>(c9_name), sysarg_count, arg_count);
+	GCRef<Message*> msg = new_message(*c9_name, sysarg_count, arg_count);
 
-	Message::iterator out;
 	size_t i;
-	for (out = msg->sysargs(), i = 0; i < sysarg_count; i++)
+	for (i = 0; i < sysarg_count; i++)
 	{
-		*out++ = rb_to_c9(rb_ary_entry(sysargs, i));
+		(*msg)->sysargs()[i] = *rb_to_c9(rb_ary_entry(sysargs, i));
 	}
-	for (out = msg->args(), i = 0; i < arg_count; i++)
+	for (i = 0; i < arg_count; i++)
 	{
-		*out++ = rb_to_c9(rb_ary_entry(args, i));
+		(*msg)->args()[i] = *rb_to_c9(rb_ary_entry(args, i));
 	}
 
-	VALUE obj = wrap_gc_ref(rb_cMessage, gc_ref(msg));
+	VALUE obj = wrap_gc_ref(rb_cMessage, msg);
 	VALUE argv[3] = {name, sysargs, args};
 	rb_obj_call_init(obj, 3, argv);
 	return obj;
@@ -485,12 +492,13 @@ static void Init_Channel9_Undef()
 static VALUE Primitive_channel_send(VALUE self, VALUE cenv, VALUE val, VALUE ret)
 {
 	Environment *c9_cenv;
-	Value c9_channel = rb_to_c9(self);
-	Value c9_val = rb_to_c9(val);
-	Value c9_ret = rb_to_c9(ret);
+	GCRef<Value> c9_channel = rb_to_c9(self);
+	GCRef<Value> c9_val = rb_to_c9(val);
+	GCRef<Value> c9_ret = rb_to_c9(ret);
 
+	assert(TYPE(cenv) == T_DATA);
 	Data_Get_Struct(cenv, Environment, c9_cenv);
-	channel_send(c9_cenv, c9_channel, c9_val, c9_ret);
+	channel_send(c9_cenv, *c9_channel, *c9_val, *c9_ret);
 	return Qnil;
 }
 
