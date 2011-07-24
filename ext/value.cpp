@@ -42,16 +42,19 @@ namespace Channel9
 			Tuple *tuple = ptr<Tuple>(*from);
 			gc_reallocate(&tuple);
 			*from = make_value_ptr(TUPLE, tuple);
+			break;
 		}
 		case MESSAGE: {
 			Message *msg = ptr<Message>(*from);
 			gc_reallocate(&msg);
 			*from = make_value_ptr(MESSAGE, msg);
+			break;
 		}
 		case RUNNABLE_CONTEXT: {
 			RunnableContext *ctx = ptr<RunnableContext>(*from);
 			gc_reallocate(&ctx);
 			*from = make_value_ptr(RUNNABLE_CONTEXT, ctx);
+			break;
 		}
 		default: break;
 		}
