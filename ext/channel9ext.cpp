@@ -31,9 +31,9 @@ VALUE rb_Undef;
 static VALUE c9_to_rb(const Value &val);
 static GCRef<Value> rb_to_c9(VALUE val);
 static VALUE rb_Environment_new(Environment *env);
-static VALUE rb_Message_new(Message *msg);
-static VALUE rb_CallableContext_new(CallableContext *ctx);
-static VALUE rb_Context_new(RunnableContext *ctx);
+static VALUE rb_Message_new(GCRef<Message*> msg);
+static VALUE rb_CallableContext_new(GCRef<CallableContext*> ctx);
+static VALUE rb_Context_new(GCRef<RunnableContext*> ctx);
 
 class RubyChannel : public CallableContext
 {
@@ -190,11 +190,11 @@ static VALUE c9_to_rb(const Value &val)
 		return ary;
 		}
 	case MESSAGE:
-		return rb_Message_new(ptr<Message>(val));
+		return rb_Message_new(gc_ref(ptr<Message>(val)));
 	case CALLABLE_CONTEXT:
-		return rb_CallableContext_new(ptr<CallableContext>(val));
+		return rb_CallableContext_new(gc_ref(ptr<CallableContext>(val)));
 	case RUNNABLE_CONTEXT:
-		return rb_Context_new(ptr<RunnableContext>(val));
+		return rb_Context_new(gc_ref(ptr<RunnableContext>(val)));
 	default:
 		printf("Unknown value type %llu\n", type(val));
 		exit(1);
@@ -354,9 +354,9 @@ static void Init_Channel9_Stream()
 	rb_define_method(rb_cStream, "add_line_info", ruby_method(Stream_add_line_info), 4);
 }
 
-static VALUE rb_Context_new(RunnableContext *ctx)
+static VALUE rb_Context_new(GCRef<RunnableContext*> ctx)
 {
-	VALUE obj = wrap_gc_ref(rb_cContext, gc_ref(ctx));
+	VALUE obj = wrap_gc_ref(rb_cContext, ctx);
 	return obj;
 }
 
@@ -399,14 +399,14 @@ static void Init_Channel9_Context()
 	rb_define_method(rb_cContext, "channel_send", ruby_method(Context_channel_send), 3);
 }
 
-static VALUE rb_CallableContext_new(CallableContext *ctx)
+static VALUE rb_CallableContext_new(GCRef<CallableContext*> ctx_p)
 {
-	RubyChannel *robj = dynamic_cast<RubyChannel*>(ctx);
+	RubyChannel *robj = dynamic_cast<RubyChannel*>(*ctx_p);
 	if (robj)
 	{
 		return robj->data();
 	} else {
-		VALUE obj = wrap_gc_ref(rb_cCallableContext, gc_ref(ctx));
+		VALUE obj = wrap_gc_ref(rb_cCallableContext, ctx_p);
 		rb_obj_call_init(obj, 0, 0);
 		return obj;
 	}
@@ -431,9 +431,10 @@ static void Init_Channel9_CallableContext()
 	rb_cCallableContext = rb_define_class_under(rb_mChannel9, "CallableContext", rb_cObject);
 	rb_define_method(rb_cCallableContext, "channel_send", ruby_method(CallableContext_channel_send), 3);
 }
-static VALUE rb_Message_new(Message *msg)
+static VALUE rb_Message_new(GCRef<Message*> msg_p)
 {
-	VALUE obj = wrap_gc_ref(rb_cMessage, gc_ref(msg));
+	Message *msg = *msg_p;
+	VALUE obj = wrap_gc_ref(rb_cMessage, msg_p);
 	VALUE sysargs = rb_ary_new();
 	VALUE args = rb_ary_new();
 
@@ -447,7 +448,7 @@ static VALUE rb_Message_new(Message *msg)
 		rb_ary_push(args, c9_to_rb(*it));
 	}
 
-	VALUE argv[3] = {ID2SYM(rb_intern(msg->name()->c_str())), sysargs, args};
+	VALUE argv[3] = {ID2SYM(rb_intern((*msg_p)->name()->c_str())), sysargs, args};
 	rb_obj_call_init(obj, 3, argv);	
 	return obj;
 }
