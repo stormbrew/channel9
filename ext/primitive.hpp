@@ -10,10 +10,10 @@ namespace Channel9
 {
 	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Message &msg)
 	{
-		static String *prim_call = new_string("__c9_primitive_call__");
+		static GCRef<Value> prim_call = value(new_string("__c9_primitive_call__"));
 		DO_TRACE printf("Forwarding primitive call: %s.%s from:%s to class:%s\n", 
 			inspect(oself).c_str(), inspect(value(msg)).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
-		Message *fwd = new_message(prim_call, msg.sysarg_count(), msg.arg_count() + 2);
+		Message *fwd = new_message(*prim_call, msg.sysarg_count(), msg.arg_count() + 2);
 		std::copy(msg.sysargs(), msg.sysargs_end(), fwd->sysargs());
 
 		Message::iterator out = fwd->args();
