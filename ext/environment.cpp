@@ -65,6 +65,7 @@ namespace Channel9
 			m_running = false;
 		} else if (!m_running)
 		{
+			clear_vstore();
 			DO_TRACE printf("Entering running state with %p\n", context);
 			m_running = true;
 			const Instruction *ipos = m_context->next();
