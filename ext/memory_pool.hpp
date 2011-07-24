@@ -100,6 +100,7 @@ namespace Channel9
 		int     m_cur_pool; //which of the two pools are we using now
 		Chunk * m_cur_chunk; //which chunk are we allocating from
 		bool    m_in_gc;     //are we garbage collecting now? if so, just allocate a new chunk if the last one is full
+		size_t  m_initial_size; //how big is the first chunk
 		uint64_t m_alloced;  //how much memory are in all pools (active or not) combined
 		uint64_t m_used;     //how much memory is used by data blocks, not including the header
 		uint64_t m_data_blocks; //how many data allocations are in the current pool
@@ -166,10 +167,10 @@ namespace Channel9
 
 	public:
 		MemoryPool(size_t initial_size)
-		 : m_cur_pool(0), m_in_gc(false)
+		 : m_cur_pool(0), m_in_gc(false), m_initial_size(initial_size), m_alloced(0), m_used(0), m_data_blocks(0)
 		{
-			m_pools[0] = new_chunk(initial_size);
-			m_pools[1] = new_chunk(initial_size);
+			m_pools[0] = new_chunk(m_initial_size);
+			m_pools[1] = NULL;
 
 			m_cur_chunk = m_pools[m_cur_pool];
 		}

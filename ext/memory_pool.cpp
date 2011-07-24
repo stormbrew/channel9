@@ -39,15 +39,13 @@ namespace Channel9
 		DO_TRACEGC printf("Start GC, old pool %p, new pool %p, %llu used in %llu data blocks\n", m_pools[m_cur_pool], m_pools[!m_cur_pool], m_used, m_data_blocks);
 
 		m_cur_pool = !m_cur_pool;
+
+		if(m_pools[m_cur_pool] == NULL)
+			m_pools[m_cur_pool] = new_chunk(m_initial_size);
+
 		m_cur_chunk = m_pools[m_cur_pool];
 		m_used = 0;
 		m_data_blocks = 0;
-
-		//clear this pool
-		for(Chunk * c = m_cur_chunk; c; c = c->m_next)
-		{
-			c->m_used = 0;
-		}
 
 		DO_TRACEGC printf("Scan roots\n");
 
@@ -89,13 +87,23 @@ namespace Channel9
 			DO_TRACEGC printf("Alloc new trailing chunk\n");
 		}
 
+		//free the old pool to encourage bad code to segfault
+		DO_DEBUG {
+			Chunk * c = m_pools[!m_cur_pool];
+			while(c){
+				Chunk * f = c;
+				c = c->m_next;
+				free(f);
+			}
+			m_pools[!m_cur_pool] = NULL;
+		}
+
+		//clear the old pool
 		for(Chunk * c = m_pools[!m_cur_pool]; c; c = c->m_next)
 		{
 			DO_DEBUG c->deadbeef();
 			c->m_used = 0;
 		}
-
-
 
 		DO_TRACEGC printf("Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
 
