@@ -100,6 +100,9 @@ namespace Channel9
 		int     m_cur_pool; //which of the two pools are we using now
 		Chunk * m_cur_chunk; //which chunk are we allocating from
 		bool    m_in_gc;     //are we garbage collecting now? if so, just allocate a new chunk if the last one is full
+		uint64_t m_alloced;  //how much memory are in all pools (active or not) combined
+		uint64_t m_used;     //how much memory is used by data blocks, not including the header
+		uint64_t m_data_blocks; //how many data allocations are in the current pool
 
 		std::set<GCRoot*> m_roots;
 
@@ -119,6 +122,9 @@ namespace Channel9
 				Data * data = m_cur_chunk->alloc(size + sizeof(Data));
 
 				if(data){
+					m_used += size;
+					m_data_blocks++;
+
 					data->m_type = type;
 					data->m_pool = m_cur_pool;
 					data->m_count = size;
@@ -154,6 +160,7 @@ namespace Channel9
 			size += (8 - size % 8) % 8; //8 byte align
 			Chunk * c = (Chunk *)malloc(sizeof(Chunk) + size);
 			c->init(size);
+			m_alloced += size;
 			return c;
 		}
 

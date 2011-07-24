@@ -36,10 +36,12 @@ namespace Channel9
 		m_in_gc = true;
 
 		//switch pools
-		DO_TRACEGC printf("Start GC, old pool %p, new pool %p\n", m_pools[m_cur_pool], m_pools[!m_cur_pool]);
+		DO_TRACEGC printf("Start GC, old pool %p, new pool %p, %llu used in %llu data blocks\n", m_pools[m_cur_pool], m_pools[!m_cur_pool], m_used, m_data_blocks);
 
 		m_cur_pool = !m_cur_pool;
 		m_cur_chunk = m_pools[m_cur_pool];
+		m_used = 0;
+		m_data_blocks = 0;
 
 		//clear this pool
 		for(Chunk * c = m_cur_chunk; c; c = c->m_next)
@@ -95,7 +97,7 @@ namespace Channel9
 
 
 
-		DO_TRACEGC printf("Done GC\n");
+		DO_TRACEGC printf("Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
 
 		m_in_gc = false;
 	}
