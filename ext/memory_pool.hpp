@@ -166,6 +166,7 @@ namespace Channel9
 			size += (8 - size % 8) % 8; //8 byte align
 			Chunk * c = (Chunk *)malloc(sizeof(Chunk) + size);
 			c->init(size);
+			DO_DEBUG VALGRIND_MAKE_MEM_NOACCESS(c->m_data, size);
 			m_alloced += size;
 			return c;
 		}
