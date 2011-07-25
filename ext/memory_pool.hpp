@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 
+#include "memcheck.h"
+
 namespace Channel9
 {
 	class MemoryPool;
@@ -73,6 +75,7 @@ namespace Channel9
 				m_next = NULL;
 				m_capacity = capacity;
 				m_used = 0;
+				DO_DEBUG VALGRIND_CREATE_MEMPOOL(m_data, 0, false);
 			}
 
 			Data * alloc(size_t size)
@@ -81,6 +84,7 @@ namespace Channel9
 				{
 					Data * ret = (Data*)(m_data + m_used);
 					m_used += size;
+					DO_DEBUG VALGRIND_MEMPOOL_ALLOC(m_data, ret, size);
 					return ret;
 				}
 				return NULL;
