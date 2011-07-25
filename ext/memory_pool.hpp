@@ -111,6 +111,7 @@ namespace Channel9
 
 		uchar *next(size_t size, uint32_t type)
 		{
+			bool collected = false;
 			assert(size < 10000);
 
 			if(!m_in_gc)
@@ -139,18 +140,18 @@ namespace Channel9
 				if(m_cur_chunk->m_next)
 				{ //advance
 					m_cur_chunk = m_cur_chunk->m_next;
+					m_cur_chunk->init(m_cur_chunk->m_capacity);
+				} else if(m_in_gc || collected) {
+					//allocate a new chunk
+					size_t new_size = m_cur_chunk->m_capacity * GROWTH;
+
+					Chunk * c = new_chunk(new_size);
+
+					m_cur_chunk->m_next = c;
+					m_cur_chunk = c;
 				} else {
-					if(m_in_gc)
-					{ //allocate a new chunk
-						size_t new_size = m_cur_chunk->m_capacity * GROWTH;
-
-						Chunk * c = new_chunk(new_size);
-
-						m_cur_chunk->m_next = c;
-						m_cur_chunk = c;
-					} else {
-						collect();
-					}
+					collect();
+					collected = true;
 				}
 			}
 			return NULL;

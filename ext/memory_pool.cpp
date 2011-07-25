@@ -77,16 +77,6 @@ namespace Channel9
 			}
 		}
 
-		if(m_cur_chunk->m_next == NULL) //TODO: better heuristic for when to allocate a new chunk
-		{//still on the last chunk, must be fairly full, allocate an extra chunk
-			int new_size = m_cur_chunk->m_capacity * GROWTH;
-
-			Chunk * c = new_chunk(new_size);
-			m_cur_chunk->m_next = c;
-
-			DO_TRACEGC printf("Alloc new trailing chunk\n");
-		}
-
 		//free the old pool to encourage bad code to segfault
 		DO_DEBUG {
 			Chunk * c = m_pools[!m_cur_pool];
