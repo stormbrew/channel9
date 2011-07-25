@@ -82,6 +82,7 @@ namespace Channel9
 			Chunk * c = m_pools[!m_cur_pool];
 			while(c){
 				Chunk * f = c;
+				VALGRIND_DESTROY_MEMPOOL(c->m_data);
 				c = c->m_next;
 				free(f);
 			}
@@ -91,7 +92,11 @@ namespace Channel9
 		//clear the old pool
 		for(Chunk * c = m_pools[!m_cur_pool]; c; c = c->m_next)
 		{
-			DO_DEBUG c->deadbeef();
+			DO_DEBUG {
+				c->deadbeef();
+				VALGRIND_DESTROY_MEMPOOL(c->m_data);
+			}
+
 			c->m_used = 0;
 		}
 
