@@ -73,7 +73,7 @@ namespace Channel9
 		void set_localvar(size_t id, const Value &val) { m_localvars->set(id, val); }
 		void set_localvar(size_t id, size_t depth, const Value &val) { m_localvars->set(id, depth, val); }
 
-		void new_scope(bool linked = false);
+		void new_scope(VariableFrame *scope) { m_localvars = scope; }
 	};
 
 	inline RunnableContext *new_context(IStream *instructions, VariableFrame *localvars = NULL, size_t pos = 0)

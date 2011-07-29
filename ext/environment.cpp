@@ -177,13 +177,18 @@ namespace Channel9
 					m_context->pop();
 					break;
 
-				case LOCAL_CLEAN_SCOPE:
+				case LOCAL_CLEAN_SCOPE: {
 					CHECK_STACK(0, 0);
-					m_context->new_scope();
+					VariableFrame *frame = new_variable_frame(m_context->m_instructions);
+					m_context->new_scope(frame);
+					}
 					break;
-				case LOCAL_LINKED_SCOPE:
+				case LOCAL_LINKED_SCOPE: {
 					CHECK_STACK(0, 0);
-					m_context->new_scope(true);
+					VariableFrame *frame = new_variable_frame(m_context->m_instructions);
+					frame->link_frame(m_context->m_localvars);
+					m_context->new_scope(frame);
+					}
 					break;
 				case FRAME_GET: {
 					CHECK_STACK(0, 1);
