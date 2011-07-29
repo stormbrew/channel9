@@ -157,7 +157,7 @@ static GCRef<Value> rb_to_c9(VALUE val)
 			return value(ctx);
 		} else if (klass == rb_cMessage) {
 			Message *msg = get_gc_val<Message*>(val);
-			return value(*msg);
+			return value(msg);
 		}
 		}
 		break;
