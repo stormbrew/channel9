@@ -120,7 +120,7 @@ static GCRef<Value> rb_to_c9(VALUE val)
 		return value(NUM2LL(val));
 	case T_ARRAY: {
 		size_t len = RARRAY_LEN(val);
-		Tuple *tuple = new_tuple(len);
+		GCRef<Tuple*> tuple = new_tuple(len);
 
 		// this is as ugly as it is because it needs to
 		// not accidentally push data to the old tuple reference
@@ -130,9 +130,9 @@ static GCRef<Value> rb_to_c9(VALUE val)
 		for (size_t i = 0; i < len; ++i)
 		{
 			GCRef<Value> c9_val = rb_to_c9(rb_ary_entry(val, i));
-			tuple->begin()[i] = *c9_val;
+			(*tuple)->begin()[i] = *c9_val;
 		}
-		return value(tuple);
+		return value(*tuple);
 		}
 	case T_MODULE:
 	case T_CLASS:
