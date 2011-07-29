@@ -140,10 +140,10 @@ namespace Channel9
 		}
 	}
 
-	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Message &msg);
-	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);
-	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);
-	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Message &msg);
+	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Value &msg);
+	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
+	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
+	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
 	inline void channel_send(Environment *env, const Value &channel, const Value &val, const Value &ret)
 	{
 		switch (type(channel))
@@ -163,33 +163,33 @@ namespace Channel9
 			break;
 		case NIL: {
 			const Value &def = env->special_channel("Channel9::Primitive::NilC");
-			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
+			return forward_primitive_call(env, def, ret, channel, val);
 			}
 		case UNDEF: {
 			const Value &def = env->special_channel("Channel9::Primitive::UndefC");
-			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
+			return forward_primitive_call(env, def, ret, channel, val);
 			}
 		case BFALSE: {
 			const Value &def = env->special_channel("Channel9::Primitive::TrueC");
-			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
+			return forward_primitive_call(env, def, ret, channel, val);
 			}
 		case BTRUE: {
 			const Value &def = env->special_channel("Channel9::Primitive::FalseC");
-			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
+			return forward_primitive_call(env, def, ret, channel, val);
 			}
 		case MESSAGE: {
 			const Value &def = env->special_channel("Channel9::Primitive::Message");
-			return forward_primitive_call(env, def, ret, channel, *ptr<Message>(val));
+			return forward_primitive_call(env, def, ret, channel, val);
 			}
 		case POSITIVE_NUMBER:
 		case NEGATIVE_NUMBER:
-			number_channel_simple(env, ret, channel, *ptr<Message>(val));
+			number_channel_simple(env, ret, channel, val);
 			break;
 		case STRING:
-			string_channel_simple(env, ret, channel, *ptr<Message>(val));
+			string_channel_simple(env, ret, channel, val);
 			break;
 		case TUPLE:
-			tuple_channel_simple(env, ret, channel, *ptr<Message>(val));
+			tuple_channel_simple(env, ret, channel, val);
 			break;
 		default:
 			printf("Built-in Channel for %llu not yet implemented.\n", type(channel) >> 60);
