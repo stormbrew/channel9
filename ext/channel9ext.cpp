@@ -121,10 +121,16 @@ static GCRef<Value> rb_to_c9(VALUE val)
 	case T_ARRAY: {
 		size_t len = RARRAY_LEN(val);
 		Tuple *tuple = new_tuple(len);
-		Tuple::iterator out = tuple->begin();
+
+		// this is as ugly as it is because it needs to
+		// not accidentally push data to the old tuple reference
+		// if one of the rb_to_c9 expressions causes a garbage
+		// collections.
+		bzero(tuple->m_data, sizeof(Value)*len);
 		for (size_t i = 0; i < len; ++i)
 		{
-			*out++ = *rb_to_c9(rb_ary_entry(val, i));
+			GCRef<Value> c9_val = rb_to_c9(rb_ary_entry(val, i));
+			tuple->begin()[i] = *c9_val;
 		}
 		return value(tuple);
 		}
@@ -460,15 +466,18 @@ static VALUE Message_new(VALUE self, VALUE name, VALUE sysargs, VALUE args)
 	assert(is(*c9_name, STRING));
 
 	GCRef<Message*> msg = new_message(*c9_name, sysarg_count, arg_count);
+	bzero(msg->m_data, sizeof(Value)*(sysarg_count + arg_count));
 
 	size_t i;
 	for (i = 0; i < sysarg_count; i++)
 	{
-		(*msg)->sysargs()[i] = *rb_to_c9(rb_ary_entry(sysargs, i));
+		GCRef<Value> val = rb_to_c9(rb_ary_entry(sysargs, i));
+		(*msg)->sysargs()[i] = *val;
 	}
 	for (i = 0; i < arg_count; i++)
 	{
-		(*msg)->args()[i] = *rb_to_c9(rb_ary_entry(args, i));
+		GCRef<Value> val = rb_to_c9(rb_ary_entry(args, i));
+		(*msg)->args()[i] = *val;
 	}
 
 	VALUE obj = wrap_gc_ref(rb_cMessage, msg);
