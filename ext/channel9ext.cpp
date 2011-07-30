@@ -376,8 +376,9 @@ static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 	GCRef<IStream*> stream = get_gc_ref<IStream*>(rb_stream);
 
 	(*stream)->normalize();
-	RunnableContext *ctx = new_context(*stream);
-	VALUE obj = wrap_gc_ref(rb_cContext, gc_ref(ctx));
+	GCRef<RunnableContext*> ctx = new_context(*stream);
+	(*ctx)->new_scope(new_variable_frame(*stream));
+	VALUE obj = wrap_gc_ref(rb_cContext, ctx);
 	VALUE argv[2] = {rb_env, rb_stream};
 	rb_obj_call_init(obj, 2, argv);
 	return obj;
