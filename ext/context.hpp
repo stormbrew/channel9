@@ -81,7 +81,7 @@ namespace Channel9
 		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*instructions->frame_count(), MemoryPool::GC_RUNNABLE_CONTEXT);
 		ctx->m_instructions = instructions;
 		ctx->m_pos = &*instructions->begin();
-		ctx->m_localvars = localvars? localvars : new_variable_frame(instructions);
+		ctx->m_localvars = localvars;
 		ctx->m_sp = NULL;
 		memset(ctx->m_data, 0, sizeof(Value)*instructions->frame_count());
 		return ctx;
