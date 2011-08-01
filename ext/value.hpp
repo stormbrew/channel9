@@ -3,41 +3,19 @@
 #include <vector>
 
 #include "channel9.hpp"
+#include "memory_pool.hpp"
 #include "string.hpp"
 
 namespace Channel9
 {
-	enum
-	{
-		POSITIVE_NUMBER = 0x0000000000000000ULL,
-
-		BTRUE 			= 0x1000000000000000ULL,
-		FLOAT_NUM 		= 0x2000000000000000ULL,
-		STRING 			= 0x3000000000000000ULL,
-		TUPLE 			= 0x4000000000000000ULL,
-		MESSAGE 		= 0x5000000000000000ULL,
-		CALLABLE_CONTEXT= 0x6000000000000000ULL,
-		RUNNABLE_CONTEXT= 0x7000000000000000ULL,
-
-		// top two bits in pattern 10 indicates falsy,
-		// all others are truthy.
-		FALSY_MASK 		= 0xc000000000000000ULL,
-		FALSY_PATTERN	= 0x8000000000000000ULL,
-
-		NIL 			= 0x8000000000000000ULL,
-		UNDEF 			= 0x9000000000000000ULL,
-		BFALSE 			= 0xA000000000000000ULL,
-		// don't use    = 0xB000000000000000ULL,
-
-		NEGATIVE_NUMBER = 0xf000000000000000ULL,
-
-		TYPE_MASK 		= 0xf000000000000000ULL,
-		VALUE_MASK 		= 0x0fffffffffffffffULL,
-	};
-	typedef unsigned long long ValueType;
-
 	union Value
 	{
+		enum {
+			TYPE_SHIFT		= 60,
+			TYPE_MASK 		= 0xf000000000000000ULL,
+			VALUE_MASK 		= 0x0fffffffffffffffULL,
+		};
+
 		unsigned long long raw;
 		long long machine_num;
 		double float_num;
@@ -54,16 +32,36 @@ namespace Channel9
 	extern Value False;
 	extern Value Undef;
 
+	inline unsigned long long type_mask(ValueType type)
+	{
+		return (unsigned long long)(type) << Value::TYPE_SHIFT;
+	}
+
+	inline ValueType basic_type(const Value &val)
+	{
+		return ValueType((val.raw & Value::TYPE_MASK) >> Value::TYPE_SHIFT);
+	}
+
+	inline MemoryPool::Data *header_ptr(const Value &val)
+	{
+		assert(basic_type(val) == HEAP_TYPE);
+		return (MemoryPool::Data*)(val.raw & Value::VALUE_MASK) - 1;
+	}
+
 	inline ValueType type(const Value &val)
 	{
-		return ValueType(val.raw & TYPE_MASK);
+		ValueType t = basic_type(val);
+		if (t != HEAP_TYPE)
+			return t;
+		else
+			return ValueType(header_ptr(val)->m_type & MemoryPool::TYPE_MASK);
 	}
-	inline bool is(const Value &val, unsigned long long t)
+	inline bool is(const Value &val, ValueType t)
 	{
 		return type(val) == t;
 	}
-	inline bool is_truthy(const Value &val) { return !((val.raw & FALSY_MASK) == FALSY_PATTERN); }
-	inline bool is_number(const Value &val) { ValueType t = type(val); return t == POSITIVE_NUMBER || t == NEGATIVE_NUMBER; }
+	inline bool is_truthy(const Value &val) { return !((basic_type(val) & FALSY_MASK) == FALSY_PATTERN); }
+	inline bool is_number(const Value &val) { ValueType t = basic_type(val); return t == POSITIVE_NUMBER || t == NEGATIVE_NUMBER; }
 	inline bool same_type(const Value &l, const Value &r)
 	{
 		return type(l) == type(r);
@@ -91,27 +89,26 @@ namespace Channel9
 	template <typename tPtr>
 	tPtr *ptr(const Value &val)
 	{
-		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) value_pool.validate((tPtr*)(val.raw & VALUE_MASK));
-		return (tPtr*)(val.raw & VALUE_MASK);
+		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) value_pool.validate((tPtr*)(val.raw & Value::VALUE_MASK));
+		return (tPtr*)(val.raw & Value::VALUE_MASK);
 	}
 
 	template <typename tPtr>
 	inline Value make_value_ptr(ValueType type, tPtr value)
 	{
-		DO_DEBUG assert((unsigned long long)value < TYPE_MASK);
-		Value val = {(type & TYPE_MASK) | ((unsigned long long)value & VALUE_MASK)};
+		Value val = {type_mask(type) | ((unsigned long long)value & Value::VALUE_MASK)};
 		return val;
 	}
 	inline Value value(long long machine_num)
 	{//cut off the top 4 bits, maintaining the sign
-		unsigned long long type = (unsigned long long)(machine_num >> 4) & TYPE_MASK;
-		unsigned long long num = type | ((unsigned long long)(machine_num) & VALUE_MASK);
+		unsigned long long type = (unsigned long long)(machine_num >> 4) & Value::TYPE_MASK;
+		unsigned long long num = type | ((unsigned long long)(machine_num) & Value::VALUE_MASK);
 		Value val = {((unsigned long long)(num))};
 		return val;
 	}
 	inline Value value(double float_num)
 	{//cut off the bottom 4 bits of precision
-		unsigned long long num = FLOAT_NUM | (((unsigned long long)float_num) >> 4);
+		unsigned long long num = type_mask(FLOAT_NUM) | (((unsigned long long)float_num) >> 4);
 		Value val = {((unsigned long long)(num))};
 		return val;
 	}

@@ -62,16 +62,17 @@ namespace Channel9
 			DO_TRACEGC printf("Scan Chunk %p\n", c);
 			for(Data * d = c->begin(); d != c->end(); d = d->next())
 			{
+				// must not be forwarding pointers in the new heap.
+				assert((d->m_type & FORWARD_FLAG) == 0);
 				DO_TRACEGC printf("Scan Obj %p, type %X\n", d->m_data, d->m_type);
 				switch(d->m_type)
 				{
-				case GC_STRING:  gc_scan( (String*)  (d->m_data)); break;
-				case GC_TUPLE:   gc_scan( (Tuple*)   (d->m_data)); break;
-				case GC_MESSAGE: gc_scan( (Message*) (d->m_data)); break;
-				case GC_CALLABLE_CONTEXT: gc_scan( (CallableContext*) (d->m_data)); break;
-				case GC_RUNNABLE_CONTEXT: gc_scan( (RunnableContext*) (d->m_data)); break;
-				case GC_VARIABLE_FRAME:   gc_scan( (VariableFrame*)   (d->m_data)); break;
-				case GC_FORWARD: assert(d->m_type != GC_FORWARD); // newly built heap, can't be forwards.
+				case STRING:  			gc_scan( (String*)  (d->m_data)); break;
+				case TUPLE:   			gc_scan( (Tuple*)   (d->m_data)); break;
+				case MESSAGE: 			gc_scan( (Message*) (d->m_data)); break;
+				case CALLABLE_CONTEXT: 	gc_scan( (CallableContext*) (d->m_data)); break;
+				case RUNNABLE_CONTEXT: 	gc_scan( (RunnableContext*) (d->m_data)); break;
+				case VARIABLE_FRAME:   	gc_scan( (VariableFrame*)   (d->m_data)); break;
 				default: assert(false && "Unknown GC type");
 				}
 			}

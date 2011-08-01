@@ -73,7 +73,7 @@ namespace Channel9
 
 	inline Tuple *new_tuple(size_t len)
 	{
-		Tuple *ret = value_pool.alloc<Tuple>(sizeof(Value)*len, MemoryPool::GC_TUPLE);
+		Tuple *ret = value_pool.alloc<Tuple>(sizeof(Value)*len, TUPLE);
 		ret->m_count = len;
 
 		return ret;

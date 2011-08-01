@@ -10,10 +10,10 @@ namespace Channel9
 {
 	MemoryPool value_pool(256*256);
 
-	Value Nil = {NIL};
-	Value True = {BTRUE};
-	Value False = {BFALSE};
-	Value Undef = {UNDEF};
+	Value Nil = {(unsigned long long)NIL << Value::TYPE_SHIFT};
+	Value True = {(unsigned long long)BTRUE << Value::TYPE_SHIFT};
+	Value False = {(unsigned long long)BFALSE << Value::TYPE_SHIFT};
+	Value Undef = {(unsigned long long)UNDEF << Value::TYPE_SHIFT};
 
 	bool complex_compare(const Value &l, const Value &r)
 	{
@@ -143,6 +143,9 @@ namespace Channel9
 			break;
 		case RUNNABLE_CONTEXT:
 			res << "ret_ctx:" << ptr<RunnableContext>(val);
+			break;
+		default:
+			assert(!type(val));
 			break;
 		}
 		return res.str();

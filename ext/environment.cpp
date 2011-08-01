@@ -209,7 +209,7 @@ namespace Channel9
 					CHECK_STACK(0, 1);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("local_get %u@%u: %llu\n", (unsigned)localid, (unsigned)depth, type(m_context->get_localvar(localid, depth)));
+					DO_TRACE printf("local_get %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->get_localvar(localid, depth)));
 					if (depth == 0)
 						m_context->push(m_context->get_localvar(localid));
 					else
@@ -220,7 +220,7 @@ namespace Channel9
 					CHECK_STACK(1, 0);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("local_set %u@%u: %llu\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
+					DO_TRACE printf("local_set %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
 					if (depth == 0)
 						m_context->set_localvar(localid, m_context->top());
 					else

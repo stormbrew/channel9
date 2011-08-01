@@ -86,7 +86,7 @@ namespace Channel9
 
 	inline String *new_string(size_t len)
 	{
-		String *ret = value_pool.alloc<String>(len + 1, MemoryPool::GC_STRING);
+		String *ret = value_pool.alloc<String>(len + 1, STRING);
 		ret->m_count = len;
 
 		return ret;

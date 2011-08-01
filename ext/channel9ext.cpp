@@ -226,7 +226,7 @@ static VALUE c9_to_rb(const Value &val)
 	case RUNNABLE_CONTEXT:
 		return rb_Context_new(gc_ref(ptr<RunnableContext>(val)));
 	default:
-		printf("Unknown value type %llu\n", type(val));
+		printf("Unknown value type %i\n", type(val));
 		exit(1);
 	}
 	return Qnil;
