@@ -9,10 +9,12 @@ extern "C" {
 #include "message.hpp"
 
 #include <map>
+#include <exception>
 
 using namespace Channel9;
 
 typedef VALUE (*ruby_method)(ANYARGS);
+typedef VALUE (*ruby_protected)(VALUE);
 typedef void (*mark_method)();
 typedef void (*free_method)();
 
@@ -35,6 +37,20 @@ static VALUE rb_Message_new(GCRef<Message*> msg);
 static VALUE rb_CallableContext_new(GCRef<CallableContext*> ctx);
 static VALUE rb_Context_new(GCRef<RunnableContext*> ctx);
 
+class RubyUnwind : public std::exception
+{
+private:
+	int m_jump_tag;
+
+public:
+	RubyUnwind(int jtag) : m_jump_tag(jtag) {}
+
+	void ruby_jump() const
+	{
+		rb_jump_tag(m_jump_tag);
+	}
+};
+
 class RubyChannel : public CallableContext
 {
 private:
@@ -52,11 +68,19 @@ public:
 
 	VALUE data() { return m_val; }
 
+	static VALUE protected_send(VALUE *stuff)
+	{
+		return rb_funcall(stuff[0], rb_intern("channel_send"), 3, stuff[1], stuff[2], stuff[3]);
+	}
+
 	void send(Environment *env, const Value &val, const Value &ret)
 	{
 		DO_TRACE printf("Oh hi %s\n", STR2CSTR(rb_funcall(rb_class_of(m_val), rb_intern("to_s"), 0)));
-		rb_funcall(m_val, rb_intern("channel_send"), 3,
-			rb_Environment_new(env), c9_to_rb(val), c9_to_rb(ret));
+		int error = 0;
+		VALUE vals[] = {m_val, rb_Environment_new(env), c9_to_rb(val), c9_to_rb(ret)};
+		rb_protect(ruby_protected(&protected_send), (VALUE)vals, &error);
+		if (error)
+			throw RubyUnwind(error);
 	}
 
 	void scan()
@@ -224,7 +248,7 @@ static VALUE rb_Environment_new(Environment *env)
 	return obj;
 }
 
-static VALUE Environment_new(VALUE self, VALUE debug)
+static VALUE Environment_new(VALUE self, VALUE debug) try
 {
 	Environment *env = new Environment();
 	VALUE obj = Data_Wrap_Struct(rb_cEnvironment, 0, 0, env);
@@ -233,9 +257,9 @@ static VALUE Environment_new(VALUE self, VALUE debug)
 	c9_env_map[env] = obj;
 
 	return obj;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
-static VALUE Environment_special_channel(VALUE self, VALUE name)
+static VALUE Environment_special_channel(VALUE self, VALUE name) try
 {
 	Environment *env;
 	assert(TYPE(self) == T_DATA);
@@ -246,8 +270,8 @@ static VALUE Environment_special_channel(VALUE self, VALUE name)
 	case T_STRING: return c9_to_rb(env->special_channel(STR2CSTR(name))); break;
 	}
 	return Qnil;
-}
-static VALUE Environment_set_special_channel(VALUE self, VALUE name, VALUE channel)
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
+static VALUE Environment_set_special_channel(VALUE self, VALUE name, VALUE channel) try
 {
 	Environment *env;
 	assert(TYPE(self) == T_DATA);
@@ -258,9 +282,9 @@ static VALUE Environment_set_special_channel(VALUE self, VALUE name, VALUE chann
 	case T_STRING: env->set_special_channel(STR2CSTR(name), *rb_to_c9(channel)); break;
 	}
 	return Qnil;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
-static VALUE Environment_current_context(VALUE self)
+static VALUE Environment_current_context(VALUE self) try
 {
 	Environment *env;
 	assert(TYPE(self) == T_DATA);
@@ -271,9 +295,9 @@ static VALUE Environment_current_context(VALUE self)
 		return c9_to_rb(value(ctx));
 	else
 		return Qnil;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
-static VALUE Environment_set_current_context(VALUE self, VALUE rb_ctx)
+static VALUE Environment_set_current_context(VALUE self, VALUE rb_ctx) try
 {
 	Environment *env;
 	RunnableContext *ctx = NULL;
@@ -287,7 +311,7 @@ static VALUE Environment_set_current_context(VALUE self, VALUE rb_ctx)
 	env->run(ctx);
 
 	return Qnil;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
 static void Init_Channel9_Environment()
 {
@@ -299,15 +323,15 @@ static void Init_Channel9_Environment()
 	rb_define_method(rb_cEnvironment, "set_current_context", ruby_method(Environment_set_current_context), 1);
 }
 
-static VALUE Stream_new(VALUE self)
+static VALUE Stream_new(VALUE self) try
 {
 	IStream *stream = new IStream();
 	VALUE obj = wrap_gc_ref(rb_cStream, gc_ref(stream));
 	rb_obj_call_init(obj, 0, 0);
 	return obj;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
-static VALUE Stream_add_instruction(VALUE self, VALUE name, VALUE args)
+static VALUE Stream_add_instruction(VALUE self, VALUE name, VALUE args) try
 {
 	Instruction instruction = {NOP, {0}, {0}, {0}};
 
@@ -329,9 +353,9 @@ static VALUE Stream_add_instruction(VALUE self, VALUE name, VALUE args)
 	(*stream)->add(instruction);
 
 	return self;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
-static VALUE Stream_add_label(VALUE self, VALUE name)
+static VALUE Stream_add_label(VALUE self, VALUE name) try
 {
 	assert(TYPE(self) == T_DATA);
 	GCRef<IStream*> stream = get_gc_ref<IStream*>(self);
@@ -339,9 +363,9 @@ static VALUE Stream_add_label(VALUE self, VALUE name)
 	(*stream)->set_label(STR2CSTR(name));
 
 	return self;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
-static VALUE Stream_add_line_info(VALUE self, VALUE file, VALUE line, VALUE pos, VALUE extra)
+static VALUE Stream_add_line_info(VALUE self, VALUE file, VALUE line, VALUE pos, VALUE extra) try
 {
 	assert(TYPE(self) == T_DATA);
 	GCRef<IStream*> stream = get_gc_ref<IStream*>(self);
@@ -349,7 +373,7 @@ static VALUE Stream_add_line_info(VALUE self, VALUE file, VALUE line, VALUE pos,
 	(*stream)->set_source_pos(SourcePos(STR2CSTR(file), FIX2INT(line), FIX2INT(pos), STR2CSTR(extra)));
 
 	return self;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
 static void Init_Channel9_Stream()
 {
@@ -366,7 +390,7 @@ static VALUE rb_Context_new(GCRef<RunnableContext*> ctx)
 	return obj;
 }
 
-static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
+static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream) try
 {
 	Environment *env;
 
@@ -382,9 +406,9 @@ static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream)
 	VALUE argv[2] = {rb_env, rb_stream};
 	rb_obj_call_init(obj, 2, argv);
 	return obj;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
-static VALUE Context_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret)
+static VALUE Context_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret) try
 {
 	Environment *cenv;
 	assert(TYPE(rb_cenv) == T_DATA);
@@ -397,7 +421,7 @@ static VALUE Context_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE
 	channel_send(cenv, *ctx, *val, *ret);
 
 	return Qnil;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
 static void Init_Channel9_Context()
 {
@@ -419,7 +443,7 @@ static VALUE rb_CallableContext_new(GCRef<CallableContext*> ctx_p)
 	}
 }
 
-static VALUE CallableContext_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret)
+static VALUE CallableContext_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret) try
 {
 	Environment *cenv;
 	assert(TYPE(rb_cenv) == T_DATA);
@@ -431,7 +455,7 @@ static VALUE CallableContext_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_va
 	ctx->send(cenv, *rb_to_c9(rb_val), *rb_to_c9(rb_ret));
 
 	return Qnil;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
 static void Init_Channel9_CallableContext()
 {
@@ -460,7 +484,7 @@ static VALUE rb_Message_new(GCRef<Message*> msg_p)
 	return obj;
 }
 
-static VALUE Message_new(VALUE self, VALUE name, VALUE sysargs, VALUE args)
+static VALUE Message_new(VALUE self, VALUE name, VALUE sysargs, VALUE args) try
 {
 	size_t sysarg_count = RARRAY_LEN(sysargs), arg_count = RARRAY_LEN(args);
 	GCRef<Value> c9_name = rb_to_c9(name);
@@ -485,7 +509,7 @@ static VALUE Message_new(VALUE self, VALUE name, VALUE sysargs, VALUE args)
 	VALUE argv[3] = {name, sysargs, args};
 	rb_obj_call_init(obj, 3, argv);
 	return obj;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
 static void Init_Channel9_Message()
 {
@@ -500,7 +524,7 @@ static void Init_Channel9_Undef()
 	rb_define_const(rb_mPrimitive, "Undef", rb_Undef);
 }
 
-static VALUE Primitive_channel_send(VALUE self, VALUE cenv, VALUE val, VALUE ret)
+static VALUE Primitive_channel_send(VALUE self, VALUE cenv, VALUE val, VALUE ret) try
 {
 	Environment *c9_cenv;
 	GCRef<Value> c9_channel = rb_to_c9(self);
@@ -511,7 +535,7 @@ static VALUE Primitive_channel_send(VALUE self, VALUE cenv, VALUE val, VALUE ret
 	Data_Get_Struct(cenv, Environment, c9_cenv);
 	channel_send(c9_cenv, *c9_channel, *c9_val, *c9_ret);
 	return Qnil;
-}
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
 static void Init_Channel9_Primitives()
 {
