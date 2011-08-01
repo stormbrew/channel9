@@ -31,7 +31,7 @@ namespace Channel9
 	inline VariableFrame *new_variable_frame(IStream *instructions)
 	{
 		size_t local_count = instructions->local_count();
-		VariableFrame *frame = value_pool.alloc<VariableFrame>(local_count * sizeof(Value), MemoryPool::GC_VARIABLE_FRAME);
+		VariableFrame *frame = value_pool.alloc<VariableFrame>(local_count * sizeof(Value), VARIABLE_FRAME);
 		frame->m_instructions = instructions;
 		frame->m_parent_frame = NULL;
 		for (size_t i = 0; i < local_count; i++)

@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 
+#include "channel9.hpp"
 #include "memcheck.h"
 
 namespace Channel9
@@ -33,24 +34,13 @@ namespace Channel9
 	class MemoryPool
 	{
 	public:
-		enum
-		{
-			GC_FORWARD          = 0xF, //already been moved
-
-			GC_STRING           = 0x3,
-			GC_TUPLE            = 0x4,
-			GC_MESSAGE          = 0x5,
-			GC_CALLABLE_CONTEXT = 0x6,
-			GC_RUNNABLE_CONTEXT = 0x7,
-			GC_VARIABLE_FRAME   = 0x8,
-		};
-
-	private:
-
-		static const float GROWTH = 1.2;
-
-
 		typedef unsigned char uchar;
+
+		enum {
+			FORWARD_FLAG = 0x8000,
+			FORWARD_MASK = 0x8000,
+			TYPE_MASK = 0x7fff,
+		};
 
 		struct Data
 		{
@@ -62,6 +52,10 @@ namespace Channel9
 			Data *next() const { return (Data*)((uchar*)(this + 1) + m_count); }
 			static Data *ptr_for(const void *ptr) { return (Data*)ptr - 1; }
 		};
+
+	private:
+
+		static const float GROWTH = 1.2;
 
 		struct Chunk
 		{
@@ -121,7 +115,7 @@ namespace Channel9
 			if(!m_in_gc)
 				DO_TRACEGC printf("Alloc %u type %x ... ", (unsigned)size, type);
 
-			assert(type != GC_FORWARD); // never alloc a forwarding ref.
+			assert((type & FORWARD_FLAG) == 0); // never alloc a forwarding ref.
 			size += (8 - size % 8) % 8; //8 byte align
 
 			while(1){
@@ -206,7 +200,7 @@ namespace Channel9
 				return from;
 			}
 
-			if(old->m_type == GC_FORWARD){
+			if(old->m_type & FORWARD_FLAG){
 				DO_TRACEGC printf("Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
 				return *(tObj**)from;
 			}
@@ -216,7 +210,7 @@ namespace Channel9
 
 			DO_TRACEGC printf("Move %p, type %X <= %p\n", from, old->m_type, n);
 
-			old->m_type = GC_FORWARD;
+			old->m_type |= FORWARD_FLAG;
 			*(tObj**)from = n;
 			return n;
 		}

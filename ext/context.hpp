@@ -78,7 +78,7 @@ namespace Channel9
 
 	inline RunnableContext *new_context(IStream *instructions, VariableFrame *localvars = NULL, size_t pos = 0)
 	{
-		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*instructions->frame_count(), MemoryPool::GC_RUNNABLE_CONTEXT);
+		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*instructions->frame_count(), RUNNABLE_CONTEXT);
 		ctx->m_instructions = instructions;
 		ctx->m_pos = &*instructions->begin();
 		ctx->m_localvars = localvars;
@@ -90,7 +90,7 @@ namespace Channel9
 	{
 		value_pool.validate(&copy);
 		size_t frame_count = copy.m_instructions->frame_count();
-		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), MemoryPool::GC_RUNNABLE_CONTEXT);
+		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_sp = NULL;
 		return ctx;
@@ -98,7 +98,7 @@ namespace Channel9
 	inline RunnableContext *new_context(const Value &copy)
 	{
 		size_t frame_count = ptr<RunnableContext>(copy)->m_instructions->frame_count();
-		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), MemoryPool::GC_RUNNABLE_CONTEXT);
+		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_sp = NULL;
 		return ctx;		
@@ -108,7 +108,7 @@ namespace Channel9
 		IStream *istream = ptr<RunnableContext>(copy)->m_instructions;
 		size_t frame_count = istream->frame_count();
 		size_t frame_extra = sizeof(Value)*(frame_count + istream->stack_size());
-		RunnableContext *ctx = value_pool.alloc<RunnableContext>(frame_extra, MemoryPool::GC_RUNNABLE_CONTEXT);
+		RunnableContext *ctx = value_pool.alloc<RunnableContext>(frame_extra, RUNNABLE_CONTEXT);
 
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_sp = ctx->m_data + frame_count;
@@ -192,7 +192,7 @@ namespace Channel9
 			tuple_channel_simple(env, ret, channel, val);
 			break;
 		default:
-			printf("Built-in Channel for %llu not yet implemented.\n", type(channel) >> 60);
+			printf("Built-in Channel for %i not yet implemented.\n", type(channel));
 			exit(1);
 		}
 	}

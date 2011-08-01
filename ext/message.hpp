@@ -37,7 +37,7 @@ namespace Channel9
 	inline Message *new_message(String *name, size_t sysargs = 0, size_t args = 0)
 	{
 		size_t count = sysargs + args;
-		Message *msg = value_pool.alloc<Message>(sizeof(Value)*count, MemoryPool::GC_MESSAGE);
+		Message *msg = value_pool.alloc<Message>(sizeof(Value)*count, MESSAGE);
 		msg->m_name = name;
 		msg->m_sysarg_count = sysargs;
 		msg->m_arg_count = args;
@@ -46,7 +46,7 @@ namespace Channel9
 	inline Message *new_message(const Value &name, size_t sysargs = 0, size_t args = 0)
 	{
 		size_t count = sysargs + args;
-		Message *msg = value_pool.alloc<Message>(sizeof(Value)*count, MemoryPool::GC_MESSAGE);
+		Message *msg = value_pool.alloc<Message>(sizeof(Value)*count, MESSAGE);
 		msg->m_name = ptr<String>(name);
 		msg->m_sysarg_count = sysargs;
 		msg->m_arg_count = args;
@@ -72,7 +72,7 @@ namespace Channel9
 	inline Message *new_message(const Message &other)
 	{
 		size_t size = sizeof(Message) + sizeof(Value)*other.total_count();
-		Message *msg = value_pool.alloc<Message>(sizeof(Value)*other.total_count(), MemoryPool::GC_MESSAGE);
+		Message *msg = value_pool.alloc<Message>(sizeof(Value)*other.total_count(), MESSAGE);
 		memcpy(msg, &other, size);
 		return msg;
 	}
