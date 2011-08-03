@@ -5,15 +5,16 @@
 #include "context.hpp"
 
 #include <sstream>
+#include <stdint.h>
 
 namespace Channel9
 {
 	MemoryPool value_pool(256*256);
 
-	Value Nil = {(unsigned long long)NIL << Value::TYPE_SHIFT};
-	Value True = {(unsigned long long)BTRUE << Value::TYPE_SHIFT};
-	Value False = {(unsigned long long)BFALSE << Value::TYPE_SHIFT};
-	Value Undef = {(unsigned long long)UNDEF << Value::TYPE_SHIFT};
+	Value Nil = {(uint64_t)NIL << Value::TYPE_SHIFT};
+	Value True = {(uint64_t)BTRUE << Value::TYPE_SHIFT};
+	Value False = {(uint64_t)BFALSE << Value::TYPE_SHIFT};
+	Value Undef = {(uint64_t)UNDEF << Value::TYPE_SHIFT};
 
 	bool complex_compare(const Value &l, const Value &r)
 	{

@@ -16,8 +16,8 @@ namespace Channel9
 			VALUE_MASK 		= 0x0fffffffffffffffULL,
 		};
 
-		unsigned long long raw;
-		long long machine_num;
+		uint64_t raw;
+		int64_t machine_num;
 		double float_num;
 
 		const String *str_p;
@@ -32,9 +32,9 @@ namespace Channel9
 	extern Value False;
 	extern Value Undef;
 
-	inline unsigned long long type_mask(ValueType type)
+	inline uint64_t type_mask(ValueType type)
 	{
-		return (unsigned long long)(type) << Value::TYPE_SHIFT;
+		return (uint64_t)(type) << Value::TYPE_SHIFT;
 	}
 
 	inline ValueType basic_type(const Value &val)
@@ -96,20 +96,20 @@ namespace Channel9
 	template <typename tPtr>
 	inline Value make_value_ptr(ValueType type, tPtr value)
 	{
-		Value val = {type_mask(type) | ((unsigned long long)value & Value::VALUE_MASK)};
+		Value val = {type_mask(type) | ((uint64_t)value & Value::VALUE_MASK)};
 		return val;
 	}
 	inline Value value(long long machine_num)
 	{//cut off the top 4 bits, maintaining the sign
-		unsigned long long type = (unsigned long long)(machine_num >> 4) & Value::TYPE_MASK;
-		unsigned long long num = type | ((unsigned long long)(machine_num) & Value::VALUE_MASK);
-		Value val = {((unsigned long long)(num))};
+		uint64_t type = (uint64_t)(machine_num >> 4) & Value::TYPE_MASK;
+		uint64_t num = type | ((uint64_t)(machine_num) & Value::VALUE_MASK);
+		Value val = {((uint64_t)(num))};
 		return val;
 	}
 	inline Value value(double float_num)
 	{//cut off the bottom 4 bits of precision
-		unsigned long long num = type_mask(FLOAT_NUM) | (((unsigned long long)float_num) >> 4);
-		Value val = {((unsigned long long)(num))};
+		uint64_t num = type_mask(FLOAT_NUM) | (((uint64_t)float_num) >> 4);
+		Value val = {((uint64_t)(num))};
 		return val;
 	}
 	inline double float_num(Value val)
