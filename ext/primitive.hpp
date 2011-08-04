@@ -82,17 +82,25 @@ namespace Channel9
 
 	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg_val)
 	{
-		Message &msg = *ptr<Message>(msg_val);
-		const String &name = *msg.name();
+		Message *msg = ptr<Message>(msg_val);
+		const String &name = *msg->name();
 		if (name.length() == 1)
 		{
-			if (msg.arg_count() == 1 && is(msg.args()[0], STRING))
+			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
-				const String *other = ptr<String>(msg.args()[0]), *self = ptr<String>(oself);
+				String *other = ptr<String>(msg->args()[0]), *self = ptr<String>(oself);
 				switch (name[0])
 				{
 				case '+':
-					return channel_send(cenv, ctx, value(join_string(self, other)), Nil);
+					// because of reallocation, we need to do the work here. Basically, after
+					// allocating we need to re-fetch the pointer values for the strings.
+					String *ret = new_string(self->m_count + other->m_count);
+					msg = ptr<Message>(msg_val);
+					other = ptr<String>(msg->args()[0]);
+					self = ptr<String>(oself);
+					std::copy(self->begin(), self->end(), ret->m_data);
+					std::copy(other->begin(), other->end(), ret->m_data + self->m_count);
+					return channel_send(cenv, ctx, value(ret), Nil);
 				}
 			}
 		} else if (name == "length") {
