@@ -14,6 +14,7 @@ namespace Channel9
 			TYPE_SHIFT		= 60,
 			TYPE_MASK 		= 0xf000000000000000ULL,
 			VALUE_MASK 		= 0x0fffffffffffffffULL,
+			POINTER_MASK 	= 0x00007fffffffffffULL,
 		};
 
 		uint64_t raw;
@@ -89,8 +90,8 @@ namespace Channel9
 	template <typename tPtr>
 	tPtr *ptr(const Value &val)
 	{
-		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) value_pool.validate((tPtr*)(val.raw & Value::VALUE_MASK));
-		return (tPtr*)(val.raw & Value::VALUE_MASK);
+		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) value_pool.validate((tPtr*)(val.raw & Value::POINTER_MASK));
+		return (tPtr*)(val.raw & Value::POINTER_MASK);
 	}
 
 	template <typename tPtr>
