@@ -18,16 +18,11 @@ namespace Channel9
 	public:
 		typedef unsigned char uchar;
 
-		enum {
-			FORWARD_FLAG = 0x8000,
-			FORWARD_MASK = 0x8000,
-			TYPE_MASK = 0x7fff,
-		};
-
 		struct Data
 		{
 			uint16_t m_type;
-			uint16_t m_pool;
+			uint8_t  m_forward; //forwarding pointer?
+			uint8_t  m_pool; //which pool
 			uint32_t m_count; //number of bytes of memory in this allocation
 			uchar    m_data[0]; //the actual data, 8 byte aligned
 
@@ -97,7 +92,6 @@ namespace Channel9
 			if(!m_in_gc)
 				DO_TRACEGC printf("Alloc %u type %x ... ", (unsigned)size, type);
 
-			assert((type & FORWARD_FLAG) == 0); // never alloc a forwarding ref.
 			size += (8 - size % 8) % 8; //8 byte align
 
 			while(1){
@@ -108,6 +102,7 @@ namespace Channel9
 					m_data_blocks++;
 
 					data->m_type = type;
+					data->m_forward = 0;
 					data->m_pool = m_cur_pool;
 					data->m_count = size;
 
@@ -182,7 +177,7 @@ namespace Channel9
 				return from;
 			}
 
-			if(old->m_type & FORWARD_FLAG){
+			if(old->m_forward){
 				DO_TRACEGC printf("Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
 				return *(tObj**)from;
 			}
@@ -192,7 +187,7 @@ namespace Channel9
 
 			DO_TRACEGC printf("Move %p, type %X <= %p\n", from, old->m_type, n);
 
-			old->m_type |= FORWARD_FLAG;
+			old->m_forward = 1;
 			*(tObj**)from = n;
 			return n;
 		}
