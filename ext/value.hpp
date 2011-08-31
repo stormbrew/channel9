@@ -55,7 +55,7 @@ namespace Channel9
 		if (t != HEAP_TYPE)
 			return t;
 		else
-			return ValueType(header_ptr(val)->m_type & MemoryPool::TYPE_MASK);
+			return ValueType(header_ptr(val)->m_type);
 	}
 	inline bool is(const Value &val, ValueType t)
 	{
