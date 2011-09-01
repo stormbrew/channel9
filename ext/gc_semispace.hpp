@@ -131,6 +131,31 @@ namespace Channel9
 			return NULL;
 		}
 
+		template <typename tObj>
+		tObj *move(tObj * from)
+		{
+			Data * old = (Data*)(from) - 1;
+
+			if(old->m_pool == m_cur_pool){
+				DO_TRACEGC printf("Move %p, type %X already moved\n", from, old->m_type);
+				return from;
+			}
+
+			if(old->m_forward){
+				DO_TRACEGC printf("Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
+				return *(tObj**)from;
+			}
+
+			tObj * n = (tObj*)next(old->m_count, old->m_type);
+			memcpy(n, from, old->m_count);
+
+			DO_TRACEGC printf("Move %p, type %X <= %p\n", from, old->m_type, n);
+
+			old->m_forward = 1;
+			*(tObj**)from = n;
+			return n;
+		}
+
 		Chunk * new_chunk(size_t size)
 		{
 			size += (8 - size % 8) % 8; //8 byte align
@@ -167,7 +192,8 @@ namespace Channel9
 		}
 
 		template <typename tObj>
-		bool mark(tObj ** from){
+		bool mark(tObj ** from)
+		{
 			tObj * to = move(*from);
 			if(to == *from)
 				return false;
@@ -176,33 +202,19 @@ namespace Channel9
 			return true;
 		}
 
+		// make sure this object is ready to be read from
 		template <typename tObj>
-		tObj *move(tObj * from)
-		{
-			Data * old = (Data*)(from) - 1;
+		void read_barrier(tObj * obj) { }
 
-			if(old->m_pool == m_cur_pool){
-				DO_TRACEGC printf("Move %p, type %X already moved\n", from, old->m_type);
-				return from;
-			}
+		// tell the GC that obj will contain a reference to the object pointed to by ptr
+		template <typename tObj, typename tPtr>
+		void write_barrier(tObj * obj, tPtr * ptr) { }
 
-			if(old->m_forward){
-				DO_TRACEGC printf("Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
-				return *(tObj**)from;
-			}
+		// now is a valid time to stop the world
+		void safe_point() { }
 
-			tObj * n = (tObj*)next(old->m_count, old->m_type);
-			memcpy(n, from, old->m_count);
-
-			DO_TRACEGC printf("Move %p, type %X <= %p\n", from, old->m_type, n);
-
-			old->m_forward = 1;
-			*(tObj**)from = n;
-			return n;
-		}
-
-		void unregister_root(GCRoot *root);
 		void register_root(GCRoot *root);
+		void unregister_root(GCRoot *root);
 	};
 }
 
