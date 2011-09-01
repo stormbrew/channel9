@@ -41,20 +41,16 @@ namespace Channel9
 		return frame;
 	}
 
-	inline void gc_reallocate(VariableFrame **from)
-	{
-		*from = value_pool.move<VariableFrame>(*from);
-	}
 	inline void gc_scan(VariableFrame *from)
 	{
 		size_t local_count = from->m_instructions->local_count();
 		gc_scan(from->m_instructions);
 		if (from->m_parent_frame)
-			gc_reallocate(&from->m_parent_frame);
-			
+			value_pool.mark(&from->m_parent_frame);
+
 		for (size_t i = 0; i < local_count; i++)
 		{
-			gc_reallocate(&from->m_locals[i]);
+			gc_scan(from->m_locals[i]);
 		}
 	}
 }

@@ -41,18 +41,18 @@ namespace Channel9
 	void Environment::scan()
 	{
 		if (m_context)
-			gc_reallocate(&m_context);
+			value_pool.mark(&m_context);
 
 		gc_scan(&m_ipos);
 
 		for (size_t i = 0; i < m_vspos; i++)
 		{
-			gc_reallocate(&m_vstack[i]);
+			gc_scan(m_vstack[i]);
 		}
 
 		for (special_map::iterator it = m_specials.begin(); it != m_specials.end(); it++)
 		{
-			gc_reallocate(&it->second);
+			gc_scan(it->second);
 		}
 	}
 
@@ -83,7 +83,7 @@ namespace Channel9
 				m_ipos = *ipos;
 
 				DO_TRACE {
-					printf("Instruction: %s@%d\n", 
+					printf("Instruction: %s@%d\n",
 						inspect(ins).c_str(),
 						(int)(ipos - &*m_context->instructions().begin())
 						);
@@ -278,7 +278,7 @@ namespace Channel9
 					long long sysarg_count = ins.arg2.machine_num, sysarg_counter = sysarg_count - 1;
 					long long arg_count = ins.arg3.machine_num, arg_counter = arg_count - 1;
 					CHECK_STACK(sysarg_count + arg_count, 1);
-					
+
 					Message *msg = new_message(name, sysarg_count, arg_count);
 
 					while (arg_count > 0 && arg_counter >= 0)
@@ -352,7 +352,7 @@ namespace Channel9
 							m_context->push(Undef);
 						else
 							m_context->push(args[pos]);
-						
+
 						pos -= 1;
 					}
 					}
@@ -558,3 +558,4 @@ namespace Channel9
 		}
 	}
 }
+

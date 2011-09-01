@@ -29,51 +29,39 @@ namespace Channel9
 		}
 	}
 
-	void gc_reallocate(Value *from)
-	{
-		switch (type(*from))
-		{
-		case STRING: {
-			String *str = ptr<String>(*from);
-			gc_reallocate(&str);
-			*from = make_value_ptr(STRING, str);
-			break;
-		}
-		case TUPLE: {
-			Tuple *tuple = ptr<Tuple>(*from);
-			gc_reallocate(&tuple);
-			*from = make_value_ptr(TUPLE, tuple);
-			break;
-		}
-		case MESSAGE: {
-			Message *msg = ptr<Message>(*from);
-			gc_reallocate(&msg);
-			*from = make_value_ptr(MESSAGE, msg);
-			break;
-		}
-		case RUNNABLE_CONTEXT: {
-			RunnableContext *ctx = ptr<RunnableContext>(*from);
-			gc_reallocate(&ctx);
-			*from = make_value_ptr(RUNNABLE_CONTEXT, ctx);
-			break;
-		}
-		default: break;
-		}
-	}
-	void gc_scan(const Value &from)
+	void gc_scan(Value &from)
 	{
 		switch (type(from))
 		{
-		case STRING:
-			return gc_scan(ptr<String>(from));
-		case TUPLE:
-			return gc_scan(ptr<Tuple>(from));
-		case MESSAGE:
-			return gc_scan(ptr<Message>(from));
-		case CALLABLE_CONTEXT:
-			return gc_scan(ptr<CallableContext>(from));
-		case RUNNABLE_CONTEXT:
-			return gc_scan(ptr<RunnableContext>(from));
+		case STRING:{
+			String *str = ptr<String>(from);
+			if(value_pool.mark(&str))
+				from = make_value_ptr(STRING, str);
+			break;
+		}
+		case TUPLE:{
+			Tuple *tuple = ptr<Tuple>(from);
+			if(value_pool.mark(&tuple))
+				from = make_value_ptr(TUPLE, tuple);
+			break;
+		}
+		case MESSAGE:{
+			Message *msg = ptr<Message>(from);
+			if(value_pool.mark(&msg))
+				from = make_value_ptr(MESSAGE, msg);
+			break;
+		}
+		case CALLABLE_CONTEXT:{
+			//can't move, not in the collector
+			gc_scan(ptr<CallableContext>(from));
+			break;
+		}
+		case RUNNABLE_CONTEXT:{
+			RunnableContext *ctx = ptr<RunnableContext>(from);
+			if(value_pool.mark(&ctx))
+				from = make_value_ptr(RUNNABLE_CONTEXT, ctx);
+			break;
+		}
 		default: break;
 		}
 	}

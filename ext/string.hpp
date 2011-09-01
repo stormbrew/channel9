@@ -114,10 +114,6 @@ namespace Channel9
 		return new_string(str.begin(), str.end());
 	}
 
-	inline void gc_reallocate(String **from)
-	{
-		*from = value_pool.move<String>(*from);
-	}
 	inline void gc_scan(String *from)
 	{
 		// nothing to scan. Here for completeness' sake.
