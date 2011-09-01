@@ -80,8 +80,8 @@ namespace Channel9
 	};
 	Instruction instruction(INUM instruction, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil);
 	inline Instruction instruction(const std::string &ins, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil)
-	{ 
-		return instruction(inum(ins), arg1, arg2); 
+	{
+		return instruction(inum(ins), arg1, arg2);
 	}
 
 	InstructionInfo iinfo(const Instruction &ins);
@@ -90,8 +90,9 @@ namespace Channel9
 
 	inline void gc_scan(Instruction *ins)
 	{
-		gc_reallocate(&ins->arg1);
-		gc_reallocate(&ins->arg2);
-		gc_reallocate(&ins->arg3);
+		gc_scan(ins->arg1);
+		gc_scan(ins->arg2);
+		gc_scan(ins->arg3);
 	}
 }
+

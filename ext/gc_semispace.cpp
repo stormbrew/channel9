@@ -12,16 +12,16 @@
 namespace Channel9
 {
 
-	void GCSemiSpace::register_root(GCRoot *root)
+	void GCSemispace::register_root(GCRoot *root)
 	{
 		m_roots.insert(root);
 	}
-	void GCSemiSpace::unregister_root(GCRoot *root)
+	void GCSemispace::unregister_root(GCRoot *root)
 	{
 		m_roots.erase(root);
 	}
 
-	void GCSemiSpace::collect()
+	void GCSemispace::collect()
 	{
 		m_in_gc = true;
 

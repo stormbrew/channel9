@@ -124,7 +124,6 @@ namespace Channel9
 	inline Value value(CallableContext *call_ctx) { return make_value_ptr(CALLABLE_CONTEXT, call_ctx); }
 	inline Value value(RunnableContext *ret_ctx) { return make_value_ptr(RUNNABLE_CONTEXT, ret_ctx); }
 
-	void gc_reallocate(Value *from);
 	void gc_scan(const Value &from);
 
 	std::string inspect(const Value &val);
@@ -145,7 +144,7 @@ namespace Channel9
 
 		void scan()
 		{
-			gc_reallocate(&m_val);
+			gc_scan(m_val);
 		}
 
 		const tVal &operator*() const { return m_val; }

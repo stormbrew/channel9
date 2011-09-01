@@ -10,11 +10,33 @@
 #include "channel9.hpp"
 #include "memcheck.h"
 
+
+class GC { // GC base class, must be subclassed by one of the others
+
+	// extra is how much to allocate, type is one of Channel9::ValueType, return the new location
+	template <typename tObj> tObj *alloc(size_t extra, uint32_t type);
+
+	// notify the gc that an obj is pointed to, might mark it, might move it, might do something else. Returns true if it moved
+	template <typename tObj> bool mark(tObj ** from);
+
+	// is this object valid? only to be used for debugging
+	template <typename tObj> bool validate(tObj * obj);
+
+	// make sure this object is ready to be read from
+	template <typename tObj> void read_barrier(tObj * obj);
+
+	// tell the GC that obj will contain a reference to the object pointed to by ptr
+	template <typename tObj, typename tPtr> void write_barrier(tObj * obj, tPtr * ptr);
+
+	void safepoint(); // now is a valid time to stop the world
+};
+
+
 namespace Channel9
 {
-	class GCSemiSpace;
+	class GCSemispace;
 
-	typedef GCSemiSpace MemoryPool;
+	typedef GCSemispace MemoryPool;
 
 	extern MemoryPool value_pool;
 
