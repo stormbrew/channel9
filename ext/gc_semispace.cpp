@@ -61,6 +61,7 @@ namespace Channel9
 				case TUPLE:   			gc_scan( (Tuple*)   (d->m_data)); break;
 				case MESSAGE: 			gc_scan( (Message*) (d->m_data)); break;
 				case CALLABLE_CONTEXT: 	gc_scan( (CallableContext*) (d->m_data)); break;
+				case RUNNING_CONTEXT:	gc_scan( (RunningContext*)  (d->m_data)); break;
 				case RUNNABLE_CONTEXT: 	gc_scan( (RunnableContext*) (d->m_data)); break;
 				case VARIABLE_FRAME:   	gc_scan( (VariableFrame*)   (d->m_data)); break;
 				default: assert(false && "Unknown GC type");

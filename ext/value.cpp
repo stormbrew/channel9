@@ -56,6 +56,12 @@ namespace Channel9
 			gc_scan(ptr<CallableContext>(from));
 			break;
 		}
+		case RUNNING_CONTEXT:{
+			RunningContext *ctx = ptr<RunningContext>(from);
+			if(value_pool.mark(&ctx))
+				from = make_value_ptr(RUNNING_CONTEXT, ctx);
+			break;
+		}
 		case RUNNABLE_CONTEXT:{
 			RunnableContext *ctx = ptr<RunnableContext>(from);
 			if(value_pool.mark(&ctx))
@@ -130,8 +136,11 @@ namespace Channel9
 		case CALLABLE_CONTEXT:
 			res << "call_ctx:" << ptr<CallableContext>(val);
 			break;
+		case RUNNING_CONTEXT:
+			res << "running_ctx:" << ptr<RunningContext>(val);
+			break;
 		case RUNNABLE_CONTEXT:
-			res << "ret_ctx:" << ptr<RunnableContext>(val);
+			res << "runnable_ctx:" << ptr<RunnableContext>(val);
 			break;
 		default:
 			assert(!type(val));

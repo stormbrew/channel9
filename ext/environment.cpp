@@ -56,7 +56,7 @@ namespace Channel9
 		}
 	}
 
-	void Environment::run(RunnableContext *context)
+	void Environment::run(RunningContext *context)
 	{
 		const Instruction &ins = m_ipos;
 		m_context = context;

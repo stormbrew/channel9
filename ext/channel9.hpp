@@ -8,6 +8,7 @@ namespace Channel9
 	class CallableContext;
 	struct String;
 	struct Tuple;
+	struct RunningContext;
 	struct RunnableContext;
 	class IStream;
 	class Message;
@@ -46,6 +47,7 @@ namespace Channel9
 		TUPLE           = 0x4E,
 		MESSAGE         = 0x5E,
 		RUNNABLE_CONTEXT= 0x7E,
+		RUNNING_CONTEXT = 0x8E,
 
 		NEGATIVE_NUMBER = 0x0f
 	};
