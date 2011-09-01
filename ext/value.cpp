@@ -9,7 +9,7 @@
 
 namespace Channel9
 {
-	MemoryPool value_pool(256*256);
+	MemoryPool value_pool;
 
 	Value Nil = {(uint64_t)NIL << Value::TYPE_SHIFT};
 	Value True = {(uint64_t)BTRUE << Value::TYPE_SHIFT};
