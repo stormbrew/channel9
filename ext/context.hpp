@@ -24,12 +24,6 @@ namespace Channel9
 		ctx->scan();
 	}
 
-	// purely for gcref, just calls gc_scan. Doesn't move the pointer.
-	inline void gc_reallocate(CallableContext **ctx)
-	{
-		(*ctx)->scan();
-	}
-
 	inline RunnableContext *activate_context(const RunnableContext &copy);
 
 	struct RunnableContext
@@ -101,7 +95,7 @@ namespace Channel9
 		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_sp = NULL;
-		return ctx;		
+		return ctx;
 	}
 	inline RunnableContext *activate_context(const Value &copy)
 	{
@@ -115,27 +109,20 @@ namespace Channel9
 		return ctx;
 	}
 
-	inline void gc_reallocate(RunnableContext **from)
-	{
-		RunnableContext *nctx = value_pool.move<RunnableContext>(*from);
-		if (nctx->m_sp)
-			nctx->m_sp = nctx->m_data + ((*from)->m_sp - (*from)->m_data);
-		*from = nctx;
-	}
 	inline void gc_scan(RunnableContext *ctx)
 	{
 		gc_scan(ctx->m_instructions);
-		gc_reallocate(&ctx->m_localvars);
+		value_pool.mark(&ctx->m_localvars);
 		ssize_t i;
 		for (i = 0; i < (ssize_t)ctx->m_instructions->frame_count(); i++)
 		{
-			gc_reallocate(&ctx->m_data[i]);
+			gc_scan(ctx->m_data[i]);
 		}
 		if (ctx->m_sp)
 		{
 			for (; i < ctx->m_sp - ctx->m_data; i++)
 			{
-				gc_reallocate(&ctx->m_data[i]);
+				gc_scan(ctx->m_data[i]);
 			}
 		}
 	}
