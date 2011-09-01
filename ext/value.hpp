@@ -90,7 +90,7 @@ namespace Channel9
 	template <typename tPtr>
 	tPtr *ptr(const Value &val)
 	{
-		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) value_pool.validate((tPtr*)(val.raw & Value::POINTER_MASK));
+		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) assert(value_pool.validate((tPtr*)(val.raw & Value::POINTER_MASK)));
 		return (tPtr*)(val.raw & Value::POINTER_MASK);
 	}
 

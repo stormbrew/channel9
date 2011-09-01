@@ -183,12 +183,12 @@ namespace Channel9
 		}
 
 		template <typename tObj>
-		void validate(tObj * from)
+		bool validate(tObj * from)
 		{
-			if(!m_in_gc)
-			{
-				assert(Data::ptr_for(from)->m_pool == m_cur_pool);
-			}
+			if(m_in_gc)
+				return true;
+			else
+				return (Data::ptr_for(from)->m_pool == m_cur_pool);
 		}
 
 		template <typename tObj>
