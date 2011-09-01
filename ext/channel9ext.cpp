@@ -25,6 +25,7 @@ VALUE rb_cEnvironment;
 VALUE rb_cStream;
 VALUE rb_cContext;
 VALUE rb_cCallableContext;
+VALUE rb_cRunningContext;
 VALUE rb_cRunnableContext;
 VALUE rb_cMessage;
 VALUE rb_cUndef;
@@ -36,6 +37,7 @@ static VALUE rb_Environment_new(Environment *env);
 static VALUE rb_Message_new(GCRef<Message*> msg);
 static VALUE rb_CallableContext_new(GCRef<CallableContext*> ctx);
 static VALUE rb_Context_new(GCRef<RunnableContext*> ctx);
+static VALUE rb_RunningContext_new(GCRef<RunningContext*> ctx);
 
 class RubyUnwind : public std::exception
 {
@@ -179,6 +181,9 @@ static GCRef<Value> rb_to_c9(VALUE val)
 		} else if (klass == rb_cContext) {
 			RunnableContext *ctx = get_gc_val<RunnableContext*>(val);
 			return value(ctx);
+		} else if (klass == rb_cRunningContext) {
+			RunningContext *ctx = get_gc_val<RunningContext*>(val);
+			return value(ctx);
 		} else if (klass == rb_cMessage) {
 			Message *msg = get_gc_val<Message*>(val);
 			return value(msg);
@@ -225,6 +230,8 @@ static VALUE c9_to_rb(const Value &val)
 		return rb_CallableContext_new(gc_ref(ptr<CallableContext>(val)));
 	case RUNNABLE_CONTEXT:
 		return rb_Context_new(gc_ref(ptr<RunnableContext>(val)));
+	case RUNNING_CONTEXT:
+		return rb_RunningContext_new(gc_ref(ptr<RunningContext>(val)));
 	default:
 		printf("Unknown value type %i\n", type(val));
 		exit(1);
@@ -290,7 +297,7 @@ static VALUE Environment_current_context(VALUE self) try
 	assert(TYPE(self) == T_DATA);
 	Data_Get_Struct(self, Environment, env);
 
-	RunnableContext *ctx = env->context();
+	RunningContext *ctx = env->context();
 	if (ctx)
 		return c9_to_rb(value(ctx));
 	else
@@ -300,12 +307,12 @@ static VALUE Environment_current_context(VALUE self) try
 static VALUE Environment_set_current_context(VALUE self, VALUE rb_ctx) try
 {
 	Environment *env;
-	RunnableContext *ctx = NULL;
+	RunningContext *ctx = NULL;
 	assert(TYPE(self) == T_DATA);
 	Data_Get_Struct(self, Environment, env);
 	if (rb_ctx != Qnil)
 	{
-		ctx = get_gc_val<RunnableContext*>(rb_ctx);
+		ctx = get_gc_val<RunningContext*>(rb_ctx);
 	}
 
 	env->run(ctx);
@@ -390,6 +397,12 @@ static VALUE rb_Context_new(GCRef<RunnableContext*> ctx)
 	return obj;
 }
 
+static VALUE rb_RunningContext_new(GCRef<RunningContext*> ctx)
+{
+	VALUE obj = wrap_gc_ref(rb_cRunningContext, ctx);
+	return obj;
+}
+
 static VALUE Context_new(VALUE self, VALUE rb_env, VALUE rb_stream) try
 {
 	Environment *env;
@@ -428,6 +441,27 @@ static void Init_Channel9_Context()
 	rb_cContext = rb_define_class_under(rb_mChannel9, "Context", rb_cObject);
 	rb_define_singleton_method(rb_cContext, "new", ruby_method(Context_new), 2);
 	rb_define_method(rb_cContext, "channel_send", ruby_method(Context_channel_send), 3);
+}
+
+static VALUE RunningContext_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val, VALUE rb_ret) try
+{
+	Environment *cenv;
+	assert(TYPE(rb_cenv) == T_DATA);
+	Data_Get_Struct(rb_cenv, Environment, cenv);
+
+	GCRef<Value> ctx = value(get_gc_val<RunningContext*>(self));
+	GCRef<Value> val = rb_to_c9(rb_val);
+	GCRef<Value> ret = rb_to_c9(rb_ret);
+
+	channel_send(cenv, *ctx, *val, *ret);
+
+	return Qnil;
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
+
+static void Init_Channel9_RunningContext()
+{
+	rb_cRunningContext = rb_define_class_under(rb_mChannel9, "RunningContext", rb_cObject);
+	rb_define_method(rb_cRunningContext, "channel_send", ruby_method(RunningContext_channel_send), 3);
 }
 
 static VALUE rb_CallableContext_new(GCRef<CallableContext*> ctx_p)
@@ -558,6 +592,7 @@ extern "C" void Init_channel9ext()
 	Init_Channel9_Message();
 	Init_Channel9_Undef();
 	Init_Channel9_Context();
+	Init_Channel9_RunningContext();
 	Init_Channel9_CallableContext();
 
 	Init_Channel9_Primitives();

@@ -31,7 +31,24 @@ namespace Channel9
 		IStream *m_instructions;
 		const Instruction *m_pos;
 		VariableFrame *m_localvars;
-		Value *m_sp;
+		size_t m_stack_pos;
+
+		Value m_data[0];
+
+		void jump(size_t pos)
+		{
+			m_pos = &*m_instructions->begin() + pos;
+		}
+
+		void new_scope(VariableFrame *scope) { m_localvars = scope; }
+	};
+
+	struct RunningContext
+	{
+		IStream *m_instructions;
+		const Instruction *m_pos;
+		VariableFrame *m_localvars;
+		size_t m_stack_pos;
 
 		Value m_data[0];
 
@@ -47,17 +64,17 @@ namespace Channel9
 		}
 
 		const Value *stack_begin() const { return m_data + m_instructions->frame_count(); }
-		const Value *stack_pos() const { return m_sp; }
-		size_t stack_count() const { return m_sp - stack_begin(); }
+		const Value *stack_pos() const { return m_data + m_stack_pos; }
+		size_t stack_count() const { return m_stack_pos - m_instructions->frame_count(); }
 		void push(const Value &val)
 		{
-			*m_sp++ = val;
+			m_data[m_stack_pos++] = val;
 		}
 		void pop()
 		{
-			--m_sp;
+			--m_stack_pos;
 		}
-		const Value &top() const { return *(m_sp-1); }
+		const Value &top() const { return m_data[m_stack_pos-1]; }
 
 		const Value &get_framevar(size_t id) const { return m_data[id]; }
 		const Value &get_localvar(size_t id) const { return m_localvars->lookup(id); }
@@ -72,11 +89,13 @@ namespace Channel9
 
 	inline RunnableContext *new_context(IStream *instructions, VariableFrame *localvars = NULL, size_t pos = 0)
 	{
+		size_t frame_count = instructions->frame_count();
+
 		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*instructions->frame_count(), RUNNABLE_CONTEXT);
 		ctx->m_instructions = instructions;
 		ctx->m_pos = &*instructions->begin();
 		ctx->m_localvars = localvars;
-		ctx->m_sp = NULL;
+		ctx->m_stack_pos = frame_count;
 		memset(ctx->m_data, 0, sizeof(Value)*instructions->frame_count());
 		return ctx;
 	}
@@ -86,7 +105,6 @@ namespace Channel9
 		size_t frame_count = copy.m_instructions->frame_count();
 		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
-		ctx->m_sp = NULL;
 		return ctx;
 	}
 	inline RunnableContext *new_context(const Value &copy)
@@ -94,18 +112,17 @@ namespace Channel9
 		size_t frame_count = ptr<RunnableContext>(copy)->m_instructions->frame_count();
 		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
-		ctx->m_sp = NULL;
 		return ctx;
 	}
-	inline RunnableContext *activate_context(const Value &copy)
+	inline RunningContext *activate_context(const Value &copy)
 	{
 		IStream *istream = ptr<RunnableContext>(copy)->m_instructions;
 		size_t frame_count = istream->frame_count();
 		size_t frame_extra = sizeof(Value)*(frame_count + istream->stack_size());
-		RunnableContext *ctx = value_pool.alloc<RunnableContext>(frame_extra, RUNNABLE_CONTEXT);
+		RunningContext *ctx = value_pool.alloc<RunningContext>(frame_extra, RUNNING_CONTEXT);
 
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
-		ctx->m_sp = ctx->m_data + frame_count;
+		ctx->m_stack_pos = frame_count;
 		return ctx;
 	}
 
@@ -114,16 +131,19 @@ namespace Channel9
 		gc_scan(ctx->m_instructions);
 		value_pool.mark(&ctx->m_localvars);
 		ssize_t i;
-		for (i = 0; i < (ssize_t)ctx->m_instructions->frame_count(); i++)
+		for (i = 0; i < ctx->m_stack_pos; i++)
 		{
 			gc_scan(ctx->m_data[i]);
 		}
-		if (ctx->m_sp)
+	}
+	inline void gc_scan(RunningContext *ctx)
+	{
+		gc_scan(ctx->m_instructions);
+		value_pool.mark(&ctx->m_localvars);
+		ssize_t i;
+		for (i = 0; i < ctx->m_stack_pos; i++)
 		{
-			for (; i < ctx->m_sp - ctx->m_data; i++)
-			{
-				gc_scan(ctx->m_data[i]);
-			}
+			gc_scan(ctx->m_data[i]);
 		}
 	}
 
@@ -135,12 +155,19 @@ namespace Channel9
 	{
 		switch (type(channel))
 		{
+		case RUNNING_CONTEXT: {
+			RunningContext *ctx = ptr<RunningContext>(channel);
+
+			ctx->push(val);
+			ctx->push(ret);
+			env->run(ctx);
+			}
+			break;
 		case RUNNABLE_CONTEXT: {
 			value_pool.safe_point();
 
-			RunnableContext *ctx = ptr<RunnableContext>(channel);
-			if (!ctx->m_sp)
-				ctx = activate_context(channel);
+			RunnableContext *orig_ctx = ptr<RunnableContext>(channel);
+			RunningContext *ctx = activate_context(channel);
 
 			ctx->push(val);
 			ctx->push(ret);

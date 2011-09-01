@@ -15,7 +15,7 @@ namespace Channel9
 	private:
 		typedef std::map<std::string, Value> special_map;
 
-		RunnableContext *m_context;
+		RunningContext *m_context;
 		bool m_running;
 		special_map m_specials;
 
@@ -35,11 +35,11 @@ namespace Channel9
 		const Value &special_channel(const String &name) const;
 		void set_special_channel(const std::string &name, const Value &val);
 
-		void run(RunnableContext *context);
+		void run(RunningContext *context);
 
 		void scan();
 		
-		RunnableContext *context() const { return m_context; }
+		RunningContext *context() const { return m_context; }
 	};
 }
 
