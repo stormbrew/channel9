@@ -162,7 +162,7 @@ namespace Channel9
 
 	public:
 		Semispace()
-		 : m_cur_pool(0), m_in_gc(false), m_alloced(0), m_used(0), m_data_blocks(0)
+		 : m_cur_pool(0), m_in_gc(false), m_alloced(0), m_used(0), m_data_blocks(0), m_next_gc(1<<20)
 		{
 			m_pools[0] = new_chunk();
 			m_pools[1] = NULL;
