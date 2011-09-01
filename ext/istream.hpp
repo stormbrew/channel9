@@ -39,7 +39,7 @@ namespace Channel9
 
 		// only valid after call to normalize
 		size_t m_stack_size;
-		
+
 		typedef std::pair<bool, size_t> pos_info;
 		size_t normalize(size_t stack_size, size_t pos, std::vector<pos_info> &pos_map);
 
@@ -84,11 +84,5 @@ namespace Channel9
 			gc_scan(&*it);
 		}
 	}
-
-	// purely for GCRef, just calls scan, thus reallocates the objects
-	// pointed to. Doesn't alter the pointer.
-	inline void gc_reallocate(IStream **stream)
-	{
-		gc_scan(*stream);
-	}
 }
+

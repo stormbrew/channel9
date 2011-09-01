@@ -13,7 +13,7 @@
 namespace Channel9
 {
 
-	class GCSemiSpace
+	class GCSemispace
 	{
 	public:
 		typedef unsigned char uchar;
@@ -143,7 +143,7 @@ namespace Channel9
 		}
 
 	public:
-		GCSemiSpace(size_t initial_size)
+		GCSemispace(size_t initial_size)
 		 : m_cur_pool(0), m_in_gc(false), m_initial_size(initial_size), m_alloced(0), m_used(0), m_data_blocks(0)
 		{
 			m_pools[0] = new_chunk(m_initial_size);
@@ -165,6 +165,16 @@ namespace Channel9
 			{
 				assert(Data::ptr_for(from)->m_pool == m_cur_pool);
 			}
+		}
+
+		template <typename tObj>
+		bool mark(tObj ** from){
+			tObj * to = move(*from);
+			if(to == *from)
+				return false;
+
+			*from = to;
+			return true;
 		}
 
 		template <typename tObj>
