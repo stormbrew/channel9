@@ -124,7 +124,7 @@ namespace Channel9
 	inline Value value(CallableContext *call_ctx) { return make_value_ptr(CALLABLE_CONTEXT, call_ctx); }
 	inline Value value(RunnableContext *ret_ctx) { return make_value_ptr(RUNNABLE_CONTEXT, ret_ctx); }
 
-	void gc_scan(const Value &from);
+	void gc_scan(Value &from);
 
 	std::string inspect(const Value &val);
 
