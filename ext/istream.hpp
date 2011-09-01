@@ -84,5 +84,12 @@ namespace Channel9
 			gc_scan(&*it);
 		}
 	}
+
+	// Specialize GCRef's scanner to only do a gc_scan of it.
+	template <>
+	inline void GCRef<IStream*>::scan()
+	{
+		gc_scan(m_val);
+	}
 }
 

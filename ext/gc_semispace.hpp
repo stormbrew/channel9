@@ -126,31 +126,6 @@ namespace Channel9
 			return NULL;
 		}
 
-		template <typename tObj>
-		tObj *move(tObj * from)
-		{
-			Data * old = (Data*)(from) - 1;
-
-			if(old->m_pool == m_cur_pool){
-				DO_TRACEGC printf("Move %p, type %X already moved\n", from, old->m_type);
-				return from;
-			}
-
-			if(old->m_forward){
-				DO_TRACEGC printf("Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
-				return *(tObj**)from;
-			}
-
-			tObj * n = (tObj*)next(old->m_count, old->m_type);
-			memcpy(n, from, old->m_count);
-
-			DO_TRACEGC printf("Move %p, type %X <= %p\n", from, old->m_type, n);
-
-			old->m_forward = 1;
-			*(tObj**)from = n;
-			return n;
-		}
-
 		Chunk * new_chunk()
 		{
 			Chunk * c = (Chunk *)malloc(CHUNK_SIZE);
@@ -186,13 +161,32 @@ namespace Channel9
 		}
 
 		template <typename tObj>
-		bool mark(tObj ** from)
+		bool mark(tObj **from_ptr)
 		{
-			tObj * to = move(*from);
-			if(to == *from)
-				return false;
+			tObj *from = *from_ptr;
+			Data * old = (Data*)(from) - 1;
 
-			*from = to;
+			if(old->m_pool == m_cur_pool){
+				DO_TRACEGC printf("Move %p, type %X already moved\n", from, old->m_type);
+				return from;
+			}
+
+			if(old->m_forward){
+				DO_TRACEGC printf("Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
+				*from_ptr = *(tObj**)from;
+				return true;
+			}
+
+			tObj * n = (tObj*)next(old->m_count, old->m_type);
+			memcpy(n, from, old->m_count);
+
+			DO_TRACEGC printf("Move %p, type %X <= %p\n", from, old->m_type, n);
+
+			old->m_forward = 1;
+			// put the new location in the old object's space
+			*(tObj**)from = n;
+			// change the marked pointer
+			*from_ptr = n;
 			return true;
 		}
 
