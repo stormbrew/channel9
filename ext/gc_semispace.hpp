@@ -12,8 +12,7 @@
 
 namespace Channel9
 {
-
-	class GCSemispace
+	class GC::Semispace : protected GC
 	{
 	public:
 		typedef unsigned char uchar;
@@ -143,7 +142,7 @@ namespace Channel9
 		}
 
 	public:
-		GCSemispace(size_t initial_size)
+		Semispace(size_t initial_size)
 		 : m_cur_pool(0), m_in_gc(false), m_initial_size(initial_size), m_alloced(0), m_used(0), m_data_blocks(0)
 		{
 			m_pools[0] = new_chunk(m_initial_size);
