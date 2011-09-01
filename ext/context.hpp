@@ -136,6 +136,8 @@ namespace Channel9
 		switch (type(channel))
 		{
 		case RUNNABLE_CONTEXT: {
+			value_pool.safe_point();
+
 			RunnableContext *ctx = ptr<RunnableContext>(channel);
 			if (!ctx->m_sp)
 				ctx = activate_context(channel);
@@ -146,6 +148,8 @@ namespace Channel9
 			}
 			break;
 		case CALLABLE_CONTEXT:
+			value_pool.safe_point();
+
 			ptr<CallableContext>(channel)->send(env, val, ret);
 			break;
 		case NIL: {
