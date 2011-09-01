@@ -145,7 +145,7 @@ namespace Channel9
 
 		void scan()
 		{
-			gc_scan(m_val);
+			value_pool.mark(&m_val);
 		}
 
 		const tVal &operator*() const { return m_val; }
@@ -153,6 +153,14 @@ namespace Channel9
 		const tVal &operator->() const { return m_val; }
 		tVal &operator->() { return m_val; }
 	};
+
+	// Specialize GCRef::scan for Values as we only scan them.
+	// They take care of marking themselves.
+	template <>
+	inline void GCRef<Value>::scan()
+	{
+		gc_scan(m_val);
+	}
 
 	template <typename tVal>
 	inline GCRef<tVal> gc_ref(const tVal &val)

@@ -24,6 +24,13 @@ namespace Channel9
 		ctx->scan();
 	}
 
+	// Specialize GCRef's scanner to only do a gc_scan of it.
+	template <>
+	inline void GCRef<CallableContext*>::scan()
+	{
+		gc_scan(m_val);
+	}
+
 	inline RunnableContext *activate_context(const RunnableContext &copy);
 
 	struct RunnableContext
