@@ -31,7 +31,7 @@ namespace Channel9
 		m_cur_pool = !m_cur_pool;
 
 		if(m_pools[m_cur_pool] == NULL)
-			m_pools[m_cur_pool] = new_chunk(m_initial_size);
+			m_pools[m_cur_pool] = new_chunk();
 
 		m_cur_chunk = m_pools[m_cur_pool];
 		m_used = 0;
@@ -90,6 +90,8 @@ namespace Channel9
 
 			c->m_used = 0;
 		}
+
+		m_next_gc = std::max(CHUNK_SIZE*0.9, m_used * GC_GROWTH_LIMIT);
 
 		DO_TRACEGC printf("Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
 
