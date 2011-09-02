@@ -144,6 +144,18 @@ namespace Channel9
 		return ret;
 	}
 
+	inline Tuple *split_string(const String *s, const String *by)
+	{
+		std::vector<Value> strings;
+		String::const_iterator first = s->begin(), next;
+		do {
+			next = std::search(first, s->end(), by->begin(), by->end());
+			strings.push_back(value(new_string(first, next)));
+			first = next + by->m_count;
+		} while (next != s->end());
+		return new_tuple(strings.begin(), strings.end());
+	}
+
 	inline Value value(const std::vector<Value> &tuple) { return make_value_ptr(TUPLE, new_tuple(tuple)); }
 	inline Value value(const Tuple *tuple) { return make_value_ptr(TUPLE, tuple); }
 }

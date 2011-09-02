@@ -107,6 +107,14 @@ namespace Channel9
 					return channel_send(cenv, ctx, value(ret), Nil);
 				}
 			}
+		} else if (name == "split") {
+			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
+			{
+				String *self = ptr<String>(oself);
+				String *by = ptr<String>(msg->args()[0]);
+				return channel_send(cenv, ctx, value(split_string(self, by)), Nil);
+			}
+
 		} else if (name == "hash") {
 			String *self = ptr<String>(oself);
 			// djb2 algorithm
