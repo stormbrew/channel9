@@ -121,6 +121,12 @@ namespace Channel9
 
 		} else if (name == "length") {
 			return channel_send(cenv, ctx, value((long long)ptr<String>(oself)->length()), Nil);
+		} else if (name == "==") {
+			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
+			{
+				String *other = ptr<String>(msg->args()[0]), *self = ptr<String>(oself);
+				return channel_send(cenv, ctx, bvalue(*self == *other), Nil);
+			}
 		}
 		Value def = cenv->special_channel("Channel9::Primitive::String");
 		forward_primitive_call(cenv, def, ctx, oself, msg_val);
