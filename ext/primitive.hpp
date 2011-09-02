@@ -128,6 +128,22 @@ namespace Channel9
 			}
 		} else if (name == "length") {
 			return channel_send(cenv, ctx, value((long long)ptr<Tuple>(oself)->size()), Nil);
+		} else if (name == "+") {
+			return channel_send(cenv, ctx, value(join_tuple(ptr<Tuple>(oself), ptr<Tuple>(msg.args()[0]))), Nil);
+		} else if (name == "push") {
+			return channel_send(cenv, ctx, value(join_tuple(ptr<Tuple>(oself), msg.args()[0])), Nil);
+		} else if (name == "pop") {
+			Tuple *tuple = ptr<Tuple>(oself);
+			return channel_send(cenv, ctx, value(sub_tuple(tuple, 0, tuple->m_count - 1)), Nil);
+		} else if (name == "replace") {
+			Tuple *tuple = ptr<Tuple>(oself);
+			long long idx = msg.args()[0].machine_num;
+			Value val = msg.args()[1];
+			if (idx >= 0 && (size_t)idx < tuple->size())
+				return channel_send(cenv, ctx, value(replace_tuple(tuple, (size_t)idx, val)), Nil);
+		} else if (name == "last") {
+			Tuple *tuple = ptr<Tuple>(oself);
+			return channel_send(cenv, ctx, tuple->m_data[tuple->m_count-1], Nil);
 		}
 
 		Value def = cenv->special_channel("Channel9::Primitive::Tuple");
