@@ -9,6 +9,21 @@
 
 namespace Channel9
 {
+	class NoReturnContext : public CallableContext
+	{
+	public:
+		virtual void send(Environment *env, const Value &val, const Value &ret)
+		{
+			// TODO: Make this do something more sensible
+			printf("Trap: Tried to return to unreturnable context.");
+			exit(1);
+		}
+		virtual void scan() {}
+		virtual ~NoReturnContext() {}
+	};
+
+	static NoReturnContext no_return_ctx;
+
 	Environment::Environment()
 	 : GCRoot(value_pool), m_context(NULL), m_running(false),
 	   m_vstack(), m_vspos(0)
@@ -267,8 +282,7 @@ namespace Channel9
 					const Value &val = vstore(m_context->top()); m_context->pop();
 					const Value &channel = vstore(m_context->top()); m_context->pop();
 
-					// TODO: Special channel for invalid returns.
-					channel_send(this, channel, val, Nil);
+					channel_send(this, channel, val, value(&no_return_ctx));
 					clear_vstore();
 					}
 					break;

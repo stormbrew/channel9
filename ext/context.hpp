@@ -16,7 +16,7 @@ namespace Channel9
 	public:
 		virtual void send(Environment *env, const Value &val, const Value &ret) = 0;
 		virtual void scan() = 0;
-		virtual ~CallableContext() = 0;
+		virtual ~CallableContext() {};
 	};
 
 	inline void gc_scan(CallableContext *ctx)
