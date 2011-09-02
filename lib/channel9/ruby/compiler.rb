@@ -1868,7 +1868,7 @@ module Channel9
       def with_current_sexp(tree)
         if (tree.is_a? Sexp)
           begin
-            if (!current_sexp || current_sexp.line != tree.line)
+            if (!current_sexp || current_sexp.line != tree.line && tree.line)
               builder.line(tree.file.to_s, tree.line)
             end
             old, Thread.current[:cur_sexp] = current_sexp, tree
