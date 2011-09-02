@@ -11,12 +11,12 @@ module Channel9
         klass.add_method(:at) {|cenv, msg, ret|
           elf = msg.system.first
           pos = msg.positional.first
-          ret.channel_send(elf.env, elf.data[pos.real_num], InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.data[pos], InvalidReturnChannel)
         }
         klass.add_method(:put) {|cenv, msg, ret|
           elf = msg.system.first
           pos, val = msg.positional
-          ret.channel_send(elf.env, elf.data[pos.real_num] = val, InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.data[pos] = val, InvalidReturnChannel)
         }
         klass.add_method(:length) {|cenv, msg, ret|
           elf = msg.system.first
@@ -25,7 +25,7 @@ module Channel9
         klass.add_method(:subary) {|cenv, msg, ret|
           elf = msg.system.first
           first, last = msg.positional
-          ret.channel_send(elf.env, elf.data[first.real_num...last.real_num], InvalidReturnChannel)
+          ret.channel_send(elf.env, elf.data[first...last], InvalidReturnChannel)
         }
         klass.add_method(:to_tuple_prim) {|cenv, msg, ret|
           elf = msg.system.first
