@@ -46,6 +46,10 @@ namespace Channel9
 					return channel_send(cenv, ctx, value(self * other), Nil);
 				case '/':
 					return channel_send(cenv, ctx, value(self / other), Nil);
+				case '&':
+					return channel_send(cenv, ctx, value(self & other), Nil);
+				case '|':
+					return channel_send(cenv, ctx, value(self | other), Nil);
 				case '%':
 					return channel_send(cenv, ctx, value(self % other), Nil);
 				case '<':
@@ -103,6 +107,18 @@ namespace Channel9
 					return channel_send(cenv, ctx, value(ret), Nil);
 				}
 			}
+		} else if (name == "hash") {
+			String *self = ptr<String>(oself);
+			// djb2 algorithm
+			unsigned long hash = 5381;
+			
+			for (String::iterator it = self->begin(); it != self->end(); it++)
+			{
+				hash = ((hash << 5) + hash) ^ *it;
+			}
+
+			return channel_send(cenv, ctx, value((long long)hash), Nil);
+
 		} else if (name == "length") {
 			return channel_send(cenv, ctx, value((long long)ptr<String>(oself)->length()), Nil);
 		}
