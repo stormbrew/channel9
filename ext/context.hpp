@@ -191,11 +191,11 @@ namespace Channel9
 			return forward_primitive_call(env, def, ret, channel, val);
 			}
 		case BFALSE: {
-			const Value &def = env->special_channel("Channel9::Primitive::TrueC");
+			const Value &def = env->special_channel("Channel9::Primitive::FalseC");
 			return forward_primitive_call(env, def, ret, channel, val);
 			}
 		case BTRUE: {
-			const Value &def = env->special_channel("Channel9::Primitive::FalseC");
+			const Value &def = env->special_channel("Channel9::Primitive::TrueC");
 			return forward_primitive_call(env, def, ret, channel, val);
 			}
 		case MESSAGE: {
