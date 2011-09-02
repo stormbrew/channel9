@@ -117,7 +117,7 @@ namespace Channel9
 	{
 		Tuple *ret = new_tuple(1 + r->m_count);
 		ret->m_data[0] = l;
-		std::copy(r->begin() + 1, r->end(), ret->m_data + 1);
+		std::copy(r->begin(), r->end(), ret->m_data + 1);
 		return ret;
 	}
 	inline Tuple *join_tuple(const Tuple *l, const Value &r)

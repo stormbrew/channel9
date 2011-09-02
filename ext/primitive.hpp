@@ -164,7 +164,14 @@ namespace Channel9
 			return channel_send(cenv, ctx, value(join_tuple(ptr<Tuple>(oself), msg.args()[0])), Nil);
 		} else if (name == "pop") {
 			Tuple *tuple = ptr<Tuple>(oself);
-			return channel_send(cenv, ctx, value(sub_tuple(tuple, 0, tuple->m_count - 1)), Nil);
+			if (tuple->m_count > 0)
+				return channel_send(cenv, ctx, value(sub_tuple(tuple, 0, tuple->m_count - 1)), Nil);
+		} else if (name == "front_push") {
+			return channel_send(cenv, ctx, value(join_tuple(msg.args()[0], ptr<Tuple>(oself))), Nil);
+		} else if (name == "front_pop") {
+			Tuple *tuple = ptr<Tuple>(oself);
+			if (tuple->m_count > 0)
+				return channel_send(cenv, ctx, value(sub_tuple(tuple, 1, tuple->m_count - 1)), Nil);
 		} else if (name == "replace") {
 			Tuple *tuple = ptr<Tuple>(oself);
 			long long idx = msg.args()[0].machine_num;
