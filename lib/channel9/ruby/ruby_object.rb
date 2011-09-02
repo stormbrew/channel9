@@ -38,7 +38,7 @@ module Channel9
         klass.add_method(:instance_eval_prim) do |cenv, msg, ret|
           elf, zuper, channel = msg.system
           msg = Primitive::Message.new(:__instance_eval___, [elf], msg.positional)
-          raise "BOOM: Not a callablechannel! #{channel}" if !channel.kind_of?(CallableContext)
+          raise "BOOM: Not a callablechannel! #{channel}" if !channel.kind_of?(Channel9::Context)
           channel.channel_send(cenv, msg, ret)
         end
         klass.add_method(:instance_variable_get) do |cenv, msg, ret|

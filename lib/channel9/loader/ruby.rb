@@ -128,7 +128,7 @@ module Channel9
           callable = nil
           compiled = Ruby.compile_string(type.to_sym, str.to_s, filename.to_s, line)
           if (compiled)
-            callable = CallableContext.new(cenv, compiled)
+            callable = Channel9::Context.new(cenv, compiled)
             ret.channel_send(env, callable, InvalidReturnChannel)
           else
             ret.channel_send(env, nil, InvalidReturnChannel)
