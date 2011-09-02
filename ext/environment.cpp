@@ -177,16 +177,25 @@ namespace Channel9
 					break;
 				case JMP:
 					CHECK_STACK(0, 0);
+
+					value_pool.safe_point();
+
 					m_context->jump(ins.arg3.machine_num);
 					break;
 				case JMP_IF:
 					CHECK_STACK(1, 0);
+
+					value_pool.safe_point();
+
 					if (is_truthy(m_context->top()))
 						m_context->jump(ins.arg3.machine_num);
 					m_context->pop();
 					break;
 				case JMP_IF_NOT:
 					CHECK_STACK(1, 0);
+
+					value_pool.safe_point();
+
 					if (!is_truthy(m_context->top()))
 						m_context->jump(ins.arg3.machine_num);
 					m_context->pop();
@@ -259,6 +268,9 @@ namespace Channel9
 					break;
 				case CHANNEL_SEND: {
 					CHECK_STACK(3, -1);
+
+					value_pool.safe_point();
+
 					const Value &val = vstore(m_context->top()); m_context->pop();
 					const Value &ret = vstore(m_context->top()); m_context->pop();
 					const Value &channel = vstore(m_context->top()); m_context->pop();
@@ -269,6 +281,9 @@ namespace Channel9
 					break;
 				case CHANNEL_CALL:{
 					CHECK_STACK(2, -1);
+
+					value_pool.safe_point();
+
 					const Value &val = vstore(m_context->top()); m_context->pop();
 					const Value &channel = vstore(m_context->top()); m_context->pop();
 					const Value &ret = vstore(value(m_context));

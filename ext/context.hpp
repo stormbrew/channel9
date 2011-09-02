@@ -171,8 +171,6 @@ namespace Channel9
 			}
 			break;
 		case RUNNABLE_CONTEXT: {
-			value_pool.safe_point();
-
 			RunnableContext *orig_ctx = ptr<RunnableContext>(channel);
 			RunningContext *ctx = activate_context(channel);
 
@@ -182,8 +180,6 @@ namespace Channel9
 			}
 			break;
 		case CALLABLE_CONTEXT:
-			value_pool.safe_point();
-
 			ptr<CallableContext>(channel)->send(env, val, ret);
 			break;
 		case NIL: {
