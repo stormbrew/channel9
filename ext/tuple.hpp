@@ -113,6 +113,37 @@ namespace Channel9
 		return ret;
 	}
 
+	inline Tuple *join_tuple(const Value &l, const Tuple *r)
+	{
+		Tuple *ret = new_tuple(1 + r->m_count);
+		ret->m_data[0] = l;
+		std::copy(r->begin() + 1, r->end(), ret->m_data + 1);
+		return ret;
+	}
+	inline Tuple *join_tuple(const Tuple *l, const Value &r)
+	{
+		Tuple *ret = new_tuple(l->m_count + 1);
+		ret->m_data[l->m_count] = r;
+		std::copy(l->begin(), l->end(), ret->m_data);
+		return ret;
+	}
+
+	inline Tuple *sub_tuple(const Tuple *t, size_t first, size_t count)
+	{
+		Tuple *ret = new_tuple(count);
+		std::copy(t->begin() + first, t->begin() + first + count, ret->m_data);
+		return ret;
+	}
+
+	inline Tuple *replace_tuple(const Tuple *t, size_t pos, const Value &val)
+	{
+		Tuple *ret = new_tuple(t->m_count);
+		std::copy(t->begin(), t->begin() + pos, ret->m_data);
+		ret->m_data[pos] = val;
+		std::copy(t->begin() + pos + 1, t->end(), ret->m_data + pos + 1);
+		return ret;
+	}
+
 	inline Value value(const std::vector<Value> &tuple) { return make_value_ptr(TUPLE, new_tuple(tuple)); }
 	inline Value value(const Tuple *tuple) { return make_value_ptr(TUPLE, tuple); }
 }
