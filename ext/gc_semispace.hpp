@@ -74,7 +74,7 @@ namespace Channel9
 		Chunk * m_pools[2]; //two sets of pools, each garbage collection swaps between them, active is stored in m_cur_pool
 		int     m_cur_pool; //which of the two pools are we using now
 		Chunk * m_cur_chunk; //which chunk are we allocating from
-		bool    m_in_gc;     //are we garbage collecting now? if so, just allocate a new chunk if the last one is full
+		bool    m_in_gc;     //are we garbage collecting now?
 		uint64_t m_alloced;  //how much memory are in all pools (active or not) combined
 		uint64_t m_used;     //how much memory is used by data blocks, not including the header
 		uint64_t m_data_blocks; //how many data allocations are in the current pool
@@ -86,7 +86,7 @@ namespace Channel9
 
 		uchar *next(size_t size, uint32_t type)
 		{
-			assert(size < 10000);
+			assert(size < (CHUNK_SIZE >> 4));
 
 			if(!m_in_gc)
 				DO_TRACEGC printf("Alloc %u type %x ... ", (unsigned)size, type);
