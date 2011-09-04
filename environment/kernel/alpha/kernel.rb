@@ -28,8 +28,9 @@ module Kernel
   def load(name)
     lp = $LOAD_PATH
     i = lp.length - 1
+    name = name.to_s_prim
     while (i >= 0)
-      path = lp[i]
+      path = lp[i].to_s_prim
       if (raw_load(path + "/" + name))
         return true
       end
