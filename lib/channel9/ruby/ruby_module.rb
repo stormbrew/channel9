@@ -163,7 +163,7 @@ module Channel9
             exc = constants[:RuntimeError]
           end
           if (bt.nil?)
-            bt = make_backtrace(env.context)
+            bt = make_backtrace(env.current_context)
           end
 
           exc.channel_send(env, Primitive::Message.new(:exception, [], [desc].compact), CallbackChannel.new {|ienv, exc, sret|
@@ -223,7 +223,7 @@ module Channel9
         end
 
         mod.add_method(:caller) do |cenv, msg, ret|
-          ctx = cenv.context
+          ctx = cenv.current_context
           bt = make_backtrace(ctx)
           ret.channel_send(cenv, bt, InvalidReturnChannel)
         end
@@ -311,7 +311,7 @@ module Channel9
       def self.make_backtrace(ctx)
         bt = []
         while (!ctx.nil?)
-          bt.unshift(ctx.line_info.join(":"))
+          bt.push(ctx.line_info.join(":"))
 
           ctx = ctx.caller
         end

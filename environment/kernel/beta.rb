@@ -7,6 +7,9 @@ $LOADED_FEATURES = []
 module Channel9
   def self.uncaught_exception(exc)
     puts("Uncaught Exception:", exc)
+    exc.backtrace.each do |line|
+      puts line
+    end
   end
 end
 
