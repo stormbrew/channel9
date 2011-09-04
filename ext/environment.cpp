@@ -102,6 +102,8 @@ namespace Channel9
 						inspect(ins).c_str(),
 						(int)(ipos - &*m_context->instructions().begin())
 						);
+					SourcePos pos = m_context->m_instructions->source_pos(ipos);
+					printf("Source Position: %s:%d:%d (%s)\n", pos.file.c_str(), (int)pos.line_num, (int)pos.column, pos.annotation.c_str());
 					printf("Stack: %d deep", (int)m_context->stack_count());
 					const Value *it;
 					for (it = m_context->stack_begin(); it != m_context->stack_pos(); it++)
