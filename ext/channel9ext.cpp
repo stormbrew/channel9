@@ -458,10 +458,36 @@ static VALUE RunningContext_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val
 	return Qnil;
 } catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
+static VALUE RunningContext_line_info(VALUE self)
+{
+	RunningContext *ctx = get_gc_val<RunningContext*>(self);
+	SourcePos pos = ctx->m_instructions->source_pos(ctx->m_pos);
+
+	VALUE linfo = rb_ary_new();
+	rb_ary_push(linfo, rb_str_new2(pos.file.c_str()));
+	rb_ary_push(linfo, INT2NUM(pos.line_num));
+	rb_ary_push(linfo, INT2NUM(pos.column));
+	rb_ary_push(linfo, rb_str_new2(pos.annotation.c_str()));
+
+	return linfo;
+}
+
+static VALUE RunningContext_caller(VALUE self)
+{
+	RunningContext *ctx = get_gc_val<RunningContext*>(self);
+
+	if (ctx->m_caller)
+		return rb_RunningContext_new(ctx->m_caller);
+	else
+		return Qnil;
+}
+
 static void Init_Channel9_RunningContext()
 {
 	rb_cRunningContext = rb_define_class_under(rb_mChannel9, "RunningContext", rb_cObject);
 	rb_define_method(rb_cRunningContext, "channel_send", ruby_method(RunningContext_channel_send), 3);
+	rb_define_method(rb_cRunningContext, "line_info", ruby_method(RunningContext_line_info), 0);
+	rb_define_method(rb_cRunningContext, "caller", ruby_method(RunningContext_caller), 0);
 }
 
 static VALUE rb_CallableContext_new(GCRef<CallableContext*> ctx_p)

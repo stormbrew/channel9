@@ -31,14 +31,13 @@ namespace Channel9
 		gc_scan(m_val);
 	}
 
-	inline RunnableContext *activate_context(const RunnableContext &copy);
-
 	struct RunnableContext
 	{
 		IStream *m_instructions;
 		const Instruction *m_pos;
 		VariableFrame *m_localvars;
 		size_t m_stack_pos;
+		RunningContext *m_caller;
 
 		Value m_data[0];
 
@@ -56,6 +55,7 @@ namespace Channel9
 		const Instruction *m_pos;
 		VariableFrame *m_localvars;
 		size_t m_stack_pos;
+		RunningContext *m_caller;
 
 		Value m_data[0];
 
@@ -121,7 +121,7 @@ namespace Channel9
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		return ctx;
 	}
-	inline RunningContext *activate_context(const Value &copy)
+	inline RunningContext *activate_context(RunningContext *caller, const Value &copy)
 	{
 		IStream *istream = ptr<RunnableContext>(copy)->m_instructions;
 		size_t frame_count = istream->frame_count();
@@ -130,6 +130,7 @@ namespace Channel9
 
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		ctx->m_stack_pos = frame_count;
+		ctx->m_caller = caller;
 		return ctx;
 	}
 
@@ -172,7 +173,7 @@ namespace Channel9
 			break;
 		case RUNNABLE_CONTEXT: {
 			RunnableContext *orig_ctx = ptr<RunnableContext>(channel);
-			RunningContext *ctx = activate_context(channel);
+			RunningContext *ctx = activate_context(env->context(), channel);
 
 			ctx->push(val);
 			ctx->push(ret);
