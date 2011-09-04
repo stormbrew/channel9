@@ -41,7 +41,6 @@ module Channel9
   end
 
   class Environment
-    attr :context
     attr :debug, true
     attr :running
 

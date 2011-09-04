@@ -29,13 +29,15 @@ namespace Channel9
 	{
 	private:
 		std::map<std::string, size_t> m_labels;
-		std::map<size_t, SourcePos> m_source_positions;
+		std::vector<SourcePos> m_source_info;
 
 		typedef std::map<std::string, size_t> name_map;
 		name_map m_locals;
 		name_map m_frames;
 
 		std::vector<Instruction> m_instructions;
+		std::vector<size_t> m_source_positions;
+		std::size_t m_cur_source_pos;
 
 		// only valid after call to normalize
 		size_t m_stack_size;
@@ -51,6 +53,8 @@ namespace Channel9
 		void add(Instruction instruction);
 		void set_label(const std::string &label);
 		void set_source_pos(const SourcePos &sp);
+		SourcePos source_pos(size_t ipos);
+		SourcePos source_pos(const Instruction *ipos) { return source_pos(ipos - &*m_instructions.begin()); }
 
 		size_t label_pos(const std::string &label) const { return m_labels.find(label)->second; }
 

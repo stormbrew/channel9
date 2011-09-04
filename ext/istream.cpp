@@ -133,6 +133,7 @@ namespace Channel9
 			break;
 		}
 		m_instructions.push_back(instruction);
+		m_source_positions.push_back(m_cur_source_pos);
 	}
 	void IStream::set_label(const std::string &label)
 	{
@@ -140,7 +141,15 @@ namespace Channel9
 	}
 	void IStream::set_source_pos(const SourcePos &sp)
 	{
-		m_source_positions[m_instructions.size()] = sp;
+		m_source_info.push_back(sp);
+		m_cur_source_pos = m_source_info.size() - 1;
+	}
+	SourcePos IStream::source_pos(size_t ipos)
+	{
+		if (ipos < m_source_positions.size())
+			return m_source_info[m_source_positions[ipos]];
+		else
+			return SourcePos();
 	}
 
 	size_t IStream::local(const std::string &name)
