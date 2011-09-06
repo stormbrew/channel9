@@ -1675,6 +1675,12 @@ module Channel9
         handled_label = prefix + "handled"
         done_label = prefix + "done"
 
+        else_body = nil
+
+        if (handlers.last && handlers.last.first != :resbody)
+          else_body = handlers.pop
+        end
+
         # Set the unwinder.
         builder.channel_special(:unwinder)
         builder.channel_new(rescue_label)
@@ -1693,6 +1699,13 @@ module Channel9
           builder.channel_call
           builder.pop
           builder.pop
+
+          # if there was an else handler, call it.
+          if (else_body)
+            transform(else_body)
+            builder.pop
+          end
+
           builder.jmp(done_label)
 
           builder.set_label(rescue_label)
