@@ -1457,6 +1457,7 @@ module Channel9
       end
       def transform_retry
         if (@state[:rescue_retry])
+          builder.pop
           builder.jmp(@state[:rescue_retry])
         else
           raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a retry"
