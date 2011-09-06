@@ -460,8 +460,8 @@ static VALUE RunningContext_channel_send(VALUE self, VALUE rb_cenv, VALUE rb_val
 
 static VALUE RunningContext_line_info(VALUE self)
 {
-	RunningContext *ctx = get_gc_val<RunningContext*>(self);
-	SourcePos pos = ctx->m_instructions->source_pos(ctx->m_pos);
+	GCRef<RunningContext*> &ctx = get_gc_ref<RunningContext*>(self);
+	SourcePos pos = (*ctx)->m_instructions->source_pos(ctx->m_pos);
 
 	VALUE linfo = rb_ary_new();
 	rb_ary_push(linfo, rb_str_new2(pos.file.c_str()));
@@ -474,10 +474,10 @@ static VALUE RunningContext_line_info(VALUE self)
 
 static VALUE RunningContext_caller(VALUE self)
 {
-	RunningContext *ctx = get_gc_val<RunningContext*>(self);
+	GCRef<RunningContext*> &ctx = get_gc_ref<RunningContext*>(self);
 
 	if (ctx->m_caller)
-		return rb_RunningContext_new(ctx->m_caller);
+		return rb_RunningContext_new((*ctx)->m_caller);
 	else
 		return Qnil;
 }

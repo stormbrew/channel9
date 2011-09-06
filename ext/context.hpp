@@ -147,6 +147,8 @@ namespace Channel9
 	inline void gc_scan(RunningContext *ctx)
 	{
 		gc_scan(ctx->m_instructions);
+		if (ctx->m_caller)
+			value_pool.mark(&ctx->m_caller);
 		value_pool.mark(&ctx->m_localvars);
 		ssize_t i;
 		for (i = 0; i < ctx->m_stack_pos; i++)
