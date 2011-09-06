@@ -1690,9 +1690,10 @@ module Channel9
 
         # do the work
         builder.set_label(retry_label)
-        with_state(:rescue_retry=>retry_label) do
-          transform(try)
 
+        transform(try)
+
+        with_state(:rescue_retry=>retry_label) do
           # if we get here, unset the unwinder and jump to the end.
           builder.channel_special(:unwinder)
           builder.push(nil)
