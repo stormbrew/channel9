@@ -807,7 +807,7 @@ module Channel9
         builder.pop
         builder.jmp(splat_done)
         builder.set_label(splat_to_a)
-        builder.message_new(:to_a, 0, 1)
+        builder.message_new(:to_a, 0, 0)
         builder.channel_call
         builder.pop
         builder.set_label(splat_done)
