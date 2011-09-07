@@ -7,7 +7,7 @@ collector = with_config("collector") || 'semispace'
 collector_class = collector.capitalize
 
 $CFLAGS = "-Wall -Werror -frtti " # -Winline"
-$CFLAGS = "-DCOLLECTOR=" + collector + " -DCOLLECTOR_CLASS=" + collector_class
+$CFLAGS << "-DCOLLECTOR=" + collector + " -DCOLLECTOR_CLASS=" + collector_class
 $LDFLAGS = "-lstdc++"
 
 if enable_config("trace")
