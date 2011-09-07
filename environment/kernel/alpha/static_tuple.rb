@@ -9,6 +9,19 @@ class StaticTuple
     Array.new(self)
   end
 
+  def first
+    nil # primitive passes through if no items
+  end
+  def last
+    nil # primitive passes through if no items
+  end
+  def front_pop
+    self # primitive passes through if no items
+  end
+  def pop
+    self # primitive passes through if no items
+  end
+
   def each
     i = 0
     while (i < length)
