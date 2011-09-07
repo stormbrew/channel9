@@ -1457,7 +1457,6 @@ module Channel9
       end
       def transform_retry
         if (@state[:rescue_retry])
-          builder.pop
           builder.jmp(@state[:rescue_retry])
         else
           raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a retry"
@@ -1715,11 +1714,17 @@ module Channel9
           # if this is an error or if we should just call the next
           # unwinder.
           builder.pop
+          # save the message
+          builder.dup_top
+          builder.frame_set("unwind-message")
+
           builder.message_name
           builder.is(:raise)
           builder.jmp_if_not(not_raise_label)
 
           builder.message_unpack(1,0,0)
+          builder.swap
+          builder.pop
 
           with_state(:rescue_done => handled_label) do
             handlers.each do |handler|
@@ -1728,16 +1733,14 @@ module Channel9
           end
         end
 
-        builder.pop
         builder.set_label(not_raise_label)
+        builder.pop
         builder.channel_special(:unwinder)
+        builder.frame_get("unwind-message")
         builder.swap
         builder.channel_ret
 
         builder.set_label(handled_label)
-        # get rid of the unwind message.
-        builder.swap
-        builder.pop
 
         builder.set_label(done_label)
       end
