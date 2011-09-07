@@ -37,7 +37,7 @@ namespace Channel9
 		m_used = 0;
 		m_data_blocks = 0;
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Scan roots\n");
+		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan roots\n");
 
 		//scan the roots
 		std::set<GCRoot*>::iterator it;
@@ -49,12 +49,12 @@ namespace Channel9
 		//scan the new heap copying in the reachable set
 		for(Chunk * c = m_pools[m_cur_pool]; c; c = c->m_next)
 		{
-			TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Scan Chunk %p\n", c);
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Chunk %p\n", c);
 			for(Data * d = c->begin(); d != c->end(); d = d->next())
 			{
 				// must not be forwarding pointers in the new heap.
 				assert((d->m_forward) == 0);
-				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
 				switch(d->m_type)
 				{
 				case STRING:  			gc_scan( (String*)  (d->m_data)); break;
