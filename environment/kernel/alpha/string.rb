@@ -51,7 +51,7 @@ class String
     self
   end
   def to_i
-    @str.to_num
+    @str.to_num_primitive
   end
 
   def ljust(i, pad)
