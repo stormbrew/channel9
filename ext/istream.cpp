@@ -45,10 +45,13 @@ namespace Channel9
 				break;
 			}
 
-			DO_TRACE printf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], max: %d\n",
-				(int)pos-1, inspect(ins).c_str(),
-				(int)stack_size, (int)insinfo.in, (int)insinfo.out, (int)(stack_size - insinfo.in + insinfo.out),
-				(int)max_size);
+			DO_TRACE {
+				SourcePos spos = source_pos(pos-1);
+				printf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], max: %d\n  Line Info: %s:%d\n",
+					(int)pos-1, inspect(ins).c_str(),
+					(int)stack_size, (int)insinfo.in, (int)insinfo.out, (int)(stack_size - insinfo.in + insinfo.out),
+					(int)max_size, spos.file.c_str(), (int)spos.line_num);
+			}
 			assert(stack_size >= insinfo.in);
 
 			stack_size -= insinfo.in;
