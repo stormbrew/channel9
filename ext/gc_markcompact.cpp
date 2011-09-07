@@ -28,12 +28,12 @@ namespace Channel9
 		m_gc_phase = Marking;
 
 		//switch pools
-		DO_TRACEGC printf("Start GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
+		DEBUG_PRINTF(DEBUG_GC, DEBUG_INFO, "Start GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
 
 		m_used = 0;
 		m_data_blocks = 0;
 
-		DO_TRACEGC printf("Begin Marking DFS\n");
+		DEBUG_PRINTF(DEBUG_GC, DEBUG_INFO, "Begin Marking DFS\n");
 
 		for(std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
@@ -84,7 +84,7 @@ namespace Channel9
 
 		m_gc_phase = Updating;
 
-		DO_TRACEGC printf("Begin Updating DFS\n");
+		DEBUG_PRINTF(DEBUG_GC, DEBUG_INFO, "Begin Updating DFS\n");
 
 		for(std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
@@ -97,7 +97,7 @@ namespace Channel9
 
 		m_next_gc = std::max(CHUNK_SIZE*0.9, m_used * GC_GROWTH_LIMIT);
 
-		DO_TRACEGC printf("Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
+		DEBUG_PRINTF(DEBUG_GC, DEBUG_INFO, "Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
 
 		m_gc_phase = Running;
 	}

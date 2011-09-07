@@ -49,7 +49,7 @@ namespace Channel9
 
 	void Environment::set_special_channel(const std::string &name, const Value &val)
 	{
-		DO_TRACE printf("set_special_channel(%s, %s)\n", name.c_str(), inspect(val).c_str());
+		DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "set_special_channel(%s, %s)\n", name.c_str(), inspect(val).c_str());
 		m_specials[name] = val;
 	}
 
@@ -81,7 +81,7 @@ namespace Channel9
 		} else if (!m_running)
 		{
 			clear_vstore();
-			DO_TRACE printf("Entering running state with %p\n", context);
+			DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "Entering running state with %p\n", context);
 			m_running = true;
 			const Instruction *ipos = m_context->next();
 			while (m_context && ipos != m_context->end())
@@ -91,25 +91,25 @@ namespace Channel9
 #				define CHECK_STACK(in, out) DO_DEBUG {\
 					assert(m_context->stack_count() >= (size_t)(in)); \
 					if ((out) != -1) { assert((long)(expected = m_context->stack_count() - (size_t)(in) + (size_t)(out)) >= 0); } \
-					DO_TRACE printf("Stack info: before(%d), in(%d), out(%d), expected(%d)\n", (int)m_context->stack_count(), (int)(in), (int)(out), (int)expected); \
+					DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "Stack info: before(%d), in(%d), out(%d), expected(%d)\n", (int)m_context->stack_count(), (int)(in), (int)(out), (int)expected); \
 					output = (out); \
 				}
 
 				m_ipos = *ipos;
 
-				DO_TRACE {
-					printf("Instruction: %s@%d\n",
+				DEBUG_OUT(DEBUG_VM, DEBUG_INFO, {
+					fprintf(stderr, "Instruction: %s@%d\n",
 						inspect(ins).c_str(),
 						(int)(ipos - &*m_context->instructions().begin())
 						);
-					printf("Stack: %d deep", (int)m_context->stack_count());
+					fprintf(stderr, "Stack: %d deep", (int)m_context->stack_count());
 					const Value *it;
 					for (it = m_context->stack_begin(); it != m_context->stack_pos(); it++)
 					{
-						printf("\n   %s", inspect(*it).c_str());
+						fprintf(stderr, "\n   %s", inspect(*it).c_str());
 					}
-					printf(" <--\n");
-				}
+					fprintf(stderr, " <--\n");
+				} );
 
 				switch(ins.instruction)
 				{
@@ -217,14 +217,14 @@ namespace Channel9
 				case FRAME_GET: {
 					CHECK_STACK(0, 1);
 					size_t frameid = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("Getting frame var %s (%d)\n", ptr<String>(ins.arg1)->c_str(), (int)frameid);
+					DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "Getting frame var %s (%d)\n", ptr<String>(ins.arg1)->c_str(), (int)frameid);
 					m_context->push(m_context->get_framevar(frameid));
 					}
 					break;
 				case FRAME_SET: {
 					CHECK_STACK(1, 0);
 					size_t frameid = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("Setting frame var %s (%d) to: %s\n", ptr<String>(ins.arg1)->c_str(), (int)frameid, inspect(m_context->top()).c_str());
+					DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "Setting frame var %s (%d) to: %s\n", ptr<String>(ins.arg1)->c_str(), (int)frameid, inspect(m_context->top()).c_str());
 					m_context->set_framevar(frameid, m_context->top());
 					m_context->pop();
 					}
@@ -233,7 +233,7 @@ namespace Channel9
 					CHECK_STACK(0, 1);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("local_get %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->get_localvar(localid, depth)));
+					DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "local_get %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->get_localvar(localid, depth)));
 					if (depth == 0)
 						m_context->push(m_context->get_localvar(localid));
 					else
@@ -244,7 +244,7 @@ namespace Channel9
 					CHECK_STACK(1, 0);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("local_set %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
+					DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "local_set %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
 					if (depth == 0)
 						m_context->set_localvar(localid, m_context->top());
 					else
@@ -560,20 +560,20 @@ namespace Channel9
 					exit(1);
 				}
 
-				DO_TRACE {
-					printf("Output: %d", (int)output);
+				DEBUG_OUT(DEBUG_VM, DEBUG_INFO, {
+					fprintf(stderr, "Output: %d", (int)output);
 					if ((long)output > 0)
 					{
 						const Value *it = std::max(
 							m_context->stack_begin(), m_context->stack_pos() - output);
 						for (; it != m_context->stack_pos(); it++)
 						{
-							printf("\n   %s", inspect(*it).c_str());
+							fprintf(stderr, "\n   %s", inspect(*it).c_str());
 						}
 					}
-					printf(" <--\n");
-					printf("----------------\n");
-				}
+					fprintf(stderr, " <--\n");
+					fprintf(stderr, "----------------\n");
+				} );
 				DO_DEBUG {
 					if ((long)output != -1)
 						assert(m_context->stack_count() == expected);
@@ -581,7 +581,7 @@ namespace Channel9
 
 				ipos = m_context->next();
 			}
-			DO_TRACE printf("Exiting running state with context %p\n", m_context);
+			DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "Exiting running state with context %p\n", m_context);
 			m_running = false;
 			m_context = NULL;
 		}

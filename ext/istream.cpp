@@ -45,7 +45,7 @@ namespace Channel9
 				break;
 			}
 
-			DO_TRACE printf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], max: %d\n",
+			DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "Analyzing bytecode pos %d: %s[%d-%d+%d=%d], max: %d\n",
 				(int)pos-1, inspect(ins).c_str(),
 				(int)stack_size, (int)insinfo.in, (int)insinfo.out, (int)(stack_size - insinfo.in + insinfo.out),
 				(int)max_size);
@@ -58,7 +58,7 @@ namespace Channel9
 			{
 				// make sure that the stack size is the same
 				// as it was on the previous visit to this node.
-				DO_TRACE printf("Visited position %d before. Stack was %d, is now %d\n", (int)pos, (int)info.second, (int)stack_size);
+				DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "Visited position %d before. Stack was %d, is now %d\n", (int)pos, (int)info.second, (int)stack_size);
 				assert(info.second == stack_size);
 				done = true;
 			} else {
@@ -71,13 +71,13 @@ namespace Channel9
 				{
 				case JMP:
 					pos = (size_t)ins.arg3.machine_num;
-					DO_TRACE printf("Unconditional branch to pos %d\n", (int)pos);
+					DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "Unconditional branch to pos %d\n", (int)pos);
 					break;
 				case JMP_IF:
 				case JMP_IF_NOT:
 					{
 						size_t branch_pos = (size_t)ins.arg3.machine_num;
-						DO_TRACE printf("Conditional branch. Options: %d | %d\n", (int)pos, (int)branch_pos);
+						DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "Conditional branch. Options: %d | %d\n", (int)pos, (int)branch_pos);
 						size_t r_max = normalize(stack_size, branch_pos, pos_map);
 						if (r_max > max_size) max_size = r_max;
 					}
@@ -85,7 +85,7 @@ namespace Channel9
 				case CHANNEL_NEW:
 					{
 						size_t branch_pos = (size_t)ins.arg3.machine_num;
-						DO_TRACE printf("New channel. Options: %d | %d\n", (int)pos, (int)branch_pos);
+						DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "New channel. Options: %d | %d\n", (int)pos, (int)branch_pos);
 						size_t r_max = normalize(2, branch_pos, pos_map);
 						if (r_max > max_size) max_size = r_max;
 					}
@@ -110,7 +110,7 @@ namespace Channel9
 		std::vector<pos_info> pos_map(m_instructions.size(), pos_info(false, 0));
 
 		m_stack_size = normalize(stack_size, pos, pos_map);
-		DO_TRACE printf("Found max stack of stream to be %d\n", (int)m_stack_size);
+		DEBUG_PRINTF(DEBUG_VM, DEBUG_INFO, "Found max stack of stream to be %d\n", (int)m_stack_size);
 		return m_stack_size;
 	}
 
