@@ -144,6 +144,8 @@ static GCRef<Value> rb_to_c9(VALUE val)
 	case T_BIGNUM:
 	case T_FIXNUM:
 		return value(NUM2LL(val));
+	case T_FLOAT:
+		return value(NUM2DBL(val));
 	case T_ARRAY: {
 		size_t len = RARRAY_LEN(val);
 		GCRef<Tuple*> tuple = new_tuple(len);
@@ -211,8 +213,8 @@ static VALUE c9_to_rb(const Value &val)
 	case POSITIVE_NUMBER:
 	case NEGATIVE_NUMBER:
 		return LL2NUM(val.machine_num);
-//	case FLOAT_NUM:
-//		return rb_float_new(val.float_num);
+	case FLOAT_NUM:
+		return rb_float_new(float_num(val));
 	case STRING:
 		return rb_str_new2(ptr<String>(val)->c_str());
 	case TUPLE: {
