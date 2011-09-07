@@ -24,4 +24,30 @@ class Float < Numeric
   def -@
     negate
   end
+
+  # these are fall-backs for when o isn't a float.
+  def <(o)
+    self < o.to_f
+  end
+  def >(o)
+    self > o.to_f
+  end
+  def <=(o)
+    self <= o.to_f
+  end
+  def >=(o)
+    self >= o.to_f
+  end
+  def +(o)
+    self + o.to_f
+  end
+  def -(o)
+    self - o.to_f
+  end
+  def *(o)
+    self * o.to_f
+  end
+  def /(o)
+    self / o.to_f
+  end
 end
