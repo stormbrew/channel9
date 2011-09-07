@@ -169,9 +169,9 @@ namespace Channel9
 			else
 				size = 1<<CHUNK_SIZE;
 
-			Block * b = (Block *)mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+			Block * b = (Block *)mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
 
-			printf("alloc chunk %p, %i zeros\n", b, count_bottom_zeros4((uintptr_t)b));
+			printf("alloc chunk %p, %i zeros\n", b, (int)count_bottom_zeros4((uintptr_t)b));
 
 			assert(count_bottom_zeros4((uintptr_t)b) >= BLOCK_SIZE); //make sure blocks will be properly aligned
 
