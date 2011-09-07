@@ -1,4 +1,3 @@
-
 #pragma once
 
 //round a number up to the nearest power of 2
@@ -14,6 +13,47 @@ inline uint ceil_power2(uint v) {
 	v++;
 	return v;
 }
+
+inline uint64_t ceil_power2(uint64_t v) {
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v |= v >> 32;
+	v++;
+	return v;
+}
+inline uint32_t ceil_power2(uint32_t v) {
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v++;
+	return v;
+}
+inline uint16_t ceil_power2(uint16_t v) {
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v++;
+	return v;
+}
+inline uint8_t ceil_power2(uint8_t v) {
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v++;
+	return v;
+}
+
+
 
 //returns true if exactly 1 bit is set
 template<typename uint>
