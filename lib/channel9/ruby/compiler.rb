@@ -1735,7 +1735,6 @@ module Channel9
         builder.pop
         builder.channel_special(:unwinder)
         builder.frame_get("unwind-message")
-        builder.swap
         builder.channel_ret
 
         builder.set_label(handled_label)
