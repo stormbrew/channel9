@@ -39,6 +39,7 @@ namespace Channel9
 
 	public:
 		class Semispace;
+		class Markcompact;
 	};
 
 	typedef GC::COLLECTOR_CLASS MemoryPool;
@@ -64,6 +65,7 @@ namespace Channel9
 }
 
 #include "gc_semispace.hpp"
+//#include "gc_markcompact.hpp"
 
 #undef COLLECTOR
 #undef COLLECTOR_CLASS
