@@ -12,7 +12,7 @@
 
 #include "channel9.hpp"
 #include "memcheck.h"
-#include "bittwiddle.h"
+#include "bittwiddle.hpp"
 #include "forwardtable.hpp"
 
 namespace Channel9
