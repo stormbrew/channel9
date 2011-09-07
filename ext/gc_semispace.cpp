@@ -26,7 +26,7 @@ namespace Channel9
 		m_in_gc = true;
 
 		//switch pools
-		DO_TRACEGC printf("Start GC, old pool %p, new pool %p, %llu used in %llu data blocks\n", m_pools[m_cur_pool], m_pools[!m_cur_pool], m_used, m_data_blocks);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Start GC, old pool %p, new pool %p, %llu used in %llu data blocks\n", m_pools[m_cur_pool], m_pools[!m_cur_pool], m_used, m_data_blocks);
 
 		m_cur_pool = !m_cur_pool;
 
@@ -37,7 +37,7 @@ namespace Channel9
 		m_used = 0;
 		m_data_blocks = 0;
 
-		DO_TRACEGC printf("Scan roots\n");
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Scan roots\n");
 
 		//scan the roots
 		std::set<GCRoot*>::iterator it;
@@ -49,12 +49,12 @@ namespace Channel9
 		//scan the new heap copying in the reachable set
 		for(Chunk * c = m_pools[m_cur_pool]; c; c = c->m_next)
 		{
-			DO_TRACEGC printf("Scan Chunk %p\n", c);
+			TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Scan Chunk %p\n", c);
 			for(Data * d = c->begin(); d != c->end(); d = d->next())
 			{
 				// must not be forwarding pointers in the new heap.
 				assert((d->m_forward) == 0);
-				DO_TRACEGC printf("Scan Obj %p, type %X\n", d->m_data, d->m_type);
+				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
 				switch(d->m_type)
 				{
 				case STRING:  			gc_scan( (String*)  (d->m_data)); break;
@@ -94,7 +94,7 @@ namespace Channel9
 
 		m_next_gc = std::max(CHUNK_SIZE*0.9, m_used * GC_GROWTH_LIMIT);
 
-		DO_TRACEGC printf("Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
 
 		m_in_gc = false;
 	}
