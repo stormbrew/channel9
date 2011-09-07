@@ -1,6 +1,10 @@
 module Channel9
   module Primitive
-    class UndefC < Base
+    class UndefC
+      class <<self
+        alias_method :channel_name, :name
+      end
+
       def truthy?
         false
       end
@@ -12,7 +16,6 @@ module Channel9
         [nil, "undef"].to_json(*a)
       end
     end
-    Undef = UndefC.new.freeze
   end
 end
 

@@ -45,8 +45,6 @@ module Channel9
   end
 
   class Environment
-    attr :context
-    attr :special_channel
     attr :debug, true
     attr :running
 
@@ -55,12 +53,12 @@ module Channel9
       @running = false
       @debug = debug
       @saved_debug = debug
-      @special_channel = {
-        :clean_exit => CleanExitChannel,
-        :exit => ExitChannel,
-        :invalid_return => InvalidReturnChannel,
-        :stdout => StdoutChannel
-      }
+      
+      set_special_channel(:clean_exit, CleanExitChannel);
+      set_special_channel(:exit, ExitChannel);
+      set_special_channel(:invalid_return, InvalidReturnChannel);
+      set_special_channel(:stdout, StdoutChannel);
+
       @debug_handlers = {}
       register_debug_handler(:print) do |env, ctx|
         pp(:debug_print => {
@@ -103,13 +101,11 @@ module Channel9
     def save_context
       catch (:end_save) do
         begin
-          prev_context = @context
-          prev_running = @running
-          @running = false
+          prev_context = current_context
+          set_current_context(nil)
           yield
         ensure
-          @running = prev_running
-          @context = prev_context
+          set_current_context(prev_context)
         end
       end
     end

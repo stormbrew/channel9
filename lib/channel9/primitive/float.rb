@@ -107,6 +107,7 @@ end
 
 class Float
   def to_c9
-    Channel9::Primitive::Float.new(self)
+    self
   end
+  def self.channel_name; :"Channel9::Primitive::Float"; end
 end

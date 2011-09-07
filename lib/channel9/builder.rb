@@ -18,7 +18,7 @@ module Channel9
     end
 
     def line(filename, line, pos = 0, extra = "")
-      @stream.line(filename, line, pos)
+      @stream.line(filename, line, pos = 0)
     end
 
     # generate methods based on instruction names

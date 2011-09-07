@@ -72,6 +72,7 @@ end
 
 class Array
   def to_c9
-    Channel9::Primitive::Tuple.new(self)
+    self
   end
+  def self.channel_name; :"Channel9::Primitive::Tuple"; end
 end

@@ -56,6 +56,7 @@ module Channel9
     end
 
     def set_label(name)
+      add_label(name)
       @labels[name] = @pos
     end
     def label(name_or_ip)
@@ -66,6 +67,7 @@ module Channel9
       while (@line_info.length <= @pos)
         @line_info << nil
       end
+      add_line_info(file, line, fpos, extra)
       @line_info[@pos] = file, line, fpos
     end
 
@@ -91,6 +93,7 @@ module Channel9
 
     def <<(instruction)
       @instructions << instruction
+      add_instruction(instruction.instruction_name, instruction.arguments)
       @pos += 1
     end
   end

@@ -6,13 +6,14 @@ module Channel9
           if (self.respond_to?(:"c9_#{val.name}"))
             begin
               result = self.send(:"c9_#{val.name}", *val.positional)
-              ret.channel_send(cenv, result.to_c9, InvalidReturnChannel)
+              ret.channel_send(cenv, result, InvalidReturnChannel)
               return
             rescue
               # let the environment's singleton class deal with it below
             end
           end
         end
+        pp self.class.name
         if (ext = cenv.special_channel[self.class.name])
           msg = val.prefix(self).forward(:__c9_primitive_call__)
           ext.channel_send(cenv, msg, ret)

@@ -48,7 +48,7 @@ module Channel9
             remain.unshift(ary.pop)
             pos -= 1
           end
-          env.context.push(remain.to_c9)
+          env.context.push(remain)
         end
 
         pos = @first - 1

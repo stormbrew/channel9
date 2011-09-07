@@ -1,24 +1,22 @@
 module Channel9
   module Instruction
-    # string_new coerce, count
+    # string_new count
     # ---
-    # Takes +count+ items from the stack, converts them to strings
-    # by sending the message named in +coerce+ to them (if they aren't
-    # already string primitives), and joins them into a new string object.
+    # Takes +count+ strings from the stack and joins them into a 
+    # new string object.
     #
     # Takes +count+ items from the top of the stack:
     #  SP -> item1 -> item2 -> item3 -> ... itemN
     # Pushes a new string onto the stack in their place:
     #  SP -> new_string
     class STRING_NEW < Base
-      def initialize(stream, coerce, count)
+      def initialize(stream, count)
         super(stream, count, 1)
-        @coerce = coerce
         @count = count
       end
 
       def arguments
-        [@coerce, @count]
+        [@count]
       end
 
       def run(env)
