@@ -129,7 +129,7 @@ namespace Channel9
 
 	inline String *String::substr(size_t off, size_t len) const
 	{
-		assert(off + len < m_count);
+		assert(off + len <= m_count);
 		String *ret = new_string(len);
 		std::copy(m_data + off, m_data + off + len, ret->m_data);
 		return ret;

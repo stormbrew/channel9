@@ -15,6 +15,7 @@ namespace Channel9
 		DO_TRACE printf("Forwarding primitive call: %s.%s from:%s to class:%s\n", 
 			inspect(oself).c_str(), inspect(msg).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
 		Message *orig = ptr<Message>(msg);
+		assert(*orig->name() != "__c9_primitive_call__");
 		Message *fwd = new_message(*prim_call, orig->sysarg_count(), orig->arg_count() + 2);
 		orig = ptr<Message>(msg); // may have been moved in collection.
 		std::copy(orig->sysargs(), orig->sysargs_end(), fwd->sysargs());
@@ -180,12 +181,27 @@ namespace Channel9
 					return channel_send(cenv, ctx, value(ret), Nil);
 				}
 			}
+		} else if (name == "to_num_primitive") {
+			std::stringstream str(ptr<String>(oself)->c_str());
+			long long num = 0;
+			str >> num;
+			return channel_send(cenv, ctx, value(num), Nil);
+
 		} else if (name == "split") {
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
 				String *self = ptr<String>(oself);
 				String *by = ptr<String>(msg->args()[0]);
 				return channel_send(cenv, ctx, value(split_string(self, by)), Nil);
+			}
+
+		} else if (name == "substr") {
+			if (msg->arg_count() == 2 && is(msg->args()[0], POSITIVE_NUMBER) && is(msg->args()[1], POSITIVE_NUMBER))
+			{
+				String *self = ptr<String>(oself);
+				size_t first = msg->args()[0].machine_num, last = msg->args()[1].machine_num;
+				if (first < self->m_count && last < self->m_count && last > first)
+					return channel_send(cenv, ctx, value(self->substr(first, last - first + 1)), Nil);
 			}
 
 		} else if (name == "hash") {
