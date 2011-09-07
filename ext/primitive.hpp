@@ -187,6 +187,11 @@ namespace Channel9
 			str >> num;
 			return channel_send(cenv, ctx, value(num), Nil);
 
+		} else if (name == "to_chr") {
+			String *self = ptr<String>(oself);
+			if (self->m_count == 1)
+				return channel_send(cenv, ctx, value((long long)self->m_data[0]), Nil);
+
 		} else if (name == "split") {
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
@@ -267,9 +272,14 @@ namespace Channel9
 			Value val = msg.args()[1];
 			if (idx >= 0 && (size_t)idx < tuple->size())
 				return channel_send(cenv, ctx, value(replace_tuple(tuple, (size_t)idx, val)), Nil);
+		} else if (name == "first") {
+			Tuple *tuple = ptr<Tuple>(oself);
+			if (tuple->m_count > 0)
+				return channel_send(cenv, ctx, tuple->m_data[0], Nil);
 		} else if (name == "last") {
 			Tuple *tuple = ptr<Tuple>(oself);
-			return channel_send(cenv, ctx, tuple->m_data[tuple->m_count-1], Nil);
+			if (tuple->m_count > 0)
+				return channel_send(cenv, ctx, tuple->m_data[tuple->m_count-1], Nil);
 		}
 
 		Value def = cenv->special_channel("Channel9::Primitive::Tuple");
