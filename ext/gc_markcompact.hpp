@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 
+#include <sys/mman.h>
+
 #include "channel9.hpp"
 #include "memcheck.h"
 #include "bittwiddle.h"
@@ -39,8 +41,8 @@ namespace Channel9
 	private:
 
 		static const double   GC_GROWTH_LIMIT = 2.0;
-		static const uint64_t CHUNK_SIZE = 21; // 2mb
-		static const uint64_t BLOCK_SIZE = 15; // 32kb
+		static const uint64_t CHUNK_SIZE = 21;
+		static const uint64_t BLOCK_SIZE = 12;
 
 		struct Block
 		{
@@ -167,9 +169,11 @@ namespace Channel9
 			else
 				size = 1<<CHUNK_SIZE;
 
-			Block * b = (Block *)malloc(size);
+			Block * b = (Block *)mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 
-			assert((uintptr_t)b & ~((1<<BLOCK_SIZE) - 1) == 0); //make sure blocks will be properly aligned
+			printf("alloc chunk %p, %i zeros\n", b, count_bottom_zeros4((uintptr_t)b));
+
+			assert(count_bottom_zeros4((uintptr_t)b) >= BLOCK_SIZE); //make sure blocks will be properly aligned
 
 			m_alloced += size;
 
