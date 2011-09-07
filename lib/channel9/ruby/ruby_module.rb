@@ -84,7 +84,13 @@ module Channel9
         klass.add_method(:alias_method) do |cenv, msg, ret|
           elf = msg.system.first
           new_name, orig_name = msg.positional
-          elf.add_method(new_name.to_sym, elf.lookup(orig_name.to_sym)[0])
+          old_meth, old_klass = elf.lookup(orig_name.to_sym)
+          if (old_meth.nil?)
+            # TODO: error if not already there instead of warn.
+            puts("Warning: Trying to alias #{elf.name}##{orig_name} to #{new_name}, but no #{orig_name}.")
+          else
+            elf.add_method(new_name.to_sym, old_meth)
+          end
           ret.channel_send(elf.env, nil, InvalidReturnChannel)
         end
         klass.add_method(:method_defined?) do |cenv, msg, ret|
