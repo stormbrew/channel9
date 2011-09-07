@@ -71,7 +71,7 @@ inline void debug_out_header(int facility, int level, const char * file, int lin
 }
 
 #define DEBUG_OUT(facility, level, code) \
-	if(((DEBUG_SUB) & (facility)) && (DEBUG_LEVEL) >= (level)){ \
+	if(((DEBUG_SUB) & (facility)) && (DEBUG_LEVEL) <= (level)){ \
 		debug_out_header(facility, level, __FILE__, __LINE__); \
 		code \
 	}
