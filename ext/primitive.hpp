@@ -75,7 +75,7 @@ namespace Channel9
 						return channel_send(cenv, ctx, bvalue(self >= other), Nil);
 					}
 				} else if (name == "**") {
-					return channel_send(cenv, ctx, value(pow(self, other)), Nil);
+					return channel_send(cenv, ctx, value(int64_t(pow(self, other))), Nil);
 				}
 			}
 			break;
