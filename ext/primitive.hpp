@@ -5,6 +5,7 @@
 #include "environment.hpp"
 
 #include <sstream>
+#include <math.h>
 
 namespace Channel9
 {
@@ -30,12 +31,13 @@ namespace Channel9
 	{
 		Message &msg = *ptr<Message>(msg_val);
 		const String &name = *msg.name();
+		long long self = oself.machine_num;
 		switch (name.length())
 		{
 		case 1:
 			if (msg.arg_count() == 1 && is_number(msg.args()[0]))
 			{
-				long long other = msg.args()[0].machine_num, self = oself.machine_num;
+				long long other = msg.args()[0].machine_num;
 				switch (name[0])
 				{
 				case '+':
@@ -60,15 +62,20 @@ namespace Channel9
 			}
 			break;
 		case 2:
-			if (msg.arg_count() == 1 && is_number(msg.args()[0]) && name[1] == '=')
+			if (msg.arg_count() == 1 && is_number(msg.args()[0]))
 			{
-				long long other = msg.args()[0].machine_num, self = oself.machine_num;
-				switch (name[0])
+				long long other = msg.args()[0].machine_num;
+				if (name[1] == '=')
 				{
-				case '<':
-					return channel_send(cenv, ctx, bvalue(self <= other), Nil);
-				case '>':
-					return channel_send(cenv, ctx, bvalue(self >= other), Nil);
+					switch (name[0])
+					{
+					case '<':
+						return channel_send(cenv, ctx, bvalue(self <= other), Nil);
+					case '>':
+						return channel_send(cenv, ctx, bvalue(self >= other), Nil);
+					}
+				} else if (name == "**") {
+					return channel_send(cenv, ctx, value(pow(self, other)), Nil);
 				}
 			}
 			break;
@@ -78,9 +85,75 @@ namespace Channel9
 				std::stringstream str;
 				str << oself.machine_num;
 				return channel_send(cenv, ctx, value(str.str()), Nil);
+			} else if (name == "to_float_primitive") {
+				return channel_send(cenv, ctx, value((double)self), Nil);
+			} else if (name == "negate") {
+				return channel_send(cenv, ctx, value(-self), Nil);
 			}
 		}
 		Value def = cenv->special_channel("Channel9::Primitive::Number");
+		forward_primitive_call(cenv, def, ctx, oself, msg_val);
+	}
+
+	inline void float_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg_val)
+	{
+		Message &msg = *ptr<Message>(msg_val);
+		const String &name = *msg.name();
+		double self = float_num(oself);
+		switch (name.length())
+		{
+		case 1:
+			if (msg.arg_count() == 1 && is(msg.args()[0], FLOAT_NUM))
+			{
+				double other = float_num(msg.args()[0]);
+				switch (name[0])
+				{
+				case '+':
+					return channel_send(cenv, ctx, value(self + other), Nil);
+				case '-':
+					return channel_send(cenv, ctx, value(self - other), Nil);
+				case '*':
+					return channel_send(cenv, ctx, value(self * other), Nil);
+				case '/':
+					return channel_send(cenv, ctx, value(self / other), Nil);
+				case '<':
+					return channel_send(cenv, ctx, bvalue(self < other), Nil);
+				case '>':
+					return channel_send(cenv, ctx, bvalue(self > other), Nil);
+				}
+			}
+			break;
+		case 2:
+			if (msg.arg_count() == 1 && is(msg.args()[0], FLOAT_NUM))
+			{
+				double other = float_num(msg.args()[0]);
+				if (name[1] == '=')
+				{
+					switch (name[0])
+					{
+					case '<':
+						return channel_send(cenv, ctx, bvalue(self <= other), Nil);
+					case '>':
+						return channel_send(cenv, ctx, bvalue(self >= other), Nil);
+					}
+				} else if (name == "**") {
+					return channel_send(cenv, ctx, value(pow(self, other)), Nil);
+				}
+			}
+			break;
+		default:
+			if (name == "to_string_primitive")
+			{
+				std::stringstream str;
+				str << float_num(oself);
+				return channel_send(cenv, ctx, value(str.str()), Nil);
+			} else if (name == "to_num_primitive") {
+				return channel_send(cenv, ctx, value((int64_t)self), Nil);
+			} else if (name == "negate") {
+				return channel_send(cenv, ctx, value(-self), Nil);
+			}
+		}
+		Value def = cenv->special_channel("Channel9::Primitive::Float");
 		forward_primitive_call(cenv, def, ctx, oself, msg_val);
 	}
 

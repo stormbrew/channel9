@@ -159,6 +159,7 @@ namespace Channel9
 
 	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Value &msg);
 	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
+	inline void float_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
 	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
 	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
 	inline void channel_send(Environment *env, const Value &channel, const Value &val, const Value &ret)
@@ -208,6 +209,9 @@ namespace Channel9
 		case POSITIVE_NUMBER:
 		case NEGATIVE_NUMBER:
 			number_channel_simple(env, ret, channel, val);
+			break;
+		case FLOAT_NUM:
+			float_channel_simple(env, ret, channel, val);
 			break;
 		case STRING:
 			string_channel_simple(env, ret, channel, val);
