@@ -12,7 +12,7 @@ namespace Channel9
 	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Value &msg)
 	{
 		static GCRef<Value> prim_call = value(new_string("__c9_primitive_call__"));
-		DO_TRACE printf("Forwarding primitive call: %s.%s from:%s to class:%s\n", 
+		TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Forwarding primitive call: %s.%s from:%s to class:%s\n",
 			inspect(oself).c_str(), inspect(msg).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
 		Message *orig = ptr<Message>(msg);
 		assert(*orig->name() != "__c9_primitive_call__");
@@ -25,7 +25,7 @@ namespace Channel9
 		*out++ = oself;
 		std::copy(orig->args(), orig->args_end(), out);
 
-		channel_send(cenv, prim_class, value(fwd), ctx);	
+		channel_send(cenv, prim_class, value(fwd), ctx);
 	}
 
 	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg_val)
@@ -213,7 +213,7 @@ namespace Channel9
 			String *self = ptr<String>(oself);
 			// djb2 algorithm
 			unsigned long hash = 5381;
-			
+
 			for (String::iterator it = self->begin(); it != self->end(); it++)
 			{
 				hash = ((hash << 5) + hash) ^ *it;
@@ -286,3 +286,4 @@ namespace Channel9
 		forward_primitive_call(cenv, def, ctx, oself, msg_val);
 	}
 }
+
