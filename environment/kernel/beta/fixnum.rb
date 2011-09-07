@@ -25,6 +25,20 @@ class Fixnum < Numeric
     return false
   end
 
+  def <=>(other)
+    self - other # TODO: normalize to -1, 0, +1
+  end
+  def **(other)
+    self ** other.to_i
+  end
+  def *(other)
+    self * other.to_i
+  end
+
+  def div(other)
+    self / other
+  end
+
   def -@
     negate
   end
