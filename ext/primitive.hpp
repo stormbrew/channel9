@@ -200,7 +200,7 @@ namespace Channel9
 			{
 				String *self = ptr<String>(oself);
 				size_t first = msg->args()[0].machine_num, last = msg->args()[1].machine_num;
-				if (first < self->m_count && last < self->m_count && last > first)
+				if (first < self->m_count && last < self->m_count && last >= first)
 					return channel_send(cenv, ctx, value(self->substr(first, last - first + 1)), Nil);
 			}
 
