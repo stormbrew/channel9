@@ -34,6 +34,18 @@ class Fixnum < Numeric
   def *(other)
     self * other.to_i
   end
+  def +(o)
+    self + o.to_i
+  end
+  def -(o)
+    self - o.to_i
+  end
+  def /(o)
+    self / o.to_i
+  end
+  def %(o)
+    self % o.to_i
+  end
 
   def div(other)
     self / other
