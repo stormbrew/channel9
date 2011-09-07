@@ -131,7 +131,7 @@ namespace Channel9
 			assert(size < 8000);
 
 			if(m_gc_phase == Running)
-				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Alloc %u type %x ... ", (unsigned)size, type);
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
 
 			size += (8 - size % 8) % 8; //8 byte align
 
