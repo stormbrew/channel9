@@ -14,7 +14,7 @@ module Channel9
   module ExitChannel
     def self.channel_send(env, val, ret)
       if (val.kind_of? Primitive::Message)
-        exit(val.positional[0].real_num)
+        exit(val.positional[0])
       else
         exit(val.real_num)
       end
