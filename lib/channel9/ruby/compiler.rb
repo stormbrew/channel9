@@ -394,30 +394,29 @@ module Channel9
         else
           transform(var_if) # -> var
           builder.dup_top # -> var -> var
-          builder.dup_top # -> var -> var -> var
           _, *args = args
           args.reverse.each do |arg|
             transform(arg)
-          end # -> args... -> var -> var -> var
-          builder.tuple_new(args.length) # -> args -> var -> var -> var
-          builder.dup_top # -> args -> args -> var -> var -> var
-          builder.frame_set("asgn1.tuple") # -> args -> var -> var -> var
-          builder.message_new(:[], 0, 0) # -> []msg -> args -> var -> var -> var
-          builder.swap # -> args -> msg -> var -> var -> var
-          builder.message_splat # -> msg -> var -> var -> var
+          end # -> args... -> var -> var
+          builder.tuple_new(args.length) # -> args -> var -> var
+          builder.dup_top # -> args -> args -> var -> var
+          builder.frame_set("asgn1.tuple") # -> args -> var -> var
+          builder.message_new(:[], 0, 0) # -> []msg -> args -> var -> var
+          builder.swap # -> args -> msg -> var -> var
+          builder.message_splat # -> msg -> var -> var
           builder.channel_call 
-          builder.pop # -> orig -> var -> var
+          builder.pop # -> orig -> var
 
-          transform(val) # -> opvar -> orig -> var -> var
-          builder.swap # -> orig -> opvar -> var -> var
-          builder.message_new(op, 0, 1) # -> msg -> var -> var
+          transform(val) # -> opvar -> orig -> var
+          builder.swap # -> orig -> opvar -> var
+          builder.message_new(op, 0, 1) # -> msg -> opvar -> var
           builder.channel_call 
           builder.pop # -> opres -> var
 
           builder.tuple_new(1) # -> restuple -> var
           builder.message_new(:[]=, 0, 0) # -> msg -> restuple -> var
           builder.frame_get("asgn1.tuple") # -> args -> msg -> restuple -> var
-          builder.message_splat # -> msg -> restuple -> var
+          builder.message_splat # -> msg -> restuple -> var 
           builder.swap # -> restuple -> msg -> var
           builder.message_splat # -> msg -> var
           builder.channel_call
@@ -446,17 +445,16 @@ module Channel9
         else
           transform(var_if) # -> var
           builder.dup_top # -> var -> var
-          builder.dup_top # -> var -> var -> var
           _, *args = args
           args.reverse.each do |arg|
             transform(arg)
-          end # -> args... -> var -> var -> var
-          builder.tuple_new(args.length) # -> args -> var -> var -> var
-          builder.dup_top # -> args -> args -> var -> var -> var
-          builder.frame_set("asgn1.tuple") # -> args -> var -> var -> var
-          builder.message_new(attrib_read, 0, 0) # -> []msg -> args -> var -> var -> var
-          builder.swap # -> args -> msg -> var -> var -> var
-          builder.message_splat # -> msg -> var -> var -> var
+          end # -> args... -> var -> var
+          builder.tuple_new(args.length) # -> args -> var -> var
+          builder.dup_top # -> args -> args -> var -> var
+          builder.frame_set("asgn1.tuple") # -> args -> var -> var
+          builder.message_new(attrib_read, 0, 0) # -> []msg -> args -> var -> var
+          builder.swap # -> args -> msg -> var -> var
+          builder.message_splat # -> msg -> var -> var
           builder.channel_call 
           builder.pop # -> orig -> var -> var
 
