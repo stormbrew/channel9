@@ -10,13 +10,25 @@ $CFLAGS = "-Wall -Werror -frtti " # -Winline"
 $CFLAGS = "-DCOLLECTOR=" + collector + " -DCOLLECTOR_CLASS=" + collector_class
 $LDFLAGS = "-lstdc++"
 
-if enable_config("trace")
-  $CFLAGS << " -DTRACE"
-end
 
-if enable_config("tracegc")
-  $CFLAGS << " -DTRACEGC"
-end
+subscription = 0
+subscription |= (2**30-1) if enable_config("trace-all")
+subscription |= 1 if enable_config("trace-general")
+subscription |= 2 if enable_config("trace-vm")
+subscription |= 4 if enable_config("trace-gc")
+$CFLAGS << " -DDEBUG_SUB=" + subscription.to_s
+
+levels = {
+  'spam'  => 0,
+  'debug' => 1,
+  'info'  => 2,
+  'warn'  => 3,
+  'error' => 4,
+  'crit'  => 5,
+}
+debug_level = with_config("debug-level") || 'warn'
+$CFLAGS << " -DDEBUG_LEVEL=" + (levels[debug_level] || debug_level).to_s
+
 
 if enable_config("debug")
   $CFLAGS << " -DDEBUG -O0 -g"

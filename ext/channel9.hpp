@@ -23,7 +23,7 @@ namespace Channel9
 		// these are types that will eventually
 		// be made into full heap types, but for now
 		// are allocated on the normal heap so need
-		// to be treated as plain old values.		
+		// to be treated as plain old values.
 		CALLABLE_CONTEXT= 0x04,
 		VARIABLE_FRAME  = 0x05,
 
@@ -53,17 +53,7 @@ namespace Channel9
 	};
 }
 
-#if defined(TRACE)
-#	define DO_TRACE if(true)
-#else
-#	define DO_TRACE if(false)
-#endif
-
-#if defined(TRACEGC)
-#	define DO_TRACEGC if(true)
-#else
-#	define DO_TRACEGC if(false)
-#endif
+#include "debug.h"
 
 #if defined(DEBUG)
 #	define DO_DEBUG if (true)

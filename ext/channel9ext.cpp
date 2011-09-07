@@ -59,7 +59,7 @@ private:
 	VALUE m_val;
 
 public:
-	RubyChannel(VALUE val) : m_val(val) 
+	RubyChannel(VALUE val) : m_val(val)
 	{
 		rb_gc_register_address(&m_val);
 	}
@@ -77,7 +77,7 @@ public:
 
 	void send(Environment *env, const Value &val, const Value &ret)
 	{
-		DO_TRACE printf("Oh hi %s\n", STR2CSTR(rb_funcall(rb_class_of(m_val), rb_intern("to_s"), 0)));
+		DEBUG_PRINTF(DEBUG_GENERAL, DEBUG_INFO, "Oh hi %s\n", STR2CSTR(rb_funcall(rb_class_of(m_val), rb_intern("to_s"), 0)));
 		int error = 0;
 		VALUE vals[] = {m_val, rb_Environment_new(env), c9_to_rb(val), c9_to_rb(ret)};
 		rb_protect(ruby_protected(&protected_send), (VALUE)vals, &error);
@@ -166,7 +166,7 @@ static GCRef<Value> rb_to_c9(VALUE val)
 		if (rb_respond_to(val, rb_intern("channel_send")))
 		{
 			Value c9val = value(new RubyChannel(val));
-			DO_TRACE printf("Converting object %s to RubyChannel: %s\n", 
+			DEBUG_PRINTF(DEBUG_GENERAL, DEBUG_INFO, "Converting object %s to RubyChannel: %s\n",
 				STR2CSTR(rb_any_to_s(val)), inspect(c9val).c_str());
 			return c9val;
 		} else if (val == rb_Undef) {
@@ -191,7 +191,7 @@ static GCRef<Value> rb_to_c9(VALUE val)
 		}
 		break;
 	}
-	rb_raise(rb_eRuntimeError, "Could not convert object %s (%d) to c9 object.", 
+	rb_raise(rb_eRuntimeError, "Could not convert object %s (%d) to c9 object.",
 		STR2CSTR(rb_any_to_s(val)), type);
 	return Nil;
 }
@@ -245,7 +245,7 @@ static VALUE rb_Environment_new(Environment *env)
 {
 	if (c9_env_map.find(env) != c9_env_map.end())
 		return c9_env_map[env];
-	
+
 	VALUE obj = Data_Wrap_Struct(rb_cEnvironment, 0, 0, env);
 	VALUE debug = Qfalse;
 	rb_obj_call_init(obj, 1, &debug);
@@ -350,7 +350,7 @@ static VALUE Stream_add_instruction(VALUE self, VALUE name, VALUE args) try
 	size_t argc = RARRAY_LEN(args);
 	if (argc > 0)
 		instruction.arg1 = *rb_to_c9(rb_ary_entry(args, 0));
-	
+
 	if (argc > 1)
 		instruction.arg2 = *rb_to_c9(rb_ary_entry(args, 1));
 
@@ -514,7 +514,7 @@ static VALUE rb_Message_new(GCRef<Message*> msg_p)
 	}
 
 	VALUE argv[3] = {ID2SYM(rb_intern((*msg_p)->name()->c_str())), sysargs, args};
-	rb_obj_call_init(obj, 3, argv);	
+	rb_obj_call_init(obj, 3, argv);
 	return obj;
 }
 
@@ -597,3 +597,4 @@ extern "C" void Init_channel9ext()
 
 	Init_Channel9_Primitives();
 }
+
