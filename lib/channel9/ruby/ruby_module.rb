@@ -175,11 +175,13 @@ module Channel9
           elf = msg.system.first
           name = msg.positional.first
           if (elf.respond_to?(:env))
-            ret.channel_send(elf.env, (!elf.send_lookup(name.to_sym).nil?), InvalidReturnChannel)
+            meth, on = elf.send_lookup(name.to_sym)
+            ret.channel_send(elf.env, (!meth.nil?), InvalidReturnChannel)
           else
-            klass = cenv.special_channel(elf.class.name)
-            ok = elf.respond_to?(:"c9_#{name}") || klass.lookup(name.to_sym)
-            ret.channel_send(cenv, (!ok.nil?), InvalidReturnChannel)
+            elf.channel_send(cenv, Primitive::Message.new(:class, [], []), CallbackChannel.new {|ienv, klass, iret|
+              meth, on = klass.lookup(name.to_sym)
+              ret.channel_send(cenv, (!meth.nil?), InvalidReturnChannel)
+            })
           end
         end
 
