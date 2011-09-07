@@ -1,9 +1,13 @@
 module Channel9
   module Primitive
-    class Message < Base
+    class Message
       attr :name
       attr :positional
       attr :system
+
+      class <<self
+        alias_method :channel_name, :name
+      end
 
       def initialize(name, system, positional)
         @name = name
@@ -12,7 +16,7 @@ module Channel9
       end
 
       def forward(name)
-        Message.new(name, @system, [@name.to_c9, *@positional])
+        Message.new(name, @system, [@name, *@positional])
       end
 
       def prefix(*args)

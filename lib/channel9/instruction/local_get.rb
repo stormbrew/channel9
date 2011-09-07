@@ -24,7 +24,7 @@ module Channel9
       end
       def run(environment)
         val = environment.context.get_local(@depth, @id)
-        environment.context.push(val.to_c9)
+        environment.context.push(val)
       end
     end
   end

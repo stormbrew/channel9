@@ -1,0 +1,71 @@
+{
+	"code": [
+		["local_set", 0, "exit"],
+		["pop"],
+
+		["line", "gcd", 1, 0, "def gcd(a,b)"],
+		["channel_new", "gcd_body"],
+		["local_set", 0, "gcd"],
+		["jmp", "gcd_done"],
+		["set_label", "gcd_body"],
+		["local_set", 0, "output"],
+		["message_unpack", 2, 0, 0],
+		["local_set", 0, "a"],
+		["local_set", 0, "b"],
+		["pop"],
+
+		["line", "gcd", 2, 0, " if (b != 0)"],
+		["local_get", 0, "b"],
+		["is", 0],
+		["jmp_if", "gcd_found"],
+
+		["line", "gcd", 3, 0, "  output <- gcd(b, a % b)"],
+		["local_get", 0, "gcd"],
+		["local_get", 0, "output"],
+		["local_get", 0, "b"],
+		["local_get", 0, "a"],
+		["local_get", 0, "b"],
+		["message_new", "%", 0, 1],
+		["channel_call"],
+		["pop"],
+		["message_new", "gcd", 0, 2],
+		["channel_send"],
+
+		["line", "gcd", 4, 0, "  else"],
+		["set_label", "gcd_found"],
+
+		["line", "gcd", 5, 0, "  return a"],
+		["local_get", 0, "output"],
+		["local_get", 0, "a"],
+		["channel_ret"],
+
+		["set_label", "gcd_done"],
+
+		["line", "gcd", 6, 0, " res = gcd(5, 10)"],
+		["push", 0],
+		["local_set", 0, "count"],
+		["set_label", "loop_do"],
+		["local_get", 0, "gcd"],
+		["push", 462],
+		["push", 1071],
+		["message_new", "gcd", 0, 2],
+		["channel_call"],
+		["pop"],
+		["pop"],
+
+		["local_get", 0, "count"],
+		["push", 1],
+		["message_new", "+", 0, 1],
+		["channel_call"],
+		["pop"],
+		["dup_top"],
+		["local_set", 0, "count"],
+		["is", 1000000],
+		["jmp_if_not", "loop_do"],
+
+		["local_get", 0, "exit"],
+		["push", 0],
+		["channel_ret"]
+	]
+}
+

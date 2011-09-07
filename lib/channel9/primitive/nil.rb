@@ -20,6 +20,7 @@ end
 
 class NilClass
   def to_c9
-    Channel9::Primitive::Nil
+    self
   end
+  def self.channel_name; :"Channel9::Primitive::NilC"; end
 end

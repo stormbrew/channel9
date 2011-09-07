@@ -1,6 +1,6 @@
 module Channel9
   module Instruction
-    # debug type
+    # debugger type
     # ---
     # Invokes a debug action, as registered with
     # the environment. Does not manipulate the stack.
@@ -11,7 +11,7 @@ module Channel9
     #   every instruction step until:
     # * stop_print_steps: don't print out execution context's state
     #   at every instruction step anymore.
-    class DEBUG < Base
+    class DEBUGGER < Base
       def initialize(stream, type)
         super(stream)
         @type = type

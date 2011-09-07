@@ -12,7 +12,7 @@ module Channel9
     class IS < Base
       def initialize(stream, const)
         super(stream, 1, 1)
-        @const = const.to_c9
+        @const = const
       end
 
       def arguments
@@ -21,7 +21,7 @@ module Channel9
 
       def run(environment)
         val = environment.context.pop
-        environment.context.push((val == @const).to_c9)
+        environment.context.push(val == @const)
       end
     end
   end

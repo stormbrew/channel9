@@ -1,3 +1,4 @@
+require 'channel9ext'
 require 'channel9/stream'
 require 'channel9/context'
 require 'channel9/environment'
