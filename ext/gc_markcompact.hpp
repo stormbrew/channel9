@@ -131,7 +131,7 @@ namespace Channel9
 			assert(size < 8000);
 
 			if(m_gc_phase == Running)
-				DO_TRACEGC printf("Alloc %u type %x ... ", (unsigned)size, type);
+				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Alloc %u type %x ... ", (unsigned)size, type);
 
 			size += (8 - size % 8) % 8; //8 byte align
 
@@ -149,7 +149,7 @@ namespace Channel9
 
 
 					if(m_gc_phase == Running)
-						DO_TRACEGC printf("alloc return %p\n", data->m_data);
+						TRACE_PRINTF(TRACE_GC, TRACE_INFO, "alloc return %p\n", data->m_data);
 
 					return data->m_data;
 				}
