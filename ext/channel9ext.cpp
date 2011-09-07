@@ -10,6 +10,7 @@ extern "C" {
 
 #include <map>
 #include <exception>
+#include <stdint.h>
 
 using namespace Channel9;
 
@@ -142,6 +143,7 @@ static GCRef<Value> rb_to_c9(VALUE val)
 	case T_STRING:
 		return value(STR2CSTR(val));
 	case T_BIGNUM:
+		return value(int64_t(-1)); // TODO: Make this not stupid.
 	case T_FIXNUM:
 		return value(NUM2LL(val));
 	case T_FLOAT:
