@@ -18,7 +18,7 @@ namespace Channel9
 	class GC { // GC base class, must be subclassed by one of the others
 
 		// extra is how much to allocate, type is one of Channel9::ValueType, return the new location
-		template <typename tObj> tObj *alloc(size_t extra, uint32_t type);
+		template <typename tObj> tObj *alloc(size_t extra, uint16_t type);
 
 		// notify the gc that an obj is pointed to, might mark it, might move it, might do something else. Returns true if it moved
 		template <typename tObj> bool mark(tObj ** from);

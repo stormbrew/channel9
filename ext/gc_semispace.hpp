@@ -60,8 +60,8 @@ namespace Channel9
 				}
 				return NULL;
 			}
-			Data * begin(){ return (Data *) m_data; }
-			Data * end()  { return (Data *) (m_data + m_used); }
+			Data * begin() const { return (Data *) m_data; }
+			Data * end()   const { return (Data *) (m_data + m_used); }
 			void deadbeef()
 			{
 				uint32_t * i = (uint32_t *) m_data,
@@ -84,7 +84,7 @@ namespace Channel9
 
 		void collect();
 
-		uchar *next(size_t size, uint32_t type)
+		uchar *next(size_t size, uint16_t type)
 		{
 			assert(size < (CHUNK_SIZE >> 4));
 
@@ -146,7 +146,7 @@ namespace Channel9
 		}
 
 		template <typename tObj>
-		tObj *alloc(size_t extra, uint32_t type)
+		tObj *alloc(size_t extra, uint16_t type)
 		{
 			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type));
 		}
