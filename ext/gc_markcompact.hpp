@@ -52,6 +52,7 @@ namespace Channel9
 			uint8_t  m_skipped;    //how many times a block has skipped compaction
 			uint8_t  m_block_size; //used to initialize Data::m_block_size
 			bool     m_mark;       //has this anything block been reached yet?
+			uint8_t  padding;
 			uchar    m_data[0];    //actual memory
 
 			void init(uint8_t block_size)
@@ -138,6 +139,8 @@ namespace Channel9
 			while(1){
 				Data * data = m_cur_block->alloc(size + sizeof(Data));
 
+				DEBUG_PRINTF(DEBUG_GC, DEBUG_DEBUG, "from block %p, got %p ... ", m_cur_block, data->m_data);
+
 				if(data){
 					m_used += size;
 					m_data_blocks++;
@@ -182,7 +185,7 @@ namespace Channel9
 
 			m_chunks.push_back(c);
 
-			for(Block * i = b; i != c.end(); i++){
+			for(Block * i = c.begin(); i < c.end(); i = i->next()){
 				i->init(BLOCK_SIZE);
 				m_empty_blocks.push_back(i);
 			}
@@ -192,12 +195,10 @@ namespace Channel9
 		Markcompact()
 		 : m_cur_block(NULL), m_gc_phase(Running), m_alloced(0), m_used(0), m_data_blocks(0), m_next_gc(0.9*(1<<CHUNK_SIZE))
 		{
-
 			alloc_chunk();
 
 			m_cur_block = m_empty_blocks.back();
 			m_empty_blocks.pop_back();
-
 		}
 
 		template <typename tObj>
