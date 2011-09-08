@@ -139,7 +139,7 @@ namespace Channel9
 			while(1){
 				Data * data = m_cur_block->alloc(size + sizeof(Data));
 
-				DEBUG_PRINTF(DEBUG_GC, DEBUG_DEBUG, "from block %p, got %p ... ", m_cur_block, data->m_data);
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "from block %p, got %p ... ", m_cur_block, data->m_data);
 
 				if(data){
 					m_used += size;
@@ -224,6 +224,8 @@ namespace Channel9
 			{
 			case Running:
 				assert(m_gc_phase != Running); //shouldn't be calling mark when not in gc mode
+			case Compacting:
+				assert(m_gc_phase != Compacting); //shouldn't be calling mark when not in gc mode
 			case Marking: {
 				if(d->m_mark)
 					return false;
