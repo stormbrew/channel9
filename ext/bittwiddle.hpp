@@ -138,6 +138,48 @@ inline uint count_bottom_zeros4(uint n){
 
 	return count;
 }
+inline uint8_t count_bottom_zeros4(uint8_t n){
+	if(n == 0)
+		return 0;
+	uint8_t count = 0;
+	if((n & 0x0000000FULL) == 0){ count +=  4; n >>=  4; }
+	if((n & 0x00000003ULL) == 0){ count +=  2; n >>=  2; }
+	if((n & 0x00000001ULL) == 0){ count +=  1; n >>=  1; }
+	return count;
+}
+inline uint16_t count_bottom_zeros4(uint16_t n){
+	if(n == 0)
+		return 0;
+	uint16_t count = 0;
+	if((n & 0x000000FFULL) == 0){ count +=  8; n >>=  8; }
+	if((n & 0x0000000FULL) == 0){ count +=  4; n >>=  4; }
+	if((n & 0x00000003ULL) == 0){ count +=  2; n >>=  2; }
+	if((n & 0x00000001ULL) == 0){ count +=  1; n >>=  1; }
+	return count;
+}
+inline uint32_t count_bottom_zeros4(uint32_t n){
+	if(n == 0)
+		return 0;
+	uint32_t count = 0;
+	if((n & 0x0000FFFFULL) == 0){ count += 16; n >>= 16; }
+	if((n & 0x000000FFULL) == 0){ count +=  8; n >>=  8; }
+	if((n & 0x0000000FULL) == 0){ count +=  4; n >>=  4; }
+	if((n & 0x00000003ULL) == 0){ count +=  2; n >>=  2; }
+	if((n & 0x00000001ULL) == 0){ count +=  1; n >>=  1; }
+	return count;
+}
+inline uint64_t count_bottom_zeros4(uint64_t n){
+	if(n == 0)
+		return 0;
+	uint64_t count = 0;
+	if((n & 0xFFFFFFFFULL) == 0){ count += 32; n >>= 32; }
+	if((n & 0x0000FFFFULL) == 0){ count += 16; n >>= 16; }
+	if((n & 0x000000FFULL) == 0){ count +=  8; n >>=  8; }
+	if((n & 0x0000000FULL) == 0){ count +=  4; n >>=  4; }
+	if((n & 0x00000003ULL) == 0){ count +=  2; n >>=  2; }
+	if((n & 0x00000001ULL) == 0){ count +=  1; n >>=  1; }
+	return count;
+}
 
 
 //count how many bits are set
