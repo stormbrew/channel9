@@ -33,6 +33,13 @@ namespace Channel9
 			uint32_t m_count;   //number of bytes of memory in this allocation
 			uchar    m_data[0]; //the actual data, 8 byte aligned
 
+			void init(uint16_t type, uint8_t block_size, uint32_t count){
+				m_type = type;
+				m_block_size = block_size;
+				m_mark = false;
+				m_count = count;
+			}
+
 			Data * next() const { return (Data*)((uchar*)(this + 1) + m_count); }
 			Block * block() const { return (Block *)((uintptr_t)this & ~((1 << m_block_size)-1)); }
 			static Data *ptr_for(const void *ptr) { return (Data*)ptr - 1; }
@@ -57,7 +64,7 @@ namespace Channel9
 
 			void init(uint8_t block_size)
 			{
-				m_capacity = 1 << block_size;
+				m_capacity = (1 << block_size) - sizeof(Block);
 				m_next_alloc = 0;
 				m_in_use = 0;
 				m_skipped = 0;
@@ -66,12 +73,14 @@ namespace Channel9
 				DO_DEBUG VALGRIND_CREATE_MEMPOOL(m_data, 0, false);
 			}
 
-			Data * alloc(size_t size)
+			Data * alloc(size_t size, uint16_t type)
 			{
-				if(m_next_alloc + size <= m_capacity)
+				size_t alloc_size = size + sizeof(Data);
+				if(m_next_alloc + alloc_size <= m_capacity)
 				{
 					Data * ret = (Data*)(m_data + m_next_alloc);
-					m_next_alloc += size;
+					ret->init(type, m_block_size, size);
+					m_next_alloc += alloc_size;
 					DO_DEBUG VALGRIND_MEMPOOL_ALLOC(m_data, ret, size);
 					return ret;
 				}
@@ -131,28 +140,20 @@ namespace Channel9
 		{
 			assert(size < 8000);
 
-			if(m_gc_phase == Running)
-				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Alloc %u type %x ... ", (unsigned)size, type);
 
 			size += (8 - size % 8) % 8; //8 byte align
 
 			while(1){
-				Data * data = m_cur_block->alloc(size + sizeof(Data));
+				Data * data = m_cur_block->alloc(size, type);
 
-				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "from block %p, got %p ... ", m_cur_block, data->m_data);
+				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "from block %p, got %p ... ", m_cur_block, data);
 
 				if(data){
 					m_used += size;
 					m_data_blocks++;
 
-					data->m_type = type;
-					data->m_block_size = m_cur_block->m_block_size;
-					data->m_mark = false;
-					data->m_count = size;
-
-
-					if(m_gc_phase == Running)
-						TRACE_PRINTF(TRACE_GC, TRACE_INFO, "alloc return %p\n", data->m_data);
+					TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
 
 					return data->m_data;
 				}
@@ -162,6 +163,8 @@ namespace Channel9
 
 				m_cur_block = m_empty_blocks.back();
 				m_empty_blocks.pop_back();
+
+				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "grabbing a new empty block: %p ... ", m_cur_block);
 			}
 			return NULL;
 		}
@@ -174,7 +177,7 @@ namespace Channel9
 
 			Block * b = (Block *)mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
 
-			printf("alloc chunk %p, %i zeros\n", b, (int)count_bottom_zeros4((uintptr_t)b));
+			TRACE_PRINTF(TRACE_GC, TRACE_INFO, "alloc chunk %p, %i zeros\n", b, (int)count_bottom_zeros4((uintptr_t)b));
 
 			assert(count_bottom_zeros4((uintptr_t)b) >= BLOCK_SIZE); //make sure blocks will be properly aligned
 
@@ -185,7 +188,8 @@ namespace Channel9
 
 			m_chunks.push_back(c);
 
-			for(Block * i = c.begin(); i < c.end(); i = i->next()){
+			for(Block * i = c.begin(); i != c.end(); i = i->next()){
+				assert(i < c.end());
 				i->init(BLOCK_SIZE);
 				m_empty_blocks.push_back(i);
 			}
