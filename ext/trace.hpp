@@ -73,12 +73,21 @@ inline void trace_out_header(int facility, int level, const char * file, int lin
 	if(color) ctrace << reset;
 }
 
+#define TRACE_QUIET_OUT(facility, level) \
+	if(((TRACE_SUB) & (facility)) && (TRACE_LEVEL) <= (level))
+
+#define TRACE_QUIET_CERR(facility, level, str) \
+	TRACE_QUIET_OUT(facility, level) ctrace
+
+#define TRACE_QUIET_PRINTF(facility, level, ...) \
+	TRACE_QUIET_OUT(facility, level) tprintf(__VA_ARGS__)
+
 #define TRACE_OUT(facility, level) \
-	if(((TRACE_SUB) & (facility)) && (TRACE_LEVEL) <= (level)){ \
+	TRACE_QUIET_OUT(facility, level){ \
 		trace_out_header(facility, level, __FILE__, __LINE__); \
 	} \
-	if(((TRACE_SUB) & (facility)) && (TRACE_LEVEL) <= (level))
-	
+	TRACE_QUIET_OUT(facility, level)
+
 #define TRACE_CERR(facility, level, str) \
 	TRACE_OUT(facility, level) ctrace
 
