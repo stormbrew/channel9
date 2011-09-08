@@ -80,7 +80,13 @@ inline void trace_out_header(int facility, int level, const char * file, int lin
 	TRACE_DO(facility, level) \
 		trace_out_header(facility, level, __FILE__, __LINE__); \
 	TRACE_DO(facility, level)
-	
+
+#define TRACE_QUIET_CERR(facility, level, str) \
+	TRACE_DO(facility, level) ctrace
+
+#define TRACE_QUIET_PRINTF(facility, level, ...) \
+	TRACE_DO(facility, level) tprintf(__VA_ARGS__)
+
 #define TRACE_CERR(facility, level, str) \
 	TRACE_OUT(facility, level) ctrace
 
