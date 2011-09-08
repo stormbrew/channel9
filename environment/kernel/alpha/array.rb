@@ -209,6 +209,9 @@ class Array
   def +(other)
     Array.new(@tuple + other.to_tuple_prim)
   end
+  def concat(other)
+    @tuple = @tuple + other.to_tuple_prim
+  end
   def -(other)
     n = []
     each do |i|

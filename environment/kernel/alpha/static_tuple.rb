@@ -22,6 +22,14 @@ class StaticTuple
     self # primitive passes through if no items
   end
 
+  def at(pos)
+    if (pos < 0)
+      at(length + pos)
+    else
+      nil # asked for an out of range item.
+    end
+  end
+
   def each
     i = 0
     while (i < length)
