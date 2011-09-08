@@ -65,7 +65,7 @@ namespace Channel9
 }
 
 #include "gc_semispace.hpp"
-//#include "gc_markcompact.hpp"
+#include "gc_markcompact.hpp"
 
 #undef COLLECTOR
 #undef COLLECTOR_CLASS
