@@ -89,7 +89,7 @@ namespace Channel9
 			assert(size < (CHUNK_SIZE >> 4));
 
 			if(!m_in_gc)
-				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Alloc %u type %x ... ", (unsigned)size, type);
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
 
 			size += (8 - size % 8) % 8; //8 byte align
 
@@ -106,7 +106,7 @@ namespace Channel9
 					data->m_count = size;
 
 					if(!m_in_gc)
-						TRACE_PRINTF(TRACE_GC, TRACE_INFO, "alloc return %p\n", data->m_data);
+						TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
 
 					return data->m_data;
 				}
@@ -167,12 +167,12 @@ namespace Channel9
 			Data * old = (Data*)(from) - 1;
 
 			if(old->m_pool == m_cur_pool){
-				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Move %p, type %X already moved\n", from, old->m_type);
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
 				return from;
 			}
 
 			if(old->m_forward){
-				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
 				*from_ptr = *(tObj**)from;
 				return true;
 			}
@@ -180,7 +180,7 @@ namespace Channel9
 			tObj * n = (tObj*)next(old->m_count, old->m_type);
 			memcpy(n, from, old->m_count);
 
-			TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Move %p, type %X <= %p\n", from, old->m_type, n);
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X <= %p\n", from, old->m_type, n);
 
 			old->m_forward = 1;
 			// put the new location in the old object's space
