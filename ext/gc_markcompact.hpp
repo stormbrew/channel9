@@ -48,7 +48,7 @@ namespace Channel9
 	private:
 
 		static const double   GC_GROWTH_LIMIT = 2.0;
-		static const uint64_t CHUNK_SIZE = 21;
+		static const uint64_t CHUNK_SIZE = 15;
 		static const uint64_t BLOCK_SIZE = 12;
 
 		struct Block
@@ -136,7 +136,7 @@ namespace Channel9
 
 		void collect();
 
-		uchar *next(size_t size, uint16_t type)
+		uchar *next(size_t size, uint16_t type, bool new_alloc)
 		{
 			assert(size < 8000);
 
@@ -150,8 +150,11 @@ namespace Channel9
 				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "from block %p, got %p ... ", m_cur_block, data);
 
 				if(data){
-					m_used += size;
-					m_data_blocks++;
+					if(new_alloc)
+					{
+						m_used += size + sizeof(Data);
+						m_data_blocks++;
+					}
 
 					TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
 
@@ -208,7 +211,7 @@ namespace Channel9
 		template <typename tObj>
 		tObj *alloc(size_t extra, uint16_t type)
 		{
-			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type));
+			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type, true));
 		}
 
 		template <typename tObj>
@@ -237,7 +240,7 @@ namespace Channel9
 				d->m_mark = true;
 
 				m_data_blocks++;
-				m_used += d->m_count;
+				m_used += d->m_count + sizeof(Data);
 
 				Block * b = d->block();
 				if(!b->m_mark)
@@ -245,7 +248,7 @@ namespace Channel9
 					b->m_mark = true;
 					b->m_in_use = 0;
 				}
-				b->m_in_use += d->m_count;
+				b->m_in_use += d->m_count + sizeof(Data);
 
 				gc_scan(*from);
 
