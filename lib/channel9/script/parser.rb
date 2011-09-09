@@ -213,18 +213,15 @@ module Channel9
          iws? >> statement_block.as(:block) >>
          iws? >> else_expression.as(:else).maybe
       }
+      rule(:while_expression) {
+        (str("while") >> lws? >> str("(") >> iws? >> expression.as(:while) >> iws? >> str(")")) >>
+         iws? >> statement_block.as(:block)
+      }
 
       rule(:conditional_expression) {
         if_expression |
+        while_expression |
         return_expression
-      }
-
-      rule(:conditional_sexpression) {
-        (if_expression >> iws? >>
-         else_if_expression.repeat >> iws? >>
-         else_expression.maybe >> iws?
-        ).as(:conditional) |
-        send_expression 
       }
 
       rule(:expression) {
