@@ -1,0 +1,13 @@
+var gcd = (a, b) -> output {
+	if (b != 0) {
+		output <- gcd(b, a % b) // <- is basically return. Can't come back
+	} else {
+		output <- a
+	}
+}
+
+var cnt = 1000000
+while (cnt != 0) {
+	gcd(1071, 462)
+	cnt -= 1
+}

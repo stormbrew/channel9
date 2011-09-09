@@ -336,6 +336,25 @@ module Channel9
         end
       end
 
+      class WhileNode < Node
+        attr_accessor :condition, :block
+
+        def compile(ctx, stream)
+          prefix = ctx.label_prefix('while')
+          start_label = prefix + "start"
+          done_label = prefix + "done"
+
+          stream.set_label(start_label)
+          block.compile_node(ctx, stream)
+          stream.pop
+          condition.compile_node(ctx, stream)
+          stream.jmp_if(start_label)
+          stream.set_label(done_label)
+
+          stream.push(nil)
+        end
+      end
+
       class ScriptNode < Node
         attr_accessor :body
 
@@ -437,6 +456,10 @@ module Channel9
       }
       rule(:if => simple(:cond), :block => simple(:block), :else => simple(:e)) {
         IfNode.new(cond, :condition => cond, :block => block, :else => e)
+      }
+
+      rule(:while => simple(:cond), :block => simple(:block)) {
+        WhileNode.new(cond, :condition => cond, :block => block)
       }
       
       rule(:script => simple(:body)) { ScriptNode.new(body, :body => body) }
