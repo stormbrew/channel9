@@ -28,12 +28,10 @@ namespace Channel9
 		m_gc_phase = Marking;
 
 		//switch pools
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Start GC, %llu bytes used in %llu data blocks\n", m_used, m_data_blocks);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Start GC, %llu bytes used in %llu data blocks, Begin Marking DFS\n", m_used, m_data_blocks);
 
 		m_used = 0;
 		m_data_blocks = 0;
-
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Begin Marking DFS\n");
 
 		DO_DEBUG {
 			for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
@@ -51,7 +49,7 @@ namespace Channel9
 
 		for(std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
-			TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Scan root %p\n", *it);
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan root %p\n", *it);
 			(*it)->scan();
 		}
 
@@ -68,10 +66,14 @@ namespace Channel9
 				if(!b->m_mark){
 					DO_DEBUG
 						b->deadbeef();
+					b->m_next_alloc = 0;
+					b->m_in_use = 0;
 					m_empty_blocks.push_back(b);
 				}
 			}
 		}
+
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Found %u empty blocks\n", m_empty_blocks.size());
 
 		//set the current allocating block to an empty one
 		if(m_empty_blocks.empty())
@@ -128,7 +130,7 @@ namespace Channel9
 
 		for(std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
-			TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Scan root %p\n", *it);
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan root %p\n", *it);
 			(*it)->scan();
 		}
 
@@ -148,7 +150,7 @@ namespace Channel9
 
 
 		//finishing up
-//		forward.clear();
+		forward.clear();
 
 		m_next_gc = std::max((1<<CHUNK_SIZE)*0.9, m_used * GC_GROWTH_LIMIT);
 
