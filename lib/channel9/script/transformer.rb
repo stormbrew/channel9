@@ -189,21 +189,10 @@ module Channel9
         attr_accessor :on, :action
 
         def compile(ctx, stream)
-          on.compile(ctx, stream)
+          on.compile_node(ctx, stream)
           action.compile_node(ctx, stream)
           stream.channel_call
           stream.pop # get rid of unwanted return channel
-        end
-      end
-
-      class ReturnNode < Node
-        attr_accessor :target, :expression
-
-        def compile(ctx, stream)
-          # Todo: Make this recognize tail recursion.
-          target.compile_node(ctx, stream)
-          expression.compile_node(ctx, stream)
-          stream.channel_ret
         end
       end
       class SendNode < Node
@@ -214,6 +203,25 @@ module Channel9
           target.compile_node(ctx, stream)
           expression.compile_node(ctx, stream)
           stream.channel_call
+        end
+      end
+      class ReturnNode < Node
+        attr_accessor :target, :expression
+
+        def compile(ctx, stream)
+          # TODO: Make this not have such intimate knowledge
+          # of CallNode and SendNode
+          case expression
+          when CallNode
+            expression.on.compile_node(ctx, stream)
+            target.compile_node(ctx, stream)
+            expression.action.compile_node(ctx, stream)
+            stream.channel_send
+          else
+            target.compile_node(ctx, stream)
+            expression.compile_node(ctx, stream)
+            stream.channel_ret
+          end
         end
       end
 
