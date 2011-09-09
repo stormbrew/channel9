@@ -56,6 +56,13 @@ namespace Channel9
 			gc_scan(ptr<CallableContext>(from));
 			break;
 		}
+
+		case VARIABLE_FRAME:{
+			VariableFrame *frame = ptr<VariableFrame>(from);
+			if (value_pool.mark(&frame))
+				from = make_value_ptr(VARIABLE_FRAME, frame);
+			break;
+		}
 		case RUNNING_CONTEXT:{
 			RunningContext *ctx = ptr<RunningContext>(from);
 			if(value_pool.mark(&ctx))
@@ -135,6 +142,9 @@ namespace Channel9
 		}
 		case CALLABLE_CONTEXT:
 			res << "call_ctx:" << ptr<CallableContext>(val);
+			break;
+		case VARIABLE_FRAME:
+			res << "variable_frame:" << ptr<VariableFrame>(val);
 			break;
 		case RUNNING_CONTEXT:
 			res << "running_ctx:" << ptr<RunningContext>(val);
