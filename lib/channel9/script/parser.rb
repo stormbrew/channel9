@@ -45,7 +45,8 @@ module Channel9
         symbol.as(:local_var)
       }
       rule(:declare_var) {
-        str("var") >> lws >> symbol.as(:declare_var)
+        (str("var") >> lws >> symbol.as(:declare_var) >> lws? >> str("=") >> lws? >> expression.as(:assign)) |
+        (str("var") >> lws >> symbol.as(:declare_var))
       }
       rule(:special_var) {
         str('$') >> symbol.as(:special_var)
@@ -194,8 +195,13 @@ module Channel9
       }
 
       rule(:send_expression) {
-        (variable >> (lws? >> str("<-") >> iws? >> assignment_expression).repeat(1)).as(:send) |
+        (assignment_expression.as(:send) >> lws? >> str("->") >> iws? >> assignment_expression.as(:target)) |
         assignment_expression
+      }
+
+      rule(:return_expression) {
+        (value_expression.as(:target) >> lws? >> str("<-") >> iws? >> send_expression.as(:return)) |
+        send_expression
       }
 
       rule(:else_expression) {
@@ -206,13 +212,11 @@ module Channel9
         (str("if") >> lws? >> str("(") >> iws? >> expression.as(:if) >> iws? >> str(")")) >>
          iws? >> statement_block.as(:block) >>
          iws? >> else_expression.as(:else).maybe
-
-#        (str("if") >> lws? >> str("(") >> iws? >> expression.as(:condition) >> iws? >> str(")") >> iws >> statement_block.as(:block)).as(:if) 
       }
 
       rule(:conditional_expression) {
         if_expression |
-        send_expression
+        return_expression
       }
 
       rule(:conditional_sexpression) {
@@ -232,7 +236,7 @@ module Channel9
       }
 
       rule(:script) {
-        statement_sequence >> iws?
+        statement_sequence.as(:script) >> iws?
       }
 
       root(:script)

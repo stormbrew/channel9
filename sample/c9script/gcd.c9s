@@ -1,0 +1,9 @@
+var gcd = (a, b) -> output {
+	if (b != 0) {
+		output <- gcd(b, a % b) // <- is basically return. Can't come back
+	} else {
+		output <- a
+	}
+}
+
+gcd(1071, 462) -> $stdout // ->, however, is send. It can be returned from.

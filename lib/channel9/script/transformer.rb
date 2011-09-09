@@ -61,6 +61,13 @@ module Channel9
         end
       end
 
+      class CommentNode < Node
+        attr_accessor :text
+
+        def compile(ctx, stream)
+        end
+      end
+
       class ConstantNode < Node
         attr_accessor :val
 
@@ -86,7 +93,32 @@ module Channel9
 
           stream.jmp(done_label)
           stream.set_label(body_label)
-          # compile body here
+
+          stream.local_linked_scope
+          ctx.variable_frame do
+            if (output)
+              stream.dup_top
+              ctx.declare_var(output.name)
+              stream.local_set(0, output.name)
+            end  
+            stream.frame_set("return")
+
+            stream.message_unpack(args.length, 0, 0)
+
+            args.each do |arg|
+              ctx.declare_var(arg.name)
+              stream.local_set(0, arg.name)
+            end
+
+            stream.pop # remove the message
+
+            body.compile_node(ctx, stream)
+
+            stream.frame_get("return")
+            stream.swap
+            stream.channel_ret
+          end
+
           stream.set_label(done_label)
           stream.channel_new(body_label)
         end
@@ -107,14 +139,27 @@ module Channel9
 
         def compile(ctx, stream)
           var_depth = find(ctx)
-          raise "Undeclared variable '#{var.name}' at #{ctx.filename}:#{line}:#{col}" if !var_depth
+          raise "Undeclared variable '#{name}' at #{ctx.filename}:#{line}:#{col}" if !var_depth
           stream.local_get(var_depth, name)
         end
       end
       class LocalDeclareNode < LocalVariableNode
+        attr_accessor :expression
+
         def find(ctx)
           ctx.declare_var(name)
           0
+        end
+
+        def compile(ctx, stream)
+          if (expression.nil?)
+            super
+          else
+            find(ctx)
+            expression.compile_node(ctx, stream)
+            stream.dup_top
+            stream.local_set(0, name)
+          end
         end
       end
 
@@ -123,7 +168,7 @@ module Channel9
         attr_accessor :args
 
         def compile(ctx, stream)
-          args.reverse.each do |arg|
+          args.each do |arg|
             arg.compile_node(ctx, stream)
           end
           stream.message_new("call", 0, args.length)
@@ -131,6 +176,13 @@ module Channel9
       end
       class MemberInvokeNode < CallActionNode
         attr_accessor :name, :args
+
+        def compile(ctx, stream)
+          args.each do |arg|
+            arg.compile_node(ctx, stream)
+          end
+          stream.message_new(name, 0, args.length)
+        end
       end
 
       class CallNode < Node
@@ -144,7 +196,7 @@ module Channel9
         end
       end
 
-      class SendNode < Node
+      class ReturnNode < Node
         attr_accessor :target, :expression
 
         def compile(ctx, stream)
@@ -152,6 +204,16 @@ module Channel9
           target.compile_node(ctx, stream)
           expression.compile_node(ctx, stream)
           stream.channel_ret
+        end
+      end
+      class SendNode < Node
+        attr_accessor :target, :expression
+
+        def compile(ctx, stream)
+          # Todo: Make this recognize tail recursion.
+          target.compile_node(ctx, stream)
+          expression.compile_node(ctx, stream)
+          stream.channel_call
         end
       end
 
@@ -197,16 +259,80 @@ module Channel9
 
       class OperatorNode < Node
         attr_accessor :op, :right
+
+        def compile(ctx, stream)
+          right.compile_node(ctx, stream)
+          stream.message_new(op, 0, 1)
+        end
       end
       class BinOpNode < Node
         attr_accessor :on, :action
+
+        def compile(ctx, stream)
+          on.compile_node(ctx, stream)
+          action.compile_node(ctx, stream)
+          stream.channel_call
+          stream.pop
+        end
       end
       class SumNode < BinOpNode; end
       class ProductNode < BinOpNode; end
-      class EqualityNode < BinOpNode; end
+      class EqualityNode < BinOpNode
+        def compile(ctx, stream)
+          case action.op
+          when '=='
+            on.compile_node(ctx, stream)
+            action.right.compile_node(ctx, stream)
+            stream.is_eq
+          when '!='
+            on.compile_node(ctx, stream)
+            action.right.compile_node(ctx, stream)
+            stream.is_not_eq
+          else
+            super
+          end
+        end
+      end
 
       class IfNode < Node
         attr_accessor :condition, :block, :else
+
+        def compile(ctx, stream)
+          prefix = ctx.label_prefix('if')
+          done_label = prefix + "done"
+          if (self.else.nil?)
+            else_label = done_label
+          else
+            else_label = prefix + "else"
+          end
+
+          condition.compile_node(ctx, stream)
+          stream.jmp_if_not(else_label)
+          
+          block.compile_node(ctx, stream)
+          stream.jmp(done_label)
+          
+          if (!self.else.nil?)
+            stream.set_label(else_label)
+            self.else.compile_node(ctx, stream)
+          end
+          stream.set_label(done_label)
+        end
+      end
+
+      class ScriptNode < Node
+        attr_accessor :body
+
+        def compile(ctx, stream)
+          stream.frame_set("script-exit")
+          stream.pop
+
+          body.compile_node(ctx, stream)
+
+          stream.frame_get("script-exit")
+          stream.swap
+          stream.channel_ret
+        end
       end
 
       rule(:nil => simple(:n)) { NilNode.new(n, :val => nil) }
@@ -224,10 +350,21 @@ module Channel9
 
       rule(:local_var => simple(:name)) { LocalVariableNode.new(name, :name => name.to_s) }
       rule(:declare_var => simple(:name)) { LocalDeclareNode.new(name, :name => name.to_s) }
+      rule(:declare_var => simple(:name), :assign => simple(:expression)) { 
+        LocalDeclareNode.new(name, :name => name.to_s, :expression => expression) 
+      }
       rule(:special_var => simple(:name)) { SpecialVariableNode.new(name, :name => name.to_s) }
 
       rule(:expr => simple(:expr)) { expr }
-      rule(:send => sequence(:info)) { SendNode.new(info[0], :target => info[0], :expression => info[1]) }
+      rule(:send => simple(:expression), :target => simple(:target)) { 
+        SendNode.new(expression, :target => target, :expression => expression) 
+      }
+      rule(:return => simple(:expression), :target => simple(:target)) { 
+        ReturnNode.new(expression, :target => target, :expression => expression) 
+      }
+
+      rule(:text => simple(:text)) { text }
+      rule(:inline_doc => simple(:text)) { CommentNode.new(text, :text => text) }
 
       rule(:statement => {:doc => sequence(:doc), :expr => simple(:expr)}) { 
         StatementNode.new(expr, :doc => doc.join("\n"), :expression => expr) 
@@ -263,7 +400,7 @@ module Channel9
         res
       }
 
-      rule(:op => simple(:op), :right => simple(:right)) { OperatorNode.new(op, :op => op, :right => right) }
+      rule(:op => simple(:op), :right => simple(:right)) { OperatorNode.new(op, :op => op.to_s, :right => right) }
 
       {
         :sum => SumNode,
@@ -285,7 +422,8 @@ module Channel9
       rule(:if => simple(:cond), :block => simple(:block), :else => simple(:e)) {
         IfNode.new(cond, :condition => cond, :block => block, :else => e)
       }
-
+      
+      rule(:script => simple(:body)) { ScriptNode.new(body, :body => body) }
     end
   end
 end
