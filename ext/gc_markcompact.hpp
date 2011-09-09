@@ -245,7 +245,7 @@ namespace Channel9
 			{
 			case Marking: {
 
-				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Marking %p -> %i\n", *from, d->m_mark);
+				TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Marking %p -> %i\n", *from, d->m_mark);
 
 				if(d->m_mark)
 					return false;
@@ -271,7 +271,7 @@ namespace Channel9
 			case Updating: {
 				tObj * to = forward.get(*from);
 
-				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updating %p -> %p", *from, to);
+				TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Updating %p -> %p", *from, to);
 
 				bool changed = (to != NULL);
 				if(changed)
@@ -281,7 +281,7 @@ namespace Channel9
 					d = Data::ptr_for(*from);
 				}
 
-				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_INFO, ", d->m_mark = %i\n", d->m_mark);
+				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_SPAM, ", d->m_mark = %i\n", d->m_mark);
 
 				if(d->m_mark)
 				{
@@ -296,6 +296,7 @@ namespace Channel9
 			case Compacting:
 			default:
 				assert(false && "Markcompact::mark should only be called when marking or updating");
+				return false;
 			}
 		}
 
