@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift "lib", "ext" if $0 == "bin/c9c"
+
+require 'channel9'
+require 'channel9/script/parser'
+require 'channel9/script/transformer'
+
+debug = ARGV.include?("-d")
+ARGV.delete("-d")
+debug = ARGV.include?("-dd") ? :detail : debug
+ARGV.delete("-dd")
+print = ARGV.include?("-p")
+ARGV.delete("-p")
+
+filename = ARGV[0]
+infile = File.read(filename)
+parser = Channel9::Script::Parser.new
+transformer = Channel9::Script::Transformer.new
+begin
+  ptree = parser.parse(infile)
+  ast = transformer.apply(ptree)
+  code = Channel9::Stream.new
+  builder = Channel9::Builder.new(code)
+  context = Channel9::Script::Transformer::Context.new(filename)
+  ast.compile_node(context, builder)
+
+  puts code.to_json
+rescue Parslet::ParseFailed => error
+  puts error, parser.root.error_tree
+end
+
+__END__
+stream = Channel9::Stream.from_json(File.read(ARGV[0]))
+if (print)
+  puts stream.to_json
+else
+  environment = Channel9::Environment.new(debug)
+  context = Channel9::Context.new(environment, stream)
+  stime = Time.now
+  begin
+    context.channel_send(environment, nil, Channel9::CleanExitChannel)
+  ensure
+    etime = Time.now
+    puts("Ran in #{etime - stime}s")
+  end
+end

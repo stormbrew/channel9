@@ -44,12 +44,15 @@ module Channel9
       rule(:local_var) {
         symbol.as(:local_var)
       }
+      rule(:declare_var) {
+        str("var") >> lws >> symbol.as(:declare_var)
+      }
       rule(:special_var) {
         str('$') >> symbol.as(:special_var)
       }
 
       rule(:variable) { # Note: order IS important here.
-        (local_var | special_var)
+        (declare_var | local_var | special_var)
       }
 
       rule(:nil_const) {
