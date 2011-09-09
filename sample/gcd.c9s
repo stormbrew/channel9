@@ -1,0 +1,10 @@
+var gcd
+gcd = (a, b) -> output {
+	if (b != 0) {
+		output <- gcd(b, a % b)
+	} else {
+		output <- a
+	}
+}
+
+$stdout <- gcd(1071, 462)
