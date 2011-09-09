@@ -134,7 +134,7 @@ namespace Channel9
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updated %llu pointers, unmarked %llu objects, cleaning up\n", m_dfs_updated, m_dfs_unmarked);
 
-		assert(m_dfs_marked == m_dfs_updated);
+		assert(m_dfs_marked == m_dfs_unmarked);
 
 		DO_DEBUG {
 			for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
