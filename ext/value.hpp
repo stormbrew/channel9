@@ -92,7 +92,7 @@ namespace Channel9
 	template <typename tPtr>
 	inline Value make_value_ptr(ValueType type, tPtr value)
 	{
-		Value val = {type_mask(type) | ((uint64_t)value & Value::VALUE_MASK)};
+		Value val = {type_mask(type) | ((uint64_t)value & Value::POINTER_MASK)};
 		return val;
 	}
 	inline Value value(long long machine_num)
