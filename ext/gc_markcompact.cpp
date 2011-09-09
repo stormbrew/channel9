@@ -35,6 +35,16 @@ namespace Channel9
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Begin Marking DFS\n");
 
+		DO_DEBUG {
+			for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
+				for(Block * b = c->begin(); b != c->end(); b = b->next()){
+					assert(!b->m_mark);
+					for(Data * d = b->begin(); d != b->end(); d = d->next())
+						assert(!d->m_mark);
+				}
+			}
+		}
+
 		for(std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
 			(*it)->scan();
@@ -53,6 +63,7 @@ namespace Channel9
 				if(!b->m_mark)
 					m_empty_blocks.push_back(b);
 
+		//set the current allocating block to an empty one
 		if(m_empty_blocks.empty())
 			alloc_chunk();
 
@@ -69,7 +80,7 @@ namespace Channel9
 			{
 				if(b->m_mark)
 				{
-					if(b->m_in_use < b->m_capacity*8/10)
+					if(b->m_in_use < b->m_capacity*FRAG_LIMIT)
 					{
 						for(Data * d = b->begin(); d != b->end(); d = d->next())
 						{
@@ -82,7 +93,6 @@ namespace Channel9
 							}
 						}
 
-						b->m_mark = false;
 						b->m_next_alloc = 0;
 						b->m_in_use = 0;
 						m_empty_blocks.push_back(b);
@@ -90,6 +100,7 @@ namespace Channel9
 						skipped++;
 						fragmented += b->m_capacity - b->m_in_use;
 					}
+					b->m_mark = false;
 				}
 			}
 		}
@@ -104,8 +115,20 @@ namespace Channel9
 		}
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done update, cleaning up\n");
+
+		DO_DEBUG {
+			for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
+				for(Block * b = c->begin(); b != c->end(); b = b->next()){
+					assert(!b->m_mark);
+					for(Data * d = b->begin(); d != b->end(); d = d->next())
+						assert(!d->m_mark);
+				}
+			}
+		}
+
+
 		//finishing up
-		forward.clear();
+//		forward.clear();
 
 		m_next_gc = std::max((1<<CHUNK_SIZE)*0.9, m_used * GC_GROWTH_LIMIT);
 

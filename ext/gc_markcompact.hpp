@@ -48,6 +48,7 @@ namespace Channel9
 	private:
 
 		static const double   GC_GROWTH_LIMIT = 2.0;
+		static const double   FRAG_LIMIT = 0.8; //compact if the block is less than this full
 		static const uint64_t CHUNK_SIZE = 15;
 		static const uint64_t BLOCK_SIZE = 12;
 
@@ -229,10 +230,6 @@ namespace Channel9
 			Data * d = Data::ptr_for(*from);
 			switch(m_gc_phase)
 			{
-			case Running:
-				assert(m_gc_phase != Running); //shouldn't be calling mark when not in gc mode
-			case Compacting:
-				assert(m_gc_phase != Compacting); //shouldn't be calling mark when not in gc mode
 			case Marking: {
 				if(d->m_mark)
 					return false;
@@ -255,13 +252,13 @@ namespace Channel9
 				return false;
 			}
 			case Updating: {
-				tObj * to = (tObj*)forward.get(d);
+				tObj * to = forward.get(*from);
 
-				bool ret = (to == *from);
-				if(ret)
+				bool changed = (to != NULL);
+				if(changed)
 				{
 					*from = to;
-					d = Data::ptr_for(to);
+					d = Data::ptr_for(*from);
 				}
 
 				if(d->m_mark)
@@ -270,8 +267,12 @@ namespace Channel9
 					gc_scan(*from);
 				}
 
-				return ret;
+				return changed;
 			}
+			case Running:
+			case Compacting:
+			default:
+				assert(false && "Markcompact::mark should only be called when marking or updating");
 			}
 		}
 
