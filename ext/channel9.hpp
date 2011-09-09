@@ -17,39 +17,39 @@ namespace Channel9
 	{
 		POSITIVE_NUMBER = 0x00,
 
-		BTRUE			= 0x01,
-		FLOAT_NUM 		= 0x02,
+		BTRUE			= 0x10,
+		FLOAT_NUM 		= 0x20,
 
 		// these are types that will eventually
 		// be made into full heap types, but for now
 		// are allocated on the normal heap so need
 		// to be treated as plain old values.
-		CALLABLE_CONTEXT= 0x04,
-		VARIABLE_FRAME  = 0x05,
+		CALLABLE_CONTEXT= 0x40,
+		VARIABLE_FRAME  = 0x50,
 
 		// Bit pattern of 0000 1000 indicates falsy,
 		// all other type patterns are truthy.
-		FALSY_MASK 		= 0xFC,
-		FALSY_PATTERN 	= 0x08,
+		FALSY_MASK 		= 0xCF,
+		FALSY_PATTERN 	= 0x80,
 
-		NIL 			= 0x08,
-		UNDEF 			= 0x09,
-		BFALSE 			= 0x0A,
-		// don't use 	= 0x0B,
+		NIL 			= 0x80,
+		UNDEF 			= 0x90,
+		BFALSE 			= 0xA0,
+		// don't use 	= 0xB0,
 
-		// All heap types have E as their low nibble,
+		// All heap types have E as their high nibble,
 		// as that nibble comes from the reference itself
 		// and indicates that the full type is in the
-		// object referred to.
-		HEAP_TYPE 		= 0x0E,
+		// next nibble of the address
+		HEAP_TYPE 		= 0xE0,
 
-		STRING          = 0x3E,
-		TUPLE           = 0x4E,
-		MESSAGE         = 0x5E,
-		RUNNABLE_CONTEXT= 0x7E,
-		RUNNING_CONTEXT = 0x8E,
+		STRING          = 0xE3,
+		TUPLE           = 0xE4,
+		MESSAGE         = 0xE5,
+		RUNNABLE_CONTEXT= 0xE7,
+		RUNNING_CONTEXT = 0xE8,
 
-		NEGATIVE_NUMBER = 0x0f
+		NEGATIVE_NUMBER = 0xF0
 	};
 }
 
