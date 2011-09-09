@@ -139,7 +139,7 @@ namespace Channel9
 			while(1){
 				Data * data = m_cur_block->alloc(size + sizeof(Data));
 
-				DEBUG_PRINTF(DEBUG_GC, DEBUG_DEBUG, "from block %p, got %p ... ", m_cur_block, data->m_data);
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "from block %p, got %p ... ", m_cur_block, data->m_data);
 
 				if(data){
 					m_used += size;
