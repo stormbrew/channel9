@@ -11,8 +11,9 @@ namespace Channel9
 	union Value
 	{
 		enum {
-			TYPE_SHIFT		= 60,
+			TYPE_SHIFT		= 56,
 			TYPE_MASK 		= 0xf000000000000000ULL,
+			HEAP_TYPE_MASK  = 0xff00000000000000ULL,
 			VALUE_MASK 		= 0x0fffffffffffffffULL,
 			POINTER_MASK 	= 0x00007fffffffffffULL,
 		};
@@ -43,19 +44,13 @@ namespace Channel9
 		return ValueType((val.raw & Value::TYPE_MASK) >> Value::TYPE_SHIFT);
 	}
 
-	inline MemoryPool::Data *header_ptr(const Value &val)
-	{
-		assert(basic_type(val) == HEAP_TYPE);
-		return (MemoryPool::Data*)(val.raw & Value::VALUE_MASK) - 1;
-	}
-
 	inline ValueType type(const Value &val)
 	{
 		ValueType t = basic_type(val);
 		if (t != HEAP_TYPE)
 			return t;
 		else
-			return ValueType(header_ptr(val)->m_type);
+			return ValueType((val.raw & Value::HEAP_TYPE_MASK) >> Value::TYPE_SHIFT);
 	}
 	inline bool is(const Value &val, ValueType t)
 	{
