@@ -45,12 +45,17 @@ namespace Channel9
 			}
 		}
 
+		m_dfs_marked = 0;
+		m_dfs_unmarked = 0;
+		m_dfs_updated = 0;
+
 		for(std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
+			TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Scan root %p\n", *it);
 			(*it)->scan();
 		}
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Begin Compacting\n");
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Marked %llu objects, Begin Compacting\n", m_dfs_marked);
 
 		m_gc_phase = Compacting;
 
@@ -58,10 +63,15 @@ namespace Channel9
 
 		//reclaim empty blocks right off the start
 		m_empty_blocks.clear();
-		for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++)
-			for(Block * b = c->begin(); b != c->end(); b = b->next())
-				if(!b->m_mark)
+		for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
+			for(Block * b = c->begin(); b != c->end(); b = b->next()){
+				if(!b->m_mark){
+					DO_DEBUG
+						b->deadbeef();
 					m_empty_blocks.push_back(b);
+				}
+			}
+		}
 
 		//set the current allocating block to an empty one
 		if(m_empty_blocks.empty())
@@ -72,8 +82,9 @@ namespace Channel9
 
 		//compact blocks that have < 80% filled
 		uint64_t fragmented = 0;
-		uint64_t moved = 0;
-		int skipped = 0;
+		uint64_t moved_bytes = 0;
+		uint64_t moved_blocks = 0;
+		uint64_t skipped = 0;
 		for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++)
 		{
 			for(Block * b = c->begin(); b != c->end(); b = b->next())
@@ -89,12 +100,18 @@ namespace Channel9
 								uchar * n = next(d->m_count, d->m_type, false);
 								memcpy(n, d->m_data, d->m_count);
 								forward.set(d->m_data, n);
-								moved += d->m_count + sizeof(Data);
+								moved_bytes += d->m_count + sizeof(Data);
+								moved_blocks++;
+
+								//set the mark bit so it gets traversed
+								Data::ptr_for(n)->m_mark = true;
 							}
 						}
 
 						b->m_next_alloc = 0;
 						b->m_in_use = 0;
+						DO_DEBUG
+							b->deadbeef();
 						m_empty_blocks.push_back(b);
 					}else{
 						skipped++;
@@ -107,14 +124,17 @@ namespace Channel9
 
 		m_gc_phase = Updating;
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done compacting, %llu bytes moved, %llu bytes left fragmented in %i blocks, Begin Updating DFS\n", moved, fragmented, skipped);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done compacting, %llu Data/%llu bytes moved, %llu Blocks/%llu bytes left fragmented, Begin Updating DFS\n", moved_blocks, moved_bytes, skipped, fragmented);
 
 		for(std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
+			TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Scan root %p\n", *it);
 			(*it)->scan();
 		}
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done update, cleaning up\n");
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updated %llu pointers, unmarked %llu objects, cleaning up\n", m_dfs_updated, m_dfs_unmarked);
+
+		assert(m_dfs_marked == m_dfs_updated);
 
 		DO_DEBUG {
 			for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){

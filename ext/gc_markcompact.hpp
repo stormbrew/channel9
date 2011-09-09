@@ -40,6 +40,16 @@ namespace Channel9
 				m_count = count;
 			}
 
+			uchar * begin() { return m_data; }
+			uchar * end()   { return (m_data + m_count); }
+			void deadbeef()
+			{
+				uint32_t * i = (uint32_t *) begin(),
+				         * e = (uint32_t *) end();
+				for(; i < e; ++i)
+					*i = 0xDEADBEEF;
+			}
+
 			Data * next() const { return (Data*)((uchar*)(this + 1) + m_count); }
 			Block * block() const { return (Block *)((uintptr_t)this & ~((1 << m_block_size)-1)); }
 			static Data *ptr_for(const void *ptr) { return (Data*)ptr - 1; }
@@ -132,6 +142,9 @@ namespace Channel9
 		uint64_t m_used;     //how much memory is used by data blocks, not including the header
 		uint64_t m_data_blocks; //how many data allocations are in the current pool
 		uint64_t m_next_gc;  //garbage collect when m_next_gc < m_used
+		uint64_t m_dfs_marked;
+		uint64_t m_dfs_unmarked;
+		uint64_t m_dfs_updated;
 
 		std::set<GCRoot*> m_roots;
 
@@ -231,9 +244,13 @@ namespace Channel9
 			switch(m_gc_phase)
 			{
 			case Marking: {
+
+				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Marking %p -> %i\n", *from, d->m_mark);
+
 				if(d->m_mark)
 					return false;
 
+				m_dfs_marked++;
 				d->m_mark = true;
 
 				m_data_blocks++;
@@ -254,15 +271,21 @@ namespace Channel9
 			case Updating: {
 				tObj * to = forward.get(*from);
 
+				TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updating %p -> %p", *from, to);
+
 				bool changed = (to != NULL);
 				if(changed)
 				{
+					m_dfs_updated++;
 					*from = to;
 					d = Data::ptr_for(*from);
 				}
 
+				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_INFO, ", d->m_mark = %i\n", d->m_mark);
+
 				if(d->m_mark)
 				{
+					m_dfs_unmarked++;
 					d->m_mark = false;
 					gc_scan(*from);
 				}
