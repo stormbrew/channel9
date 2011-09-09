@@ -30,6 +30,9 @@ transformer = Channel9::Script::Transformer.new
 begin
   ptree = parser.parse(infile)
   ast = transformer.apply(ptree)
+  if (print)
+    pp ast
+  end
   code = Channel9::Stream.new
   builder = Channel9::Builder.new(code)
   context = Channel9::Script::Transformer::Context.new(filename)
