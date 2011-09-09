@@ -11,9 +11,20 @@ debug = ARGV.include?("-dd") ? :detail : debug
 ARGV.delete("-dd")
 print = ARGV.include?("-p")
 ARGV.delete("-p")
+run = ARGV.include?("-r")
+ARGV.delete("-r")
+eval = ARGV.include?("-e")
+ARGV.delete("-e")
 
-filename = ARGV[0]
-infile = File.read(filename)
+if (eval)
+  filename = "__eval__"
+  infile = ARGV.join(" ")
+  run = !run
+else
+  filename = ARGV[0]
+  infile = File.read(filename)
+end
+
 parser = Channel9::Script::Parser.new
 transformer = Channel9::Script::Transformer.new
 begin
@@ -24,23 +35,19 @@ begin
   context = Channel9::Script::Transformer::Context.new(filename)
   ast.compile_node(context, builder)
 
-  puts code.to_json
+  if (print)
+    puts code.to_json
+  elsif (run)
+    environment = Channel9::Environment.new(debug)
+    context = Channel9::Context.new(environment, code)
+    context.channel_send(environment, nil, Channel9::CleanExitChannel)
+  elsif (filename.match(/\.c9s$/))
+    File.open(filename.gsub(/\.c9s$/, ".c9b"), "w") do |f|
+      f.write(code.to_json)
+    end
+  else
+    puts "Don't know what to do."
+  end
 rescue Parslet::ParseFailed => error
   puts error, parser.root.error_tree
-end
-
-__END__
-stream = Channel9::Stream.from_json(File.read(ARGV[0]))
-if (print)
-  puts stream.to_json
-else
-  environment = Channel9::Environment.new(debug)
-  context = Channel9::Context.new(environment, stream)
-  stime = Time.now
-  begin
-    context.channel_send(environment, nil, Channel9::CleanExitChannel)
-  ensure
-    etime = Time.now
-    puts("Ran in #{etime - stime}s")
-  end
 end
