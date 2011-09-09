@@ -240,9 +240,17 @@ module Channel9
         attr_accessor :var, :op
 
         def compile(ctx, stream)
-          raise "Unsupported assignment operator" if op != "="
           var_depth = var.find(ctx)
           raise "Undeclared variable '#{var.name}' at #{ctx.filename}:#{line}:#{col}" if !var_depth
+
+          if (op != '=')
+            real_op = op.gsub(/=$/, '')
+            stream.message_new(real_op, 0, 1)
+            stream.local_get(var_depth, var.name)
+            stream.swap
+            stream.channel_call
+            stream.pop
+          end
 
           stream.dup_top
           stream.local_set(var_depth, var.name)
@@ -391,7 +399,7 @@ module Channel9
         res
       }
 
-      rule(:assign_to => simple(:var), :op => simple(:op)) { AssignTargetNode.new(op, :var => var, :op => op) }
+      rule(:assign_to => simple(:var), :op => simple(:op)) { AssignTargetNode.new(op, :var => var, :op => op.to_s) }
       rule(:assign => simple(:expr), :left => sequence(:left)) {
         res = expr
         left.each {|asgn|
