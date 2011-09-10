@@ -1,0 +1,17 @@
+var fibo_aux = (n,i,k) -> return {
+  if (i != n + 1) {
+    return <- fibo_aux(n,i+1,k+i)
+  } else {
+    return <- k
+  }
+}
+
+var fibo = (n) {
+  fibo_aux(n,1,0)
+}
+
+var n = 1000000
+while (n != 0) {
+	fibo(50)
+	n -= 1
+}
