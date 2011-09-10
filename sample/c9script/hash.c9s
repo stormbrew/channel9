@@ -17,8 +17,8 @@ var HashClass = (table_size) {
 		return <- undef
 	}
 	var set = (index, val) -> return {
-		"setting " + index -> $stdout
 		var hash = index.hash() % table_size
+		"setting " + index + "(" + hash.to_string_primitive + ")" -> $stdout
 		if (hash < table.length()) {
 			var item = table.at(hash)
 			if (item) {
