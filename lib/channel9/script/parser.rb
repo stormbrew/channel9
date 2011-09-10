@@ -81,7 +81,7 @@ module Channel9
       }
 
       rule(:list_const) {
-        (str("[") >> iws? >> (expression >> iws? >> str(",").maybe).repeat.as(:entries) >> iws? >> str("]")).as(:list)
+        (str("[") >> iws? >> (expression >> iws? >> str(",").maybe).repeat >> iws? >> str("]")).as(:list)
       }
 
       rule(:argdef) {
@@ -171,7 +171,7 @@ module Channel9
       }
 
       rule(:relational_op_expression) {
-        bitshift_op_expression.as(:left) >> ((lws? >> (str('>') | str('<') | str('<=') | str('>=')).as(:op) >> iws? >> bitshift_op_expression.as(:right)).repeat(1)).as(:relational) |
+        bitshift_op_expression.as(:left) >> ((lws? >> (str('<=') | str('>=') | str('>') | str('<')).as(:op) >> iws? >> bitshift_op_expression.as(:right)).repeat(1)).as(:relational) |
         bitshift_op_expression
       }
 
@@ -213,7 +213,7 @@ module Channel9
       rule(:if_expression) {
         (str("if") >> lws? >> str("(") >> iws? >> expression.as(:if) >> iws? >> str(")")) >>
          iws? >> statement_block.as(:block) >>
-         iws? >> else_expression.as(:else).maybe
+         lws? >> else_expression.as(:else).maybe
       }
       rule(:while_expression) {
         (str("while") >> lws? >> str("(") >> iws? >> expression.as(:while) >> iws? >> str(")")) >>
