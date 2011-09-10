@@ -219,10 +219,17 @@ module Channel9
         (str("while") >> lws? >> str("(") >> iws? >> expression.as(:while) >> iws? >> str(")")) >>
          iws? >> statement_block.as(:block)
       }
+      rule(:cases) {
+        (lws? >> str("case") >> iws? >> str("(") >> iws? >> const.as(:case) >> iws? >> str(")") >> iws? >> statement_block.as(:block)).repeat(1).as(:cases) >> lws? >> else_expression.maybe
+      }
+      rule(:switch_expression) {
+        (str("switch") >> lws? >> str("(") >> iws? >> expression.as(:switch) >> iws? >> str(")") >> iws? >> cases)
+      }
 
       rule(:conditional_expression) {
         if_expression |
         while_expression |
+        switch_expression |
         return_expression
       }
 

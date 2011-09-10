@@ -35,9 +35,10 @@ var HashClass = (table_size) {
 	}
 
 	(&msg) -> return {
-		if (msg.name == 'get') {
+		switch (msg.name)
+		case ('get') {
 			return <- msg -> get
-		} else if (msg.name == 'set') {
+		} case ('set') {
 			return <- msg -> set
 		}
 	}
