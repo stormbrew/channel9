@@ -81,7 +81,21 @@ module Channel9
       class FalseNode < ConstantNode; end
       class IntegerConstantNode < ConstantNode; end
       class StringConstantNode < ConstantNode; end
-      class ListConstantNode < ConstantNode; end
+      
+      class ListNode < Node
+        attr_accessor :items
+
+        def compile(ctx, stream)
+          if (items.length == 1 && !items.first.is_a?(Node))
+            stream.tuple_new(0)
+          else
+            items.reverse.each do |item|
+              item.compile_node(ctx, stream)
+            end
+            stream.tuple_new(items.length)
+          end
+        end
+      end
 
       class FunctionNode < Node
         attr_accessor :args, :msg, :output, :body
@@ -249,10 +263,14 @@ module Channel9
         attr_accessor :statements
 
         def compile(ctx, stream)
-          statements.each_with_index do |stmt, idx|
-            stmt.compile_node(ctx, stream)
-            # only leave the last result on the stack.
-            stream.pop if (idx != statements.length - 1)
+          if (statements.length == 1 && !statements.first.is_a?(Node))
+            stream.push(nil)
+          else
+            statements.each_with_index do |stmt, idx|
+              stmt.compile_node(ctx, stream)
+              # only leave the last result on the stack.
+              stream.pop if (idx != statements.length - 1)
+            end
           end
         end
       end
@@ -306,6 +324,7 @@ module Channel9
       end
       class SumNode < BinOpNode; end
       class ProductNode < BinOpNode; end
+      class RelationalNode < BinOpNode; end
       class EqualityNode < BinOpNode
         def compile(ctx, stream)
           case action.op
@@ -329,11 +348,7 @@ module Channel9
         def compile(ctx, stream)
           prefix = ctx.label_prefix('if')
           done_label = prefix + "done"
-          if (self.else.nil?)
-            else_label = done_label
-          else
-            else_label = prefix + "else"
-          end
+          else_label = prefix + "else"
 
           condition.compile_node(ctx, stream)
           stream.jmp_if_not(else_label)
@@ -341,9 +356,11 @@ module Channel9
           block.compile_node(ctx, stream)
           stream.jmp(done_label)
           
+          stream.set_label(else_label)
           if (!self.else.nil?)
-            stream.set_label(else_label)
             self.else.compile_node(ctx, stream)
+          else
+            stream.push(nil)
           end
           stream.set_label(done_label)
         end
@@ -384,11 +401,13 @@ module Channel9
       end
 
       rule(:nil => simple(:n)) { NilNode.new(n, :val => nil) }
-      rule(:undef => simple(:s)) { UndefNode.new(n, :val => Channel9::Primitive::Undef) }
+      rule(:undef => simple(:s)) { UndefNode.new(s, :val => Channel9::Primitive::Undef) }
       rule(:true => simple(:s)) { TrueNode.new(s, :val => true) }
       rule(:false => simple(:s)) { FalseNode.new(s, :val => false) }
       rule(:integer => simple(:i)) { IntegerConstantNode.new(i, :val => i.to_i) }
       rule(:string => simple(:s)) { StringConstantNode.new(s, :val => s.to_s) }
+      rule(:list => sequence(:items)) { ListNode.new(items[0], :items => items) }
+      rule(:list => simple(:item)) { ListNode.new(item, :items => [item]) }
 
       rule(:argdef => simple(:arg)) { arg.nil? ? [] : [arg] }
       rule(:argdef => sequence(:args)) { args }
@@ -464,6 +483,9 @@ module Channel9
       rule(:member_invoke => {:name => simple(:name), :args => sequence(:args)}) {
         MemberInvokeNode.new(name, :name => name.to_s, :args => args)
       }
+      rule(:member_invoke => {:name => simple(:name), :args => simple(:arg)}) {
+        MemberInvokeNode.new(name, :name => name.to_s, :args => [arg])
+      }
       rule(:member_invoke => {:name => simple(:name)}) { MemberInvokeNode.new(name, :name => name.to_s, :args => []) }
       rule(:call => sequence(:call), :on => simple(:on)) {
         res = on
@@ -488,6 +510,7 @@ module Channel9
         :sum => SumNode,
         :product => ProductNode,
         :equality => EqualityNode,
+        :relational => RelationalNode,
       }.each do |type, node|
         rule(type => sequence(:expr), :left => simple(:on)) {
           res = on
