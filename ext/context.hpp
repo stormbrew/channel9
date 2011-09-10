@@ -162,6 +162,7 @@ namespace Channel9
 	inline void float_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
 	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
 	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
+	inline void message_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
 	inline void channel_send(Environment *env, const Value &channel, const Value &val, const Value &ret)
 	{
 		switch (type(channel))
@@ -201,10 +202,9 @@ namespace Channel9
 			const Value &def = env->special_channel("Channel9::Primitive::TrueC");
 			return forward_primitive_call(env, def, ret, channel, val);
 			}
-		case MESSAGE: {
-			const Value &def = env->special_channel("Channel9::Primitive::Message");
-			return forward_primitive_call(env, def, ret, channel, val);
-			}
+		case MESSAGE:
+			message_channel_simple(env, ret, channel, val);
+			break;
 		case POSITIVE_NUMBER:
 		case NEGATIVE_NUMBER:
 			number_channel_simple(env, ret, channel, val);

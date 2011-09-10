@@ -137,10 +137,12 @@ namespace Channel9
 
 	inline Tuple *replace_tuple(const Tuple *t, size_t pos, const Value &val)
 	{
-		Tuple *ret = new_tuple(t->m_count);
-		std::copy(t->begin(), t->begin() + pos, ret->m_data);
+		Tuple *ret = new_tuple(std::max(t->m_count, pos+1));
+		std::copy(t->begin(), t->begin() + std::min(pos, t->m_count), ret->m_data);
+		if (pos < t->m_count)
+			std::copy(t->begin() + pos + 1, t->end(), ret->m_data + pos + 1);
+		std::fill(ret->begin() + t->m_count, ret->end(), Nil);
 		ret->m_data[pos] = val;
-		std::copy(t->begin() + pos + 1, t->end(), ret->m_data + pos + 1);
 		return ret;
 	}
 
