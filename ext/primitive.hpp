@@ -90,6 +90,9 @@ namespace Channel9
 				return channel_send(cenv, ctx, value((double)self), Nil);
 			} else if (name == "negate") {
 				return channel_send(cenv, ctx, value(-self), Nil);
+			} else if (name == "hash") {
+				// TODO: This is a terrible hash function. Use a better one.
+				return channel_send(cenv, ctx, value(self), Nil);
 			}
 		}
 		Value def = cenv->special_channel("Channel9::Primitive::Number");
@@ -270,7 +273,7 @@ namespace Channel9
 			Tuple *tuple = ptr<Tuple>(oself);
 			long long idx = msg.args()[0].machine_num;
 			Value val = msg.args()[1];
-			if (idx >= 0 && (size_t)idx < tuple->size())
+			if (idx >= 0)
 				return channel_send(cenv, ctx, value(replace_tuple(tuple, (size_t)idx, val)), Nil);
 		} else if (name == "first") {
 			Tuple *tuple = ptr<Tuple>(oself);
@@ -283,6 +286,19 @@ namespace Channel9
 		}
 
 		Value def = cenv->special_channel("Channel9::Primitive::Tuple");
+		forward_primitive_call(cenv, def, ctx, oself, msg_val);
+	}
+
+	inline void message_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg_val)
+	{
+		Message &msg = *ptr<Message>(msg_val);
+		Message &self = *ptr<Message>(oself);
+		const String &name = *msg.name();
+		if (name == "name") {
+			return channel_send(cenv, ctx, value(self.name()), Nil);
+		}
+
+		Value def = cenv->special_channel("Channel9::Primitive::Message");
 		forward_primitive_call(cenv, def, ctx, oself, msg_val);
 	}
 }
