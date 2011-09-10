@@ -1,0 +1,57 @@
+var HashClass = (table_size) {
+	"New hash(" + table_size.to_string_primitive + ")" -> $stdout
+
+	var table = []
+	var next = nil
+
+	var get = (index) -> return {
+		var hash = index.hash() % table_size
+		if (hash < table.length()) {
+			var item = table.at(hash)
+
+			if (item) {
+				if (item.at(0) == index) { return <- item.at(1) }
+				if (next) { return <- next.get(index) }
+			}
+		}
+		return <- undef
+	}
+	var set = (index, val) -> return {
+		"setting " + index -> $stdout
+		var hash = index.hash() % table_size
+		if (hash < table.length()) {
+			var item = table.at(hash)
+			if (item) {
+				if (item.at(0) != index) {
+					if (next == nil) {
+						next = HashClass(table_size * 2)
+					}
+					return <- next.set(index, val)
+				}
+			}
+		}
+		table = table.replace(hash, [index,val])
+		return <- val
+	}
+
+	(&msg) -> return {
+		if (msg.name == 'get') {
+			return <- msg -> get
+		} else if (msg.name == 'set') {
+			return <- msg -> set
+		}
+	}
+}
+
+var hash = HashClass(19)
+
+var n = 0
+while (n != 200) {
+	"adding " + n.to_string_primitive -> $stdout
+	hash.set("hi " + n.to_string_primitive, n+1)
+	n += 1
+}
+while (n != 0) {
+	hash.get("hi " + n.to_string_primitive) -> $stdout
+	n -= 1
+}
