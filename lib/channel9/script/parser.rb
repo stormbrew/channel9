@@ -74,10 +74,10 @@ module Channel9
       }
 
       rule(:string_const) {
-        ((str('"') >> (str('"').absnt? >> any).repeat >> str('"')) |
-         (str("'") >> (str("'").absnt? >> any).repeat >> str("'")) |
-         (str(":") >> (ws.absnt? >> any).repeat)
-        ).as(:string)
+        ((str('"') >> (str('"').absnt? >> any).repeat.as(:string) >> str('"')) |
+         (str("'") >> (str("'").absnt? >> any).repeat.as(:string) >> str("'")) |
+         (str(":") >> (ws.absnt? >> any).repeat.as(:string))
+        )
       }
 
       rule(:list_const) {
@@ -89,12 +89,14 @@ module Channel9
       }
 
       rule(:argdef_list) {
-        str('(') >> iws? >> argdef.maybe.as(:argdef) >> iws? >> str(')')
+        (str('(') >> iws? >> argdef.as(:args) >> iws? >> str(",") >> iws? >> str('&') >> symbol.as(:msg_var) >> iws? >> str(')')) |
+        (str('(') >> iws? >> str('&') >> symbol.as(:msg_var) >> iws? >> str(')')) |
+        (str('(') >> iws? >> argdef.maybe.as(:args) >> iws? >> str(')'))
       }
 
       rule(:func_const) {
         (
-          argdef_list.as(:args) >> iws? >> 
+          argdef_list >> iws? >> 
           (str("->") >> iws? >> local_var.as(:output_var) >> iws?).maybe >>
           statement_block.as(:func)
         )
@@ -195,7 +197,7 @@ module Channel9
       }
 
       rule(:send_expression) {
-        (assignment_expression.as(:send) >> lws? >> str("->") >> iws? >> assignment_expression.as(:target)) |
+        (assignment_expression.as(:send) >> lws? >> str("->") >> iws? >> assignment_expression.as(:target) >> (iws? >> str(":") >> iws? >> variable.as(:continuation)).maybe) |
         assignment_expression
       }
 

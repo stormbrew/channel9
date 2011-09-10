@@ -84,7 +84,7 @@ module Channel9
       class ListConstantNode < ConstantNode; end
 
       class FunctionNode < Node
-        attr_accessor :args, :output, :body
+        attr_accessor :args, :msg, :output, :body
 
         def compile(ctx, stream)
           prefix = ctx.label_prefix('func')
@@ -103,14 +103,21 @@ module Channel9
             end  
             stream.frame_set("return")
 
-            stream.message_unpack(args.length, 0, 0)
+            if (args && args.first && args.length > 0)
+              stream.message_unpack(args.length, 0, 0)
 
-            args.each do |arg|
-              ctx.declare_var(arg.name)
-              stream.local_set(0, arg.name)
+              args.each do |arg|
+                ctx.declare_var(arg.name)
+                stream.local_set(0, arg.name)
+              end
             end
 
-            stream.pop # remove the message
+            if (msg.nil?)
+              stream.pop # remove the message
+            else
+              ctx.declare_var(msg)
+              stream.local_set(0, msg)
+            end
 
             body.compile_node(ctx, stream)
 
@@ -196,13 +203,19 @@ module Channel9
         end
       end
       class SendNode < Node
-        attr_accessor :target, :expression
+        attr_accessor :target, :expression, :continuation
 
         def compile(ctx, stream)
           # Todo: Make this recognize tail recursion.
           target.compile_node(ctx, stream)
           expression.compile_node(ctx, stream)
           stream.channel_call
+          if (continuation.nil?)
+            stream.pop
+          else
+            depth = continuation.find(ctx)
+            stream.local_set(depth, continuation.name)
+          end
         end
       end
       class ReturnNode < Node
@@ -371,6 +384,9 @@ module Channel9
       end
 
       rule(:nil => simple(:n)) { NilNode.new(n, :val => nil) }
+      rule(:undef => simple(:s)) { UndefNode.new(n, :val => Channel9::Primitive::Undef) }
+      rule(:true => simple(:s)) { TrueNode.new(s, :val => true) }
+      rule(:false => simple(:s)) { FalseNode.new(s, :val => false) }
       rule(:integer => simple(:i)) { IntegerConstantNode.new(i, :val => i.to_i) }
       rule(:string => simple(:s)) { StringConstantNode.new(s, :val => s.to_s) }
 
@@ -381,6 +397,33 @@ module Channel9
       }
       rule(:func => simple(:body), :args => sequence(:args), :output_var => simple(:output)) {
         FunctionNode.new(body, :body => body, :args => args, :output => output)
+      }
+      rule(:func => simple(:body), :args => sequence(:args), :output_var => simple(:output), :msg_var => simple(:msg)) {
+        FunctionNode.new(body, :body => body, :args => args, :output => output, :msg => msg.to_s)
+      }
+      rule(:func => simple(:body), :args => sequence(:args), :msg_var => simple(:msg)) {
+        FunctionNode.new(body, :body => body, :args => args, :msg => msg.to_s)
+      }
+      rule(:func => simple(:body), :args => sequence(:args)) {
+        FunctionNode.new(body, :body => body, :args => args)
+      }
+      rule(:func => simple(:body), :args => simple(:args), :output_var => simple(:output)) {
+        FunctionNode.new(body, :body => body, :args => [args], :output => output)
+      }
+      rule(:func => simple(:body), :args => simple(:args)) {
+        FunctionNode.new(body, :body => body, :args => [args])
+      }
+      rule(:func => simple(:body), :args => simple(:args), :output_var => simple(:output), :msg_var => simple(:msg)) {
+        FunctionNode.new(body, :body => body, :args => [args], :output => output, :msg => msg.to_s)
+      }
+      rule(:func => simple(:body), :args => simple(:args), :msg_var => simple(:msg)) {
+        FunctionNode.new(body, :body => body, :args => [args], :msg => msg.to_s)
+      }
+      rule(:func => simple(:body), :output_var => simple(:output), :msg_var => simple(:msg)) {
+        FunctionNode.new(body, :body => body, :output => output, :msg => msg.to_s)
+      }
+      rule(:func => simple(:body), :msg_var => simple(:msg)) {
+        FunctionNode.new(body, :body => body, :msg => msg.to_s)
       }
 
       rule(:local_var => simple(:name)) { LocalVariableNode.new(name, :name => name.to_s) }
@@ -393,6 +436,9 @@ module Channel9
       rule(:expr => simple(:expr)) { expr }
       rule(:send => simple(:expression), :target => simple(:target)) { 
         SendNode.new(expression, :target => target, :expression => expression) 
+      }
+      rule(:send => simple(:expression), :target => simple(:target), :continuation => simple(:continuation)) { 
+        SendNode.new(expression, :target => target, :expression => expression, :continuation => continuation) 
       }
       rule(:return => simple(:expression), :target => simple(:target)) { 
         ReturnNode.new(expression, :target => target, :expression => expression) 
@@ -415,9 +461,9 @@ module Channel9
       rule(:value_invoke => sequence(:args)) { ValueInvokeNode.new(nil, :args => args) }
       rule(:value_invoke => simple(:a)) { ValueInvokeNode.new(nil, :args => []) }
       rule(:member_invoke => {:name => simple(:name), :args => sequence(:args)}) {
-        MemberInvokeNode.new(name, :name => name, :args => args)
+        MemberInvokeNode.new(name, :name => name.to_s, :args => args)
       }
-      rule(:member_invoke => {:name => simple(:name)}) { MemberInvokeNode.new(name, :name => name) }
+      rule(:member_invoke => {:name => simple(:name)}) { MemberInvokeNode.new(name, :name => name.to_s, :args => []) }
       rule(:call => sequence(:call), :on => simple(:on)) {
         res = on
         call.each {|action|
