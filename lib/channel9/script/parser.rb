@@ -94,7 +94,11 @@ module Channel9
         (str('(') >> iws? >> argdef.maybe.as(:args) >> iws? >> str(')'))
       }
 
-      rule(:func_const) {
+      rule(:const) {
+        nil_const | undef_const | true_const | false_const | integer_const | string_const | list_const
+      }
+
+      rule(:func) {
         (
           argdef_list >> iws? >> 
           (str("->") >> iws? >> local_var.as(:output_var) >> iws?).maybe >>
@@ -102,16 +106,12 @@ module Channel9
         )
       }
 
-      rule(:const) {
-        nil_const | undef_const | true_const | false_const | integer_const | string_const | list_const | func_const
-      }
-
       rule(:prefix_op_expression) {
         ((str('!') | str('+') | str('-') | str('~')).as(:op) >> iws? >> call_expression).as(:prefix_op)
       }
 
       rule(:value_expression) {
-        prefix_op_expression | const | variable |
+        prefix_op_expression | const | func | variable |
         (str('(') >> iws? >> expression >> iws? >> str(')'))
       }
 
