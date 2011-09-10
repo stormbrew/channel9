@@ -458,6 +458,7 @@ module Channel9
       }
 
       rule(:args => sequence(:args)) { args }
+      rule(:args => simple(:args)) { [args] }
       rule(:value_invoke => sequence(:args)) { ValueInvokeNode.new(nil, :args => args) }
       rule(:value_invoke => simple(:a)) { ValueInvokeNode.new(nil, :args => []) }
       rule(:member_invoke => {:name => simple(:name), :args => sequence(:args)}) {
