@@ -43,7 +43,14 @@ begin
   elsif (run)
     environment = Channel9::Environment.new(debug)
     context = Channel9::Context.new(environment, code)
-    context.channel_send(environment, nil, Channel9::CleanExitChannel)
+
+    stime = Time.now
+    begin
+      context.channel_send(environment, nil, Channel9::CleanExitChannel)
+    ensure
+      etime = Time.now
+      puts("Ran in #{etime - stime}s")
+    end
   elsif (filename.match(/\.c9s$/))
     File.open(filename.gsub(/\.c9s$/, ".c9b"), "w") do |f|
       f.write(code.to_json)
