@@ -385,6 +385,50 @@ module Channel9
         end
       end
 
+      class CaseNode < Node
+        attr_accessor :value, :block
+
+
+      end
+
+      class SwitchNode < Node
+        attr_accessor :condition, :cases, :else
+
+        def compile(ctx, stream)
+          prefix = ctx.label_prefix("switch")
+          else_label = prefix + "else"
+          done_label = prefix + "done"
+
+          labels = cases.collect do |c|
+            prefix + c.value.val
+          end
+          if (labels.uniq != labels)
+            raise "Duplicate label in switch statement #{ctx.file}:#{ctx.line}:#{ctx.column}"
+          end
+
+          condition.compile_node(ctx, stream)
+          cases.each_with_index do |c, idx|
+            stream.dup_top
+            stream.is(c.value.val)
+            stream.jmp_if(labels[idx])
+          end
+          stream.jmp(else_label)
+          cases.each_with_index do |c, idx|
+            stream.set_label(labels[idx])
+            c.block.compile_node(ctx, stream)
+            stream.jmp(done_label)
+          end
+
+          stream.set_label(else_label)
+          if (self.else)
+            self.else.compile_node(ctx, stream)
+          else
+            stream.push(nil)
+          end
+          stream.set_label(done_label)
+        end
+      end
+
       class ScriptNode < Node
         attr_accessor :body
 
@@ -530,6 +574,19 @@ module Channel9
 
       rule(:while => simple(:cond), :block => simple(:block)) {
         WhileNode.new(cond, :condition => cond, :block => block)
+      }
+
+      rule(:case => simple(:value), :block => simple(:block)) {
+        CaseNode.new(value, :value => value, :block => block)
+      }
+      rule(:cases => sequence(:cases)) { cases }
+      rule(:cases => simple(:cases)) { [cases] }
+
+      rule(:switch => simple(:cond), :cases => sequence(:cases)) {
+        SwitchNode.new(cond, :condition => cond, :cases => cases, :else => nil)
+      }
+      rule(:switch => simple(:cond), :cases => sequence(:cases), :else => simple(:e)) {
+        SwitchNode.new(cond, :condition => cond, :cases => cases, :else => e)
       }
       
       rule(:script => simple(:body)) { ScriptNode.new(body, :body => body) }
