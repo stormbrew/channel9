@@ -154,10 +154,23 @@ module Channel9
         value_expression.as(:on) >> (member_invoke | array_access | value_invoke).repeat(1).as(:call) |
         value_expression
       }
+      
+      rule(:bytecode_instruction) {
+        symbol.as(:instruction) >> (lws >> const).repeat.as(:args) >> lws?
+      }
+
+      rule(:bytecode_sequence) {
+        (iws? >> bytecode_instruction >> eol).repeat(1) >> bytecode_instruction.maybe
+      }
+
+      rule(:bytecode_expression) {
+        ((str("bytecode") >> lws? >> arglist.as(:input) >> iws? >> str('{') >> iws? >> bytecode_sequence.as(:bytecode) >> iws? >> str('}'))) |
+        call_expression
+      }
 
       rule(:product_op_expression) {
-        call_expression.as(:left) >> ((lws? >> (str('*') | str('/') | str('%')).as(:op) >> iws? >> call_expression.as(:right)).repeat(1)).as(:product) |
-        call_expression
+        bytecode_expression.as(:left) >> ((lws? >> (str('*') | str('/') | str('%')).as(:op) >> iws? >> bytecode_expression.as(:right)).repeat(1)).as(:product) |
+        bytecode_expression
       }
 
       rule(:sum_op_expression) {
