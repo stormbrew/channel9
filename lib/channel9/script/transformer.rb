@@ -252,6 +252,34 @@ module Channel9
         end
       end
 
+      class InstructionNode < Node
+        attr_accessor :name, :args
+
+        def compile(ctx, stream)
+          begin
+            stream.send(name, *args.collect {|arg| arg.val })
+          rescue => e
+            raise "Error compiling instruction #{name}@#{ctx.filename}:#{line}:#{col}: #{e}"
+          end
+        end
+      end
+
+      class BytecodeNode < Node
+        attr_accessor :inputs, :instructions
+
+        def compile(ctx, stream)
+          if (inputs.length == 1 && !inputs.first.is_a?(Node))
+            inputs.pop
+          end
+          inputs.each do |input|
+            input.compile_node(ctx, stream)
+          end
+          instructions.each do |instruction|
+            instruction.compile_node(ctx, stream)
+          end
+        end
+      end
+
       class StatementNode < Node
         attr_accessor :doc, :expression
 
@@ -537,6 +565,17 @@ module Channel9
           res = CallNode.new(res, :on => res, :action => action)
         }
         res
+      }
+
+      rule(:instruction => simple(:name), :args => sequence(:args)) {
+        InstructionNode.new(name, :name => name.to_sym, :args => args)
+      }
+
+      rule(:bytecode => sequence(:insns), :input => simple(:input)) {
+        BytecodeNode.new(insns[0], :instructions => insns, :inputs => [input])
+      }
+      rule(:bytecode => sequence(:insns), :input => sequence(:input)) {
+        BytecodeNode.new(insns[0], :instructions => insns, :inputs => input)
       }
 
       rule(:assign_to => simple(:var), :op => simple(:op)) { AssignTargetNode.new(op, :var => var, :op => op.to_s) }
