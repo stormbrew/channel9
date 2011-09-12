@@ -24,6 +24,17 @@ module Channel9
       builder = Builder.new(self)
       code = o["code"]
       code.each do |instruction|
+        instruction.collect! {|i|
+          if (i.is_a?(Hash))
+            if (i == {'undef'=>'undef'})
+              Channel9::Primitive::Undef
+            else
+              raise "Unknown complex type in json bytecode stream: #{i.inspect}"
+            end
+          else
+            i
+          end
+        }
         builder.send(*instruction)
       end
       self

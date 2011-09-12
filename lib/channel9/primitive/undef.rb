@@ -13,7 +13,7 @@ module Channel9
         "<undef>"
       end
       def to_json(*a)
-        [nil, "undef"].to_json(*a)
+        {"undef"=>"undef"}.to_json(*a)
       end
     end
   end
