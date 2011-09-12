@@ -16,14 +16,11 @@ namespace Channel9
 			inspect(oself).c_str(), inspect(msg).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
 		Message *orig = ptr<Message>(msg);
 		assert(*orig->name() != "__c9_primitive_call__");
-		Message *fwd = new_message(*prim_call, orig->sysarg_count(), orig->arg_count() + 2);
-		orig = ptr<Message>(msg); // may have been moved in collection.
-		std::copy(orig->sysargs(), orig->sysargs_end(), fwd->sysargs());
+		Message *fwd = new_message(*prim_call, 0, 2);
 
 		Message::iterator out = fwd->args();
-		*out++ = value(orig->name());
 		*out++ = oself;
-		std::copy(orig->args(), orig->args_end(), out);
+		*out++ = value(orig);
 
 		channel_send(cenv, prim_class, value(fwd), ctx);
 	}
@@ -221,6 +218,7 @@ namespace Channel9
 			{
 				hash = ((hash << 5) + hash) ^ *it;
 			}
+			hash &= 0x7fffffffffffffff; // don't want negative hashes.
 
 			return channel_send(cenv, ctx, value((long long)hash), Nil);
 
