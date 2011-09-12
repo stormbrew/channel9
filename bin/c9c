@@ -60,4 +60,5 @@ begin
   end
 rescue Parslet::ParseFailed => error
   puts error, parser.root.error_tree
+  raise
 end
