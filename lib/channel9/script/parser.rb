@@ -74,7 +74,9 @@ module Channel9
       }
 
       rule(:string_const) {
-        ((str('"') >> (str('"').absnt? >> any).repeat.as(:string) >> str('"')) |
+        ((str('"') >> str('"').absent?.maybe.as(:string) >> str('"')) |
+         (str("'") >> str("'").absent?.maybe.as(:string) >> str("'")) |
+         (str('"') >> (str('"').absnt? >> any).repeat.as(:string) >> str('"')) |
          (str("'") >> (str("'").absnt? >> any).repeat.as(:string) >> str("'")) |
          (str(":") >> (ws.absnt? >> any).repeat.as(:string))
         )
