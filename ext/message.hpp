@@ -9,7 +9,7 @@ namespace Channel9
 {
 	struct Message
 	{
-		String *m_name;
+		const String *m_name;
 		size_t m_sysarg_count;
 		size_t m_arg_count;
 
@@ -34,7 +34,7 @@ namespace Channel9
 		iterator sysargs_end() { return m_data + m_sysarg_count; }
 	};
 
-	inline Message *new_message(String *name, size_t sysargs = 0, size_t args = 0)
+	inline Message *new_message(const String *name, size_t sysargs = 0, size_t args = 0)
 	{
 		size_t count = sysargs + args;
 		Message *msg = value_pool.alloc<Message>(sizeof(Value)*count, MESSAGE);
@@ -53,7 +53,7 @@ namespace Channel9
 		return msg;
 	}
 	template <typename tIter>
-	inline Message *new_message(String *name, size_t sysargs, tIter sysarg_it, size_t args, tIter arg_it)
+	inline Message *new_message(const String *name, size_t sysargs, tIter sysarg_it, size_t args, tIter arg_it)
 	{
 		Message *msg = new_message(name, sysargs, args);
 		Value *out = msg->m_data;
@@ -79,7 +79,7 @@ namespace Channel9
 
 	inline void gc_scan(Message *from)
 	{
-		value_pool.mark(&from->m_name);
+		value_pool.mark(const_cast<String**>(&from->m_name));
 		size_t count = from->m_sysarg_count + from->m_arg_count;
 		for (size_t i = 0; i < count; i++)
 		{

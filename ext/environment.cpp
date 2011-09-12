@@ -370,6 +370,28 @@ namespace Channel9
 					CHECK_STACK(1, 2);
 					m_context->push(value(ptr<Message>(m_context->top())->name()));
 					break;
+				case MESSAGE_SYS_PREFIX: {
+					long long count = ins.arg1.machine_num, counter = 0;
+					CHECK_STACK(1 + count, 1);
+					
+					const Value *sdata = m_context->stack_pos() - 1 - count;
+					const Message &msg = *ptr<Message>(*sdata++);
+					Message *nmsg = new_message(msg.name(), msg.sysarg_count() + count, msg.arg_count());
+					Message::iterator to = nmsg->sysargs();
+					while (counter++ < count)
+					{
+						*to++ = *sdata++;
+					}
+					std::copy(msg.sysargs(), msg.sysargs_end(), to);
+					std::copy(msg.args(), msg.args_end(), nmsg->args());
+					while (--counter != 0)
+					{
+						m_context->pop();
+					}
+					m_context->pop(); // message we read off stack before.
+					m_context->push(value(nmsg));
+					break;
+				}
 				case MESSAGE_SYS_UNPACK: {
 					long long count = ins.arg1.machine_num, pos = count - 1;
 					CHECK_STACK(1, 1 + count);
