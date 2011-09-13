@@ -370,6 +370,15 @@ namespace Channel9
 					CHECK_STACK(1, 2);
 					m_context->push(value(ptr<Message>(m_context->top())->name()));
 					break;
+				case MESSAGE_CHECK:
+					CHECK_STACK(1, 1);
+					if (!is(m_context->top(), MESSAGE))
+					{
+						m_context->pop();
+						m_context->push(False);
+					}
+					m_context->push(value(ptr<Message>(m_context->top())->name()));
+					break;
 				case MESSAGE_SYS_PREFIX: {
 					long long count = ins.arg1.machine_num, counter = 0;
 					CHECK_STACK(1 + count, 1);
