@@ -440,9 +440,11 @@ module Channel9
             stream.is(c.value.val)
             stream.jmp_if(labels[idx])
           end
+          stream.pop # get rid of the test value.
           stream.jmp(else_label)
           cases.each_with_index do |c, idx|
             stream.set_label(labels[idx])
+            stream.pop # get rid of the test value.
             c.block.compile_node(ctx, stream)
             stream.jmp(done_label)
           end
