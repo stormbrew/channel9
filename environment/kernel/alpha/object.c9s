@@ -1,0 +1,99 @@
+var id_seq = 0
+
+var RubyObject = (klass) {
+	var singleton = klass
+	// TODO: make the generator be shared among all instances
+	// of the same class so they all start with appropriately
+	// sized hashes.
+	var ivars = $BasicHash($prime_gen)
+	var id = nil
+
+	var self = (&msg) -> return {
+		var name
+		var is_c9
+		bytecode(msg) {
+			message_name
+			dup_top
+			local_set 0 "name"
+			push "__c9_"
+			message_new "match" 0 1
+			channel_call
+			pop
+			is 5
+			local_set 0 "is_c9"
+		}
+		if (is_c9) {
+			switch (name)
+			case ("__c9_ivar_get__") {
+				var ivar_name = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				return <- ivars.get(ivar_name)
+			} case ("__c9_ivar_set__") {
+				var ivar_name
+				var ivar_val
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set 0 "ivar_name"
+					local_set 0 "ivar_val"
+				}
+				return <- ivars.set(ivar_name, ivar_val)
+			} case ("__c9_object_id__") {
+				if (id) {
+					return <- id
+				} else {
+					return <- id = (id_seq += 2) // even numbers are for objects
+				}
+			} case ("__c9_class__") {
+				return <- klass
+			} case ("__c9_wrap__") {
+				// re-identify self as being the wrapping object.
+				bytecode(msg) {
+					message_unpack 1 0 0
+					local_set 1 "self"
+				}
+				return <- self
+			} case ("__c9_singleton__") {
+				if (singleton == klass) {
+					return <- nil
+				} else {
+					return <- singleton
+				}
+			} case ("__c9_make_singleton__") {
+				if (singleton == klass) {
+					return <- (singleton = $RubyClass(self.to_s, klass))
+				} else {
+					return <- singleton
+				}
+			} case ("__c9_set_singleton__") {
+				singleton = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				return <- singleton
+			}
+		}
+
+		var minfo = singleton.__c9_lookup__(name)
+		if (minfo) {
+			// build a new message
+			bytecode(minfo.at(0), return, msg, self, minfo.at(1)) {
+				message_sys_prefix 2
+				channel_send
+			}
+		} else if (minfo = singleton.__c9_lookup__("method_missing")) {
+			var fwd_msg = bytecode(minfo.at(0), return, msg, self, minfo.at(1)) {
+				message_sys_prefix 2
+				message_forward "method_missing"
+				channel_send
+			}
+		} else {
+			$unwinder.no_message_handler(name)
+		}
+	}
+}
+
+$set_special_channel('RubyObject', RubyObject)

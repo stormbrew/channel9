@@ -732,9 +732,14 @@ module Channel9
         else
           transform(on)
         end
-        builder.channel_new(method_label)
+        if (on)
+          builder.message_new(:"__c9_make_singleton__", 0, 0)
+          builder.channel_call
+          builder.pop
+        end
         builder.push(name)
-        builder.message_new(on.nil? ? :define_method : :define_singleton_method, 1, 1)
+        builder.channel_new(method_label)
+        builder.message_new(:__c9_add_method__, 0, 2)
         builder.channel_call
         builder.pop
       end
@@ -891,9 +896,12 @@ module Channel9
         builder.set_label(done_label)
 
         builder.dup_top
-        builder.channel_new(body_label)
+        builder.message_new(:"__c9_make_singleton__", 0, 0)
+        builder.channel_call
+        builder.pop
         builder.push(:__sbody__)
-        builder.message_new(:define_singleton_method, 1, 1)
+        builder.channel_new(body_label)
+        builder.message_new(:__c9_add_method__, 0, 2)
         builder.channel_call
         builder.pop
         builder.pop
@@ -914,7 +922,7 @@ module Channel9
         builder.dup_top
         builder.frame_set("new-const-self")
         builder.push(bare_name)
-        builder.message_new(:const_get, 0, 1)
+        builder.message_new(:__c9_get_constant__, 0, 1)
         builder.channel_call
         builder.pop
 
@@ -925,12 +933,10 @@ module Channel9
         builder.dup_top
         builder.channel_special(:Class)
         builder.swap
-        builder.message_new(:class, 0, 0)
+        builder.message_new(:__c9_class__, 0, 0)
         builder.channel_call
         builder.pop
-        builder.message_new(:==, 0, 1)
-        builder.channel_call
-        builder.pop
+        builder.is_eq
         builder.jmp_if(done_label)
 
         # It's not a class, so error out here.
@@ -952,7 +958,7 @@ module Channel9
         end
 
         builder.frame_get("new-const-self")
-        builder.message_new(:scope_name, 0, 0)
+        builder.message_new(:__c9_scope_name__, 0, 0)
         builder.channel_call
         builder.pop
         builder.push(bare_name)
@@ -964,7 +970,7 @@ module Channel9
         builder.channel_call
         builder.pop
 
-        builder.message_new(:const_set, 0, 2)
+        builder.message_new(:__c9_add_constant__, 0, 2)
         builder.channel_call
         builder.pop
 
@@ -998,9 +1004,12 @@ module Channel9
         builder.frame_set("new-const-self")
 
         builder.dup_top
-        builder.channel_new(body_label)
+        builder.message_new(:"__c9_make_singleton__", 0, 0)
+        builder.channel_call
+        builder.pop
         builder.push(:__body__)
-        builder.message_new(:define_singleton_method, 1, 1)
+        builder.channel_new(body_label)
+        builder.message_new(:__c9_add_method__, 0, 2)
         builder.channel_call
         builder.pop
         builder.pop
@@ -1019,7 +1028,7 @@ module Channel9
         # See if it's already there
         bare_name = const_self(name)
         builder.push(bare_name)
-        builder.message_new(:const_get, 0, 1)
+        builder.message_new(:__c9_get_constant__, 0, 1)
         builder.channel_call
         builder.pop
         
@@ -1029,12 +1038,10 @@ module Channel9
         builder.dup_top
         builder.channel_special(:Module)
         builder.swap
-        builder.message_new(:class, 0, 0)
+        builder.message_new(:__c9_class__, 0, 0)
         builder.channel_call
         builder.pop
-        builder.message_new(:==, 0, 1)
-        builder.channel_call
-        builder.pop
+        builder.is_eq
         builder.jmp_if(done_label)
 
         # It's not a module, so error out here.
@@ -1050,7 +1057,7 @@ module Channel9
         builder.push(bare_name)
 
         builder.swap
-        builder.message_new(:scope_name, 0, 0)
+        builder.message_new(:__c9_scope_name__, 0, 0)
         builder.channel_call
         builder.pop
         builder.push(bare_name)
@@ -1065,7 +1072,7 @@ module Channel9
         builder.channel_call
         builder.pop
 
-        builder.message_new(:const_set, 0, 2)
+        builder.message_new(:__c9_add_constant__, 0, 2)
         builder.channel_call
         builder.pop
         builder.jmp(done_label)
@@ -1096,9 +1103,12 @@ module Channel9
         builder.set_label(done_label)
 
         builder.dup_top
-        builder.channel_new(body_label)
+        builder.message_new(:"__c9_make_singleton__", 0, 0)
+        builder.channel_call
+        builder.pop
         builder.push(:__body__)
-        builder.message_new(:define_singleton_method, 1, 1)
+        builder.channel_new(body_label)
+        builder.message_new(:__c9_add_method__, 0, 2)
         builder.channel_call
         builder.pop
         builder.pop
@@ -1112,7 +1122,7 @@ module Channel9
         builder.frame_get("self")
         transform(first)
         transform(second)
-        builder.message_new(:alias_method, 0, 2)
+        builder.message_new(:__c9_alias_method__, 0, 2)
         builder.channel_call
         builder.pop
       end
@@ -1126,7 +1136,7 @@ module Channel9
         end
         builder.push(bare_name)
         builder.swap # contortion necessary to deal with pulling up value from stack.
-        builder.message_new(:const_set, 0, 2)
+        builder.message_new(:__c9_add_constant__, 0, 2)
         builder.channel_call
         builder.pop
       end
@@ -1136,7 +1146,7 @@ module Channel9
         builder.swap
         builder.push(name)
         builder.swap
-        builder.message_new(:const_get_scoped, 0, 2)
+        builder.message_new(:__c9_get_constant_scoped__, 0, 2)
         builder.channel_call
         builder.pop
         builder.swap
@@ -1146,6 +1156,7 @@ module Channel9
       def transform_colon3(name)
         builder.channel_special(:Object)
         builder.push(name)
+        builder.message_new(:__c9_get_constant__, 0, 1)
         builder.channel_call
         builder.pop
       end
@@ -1224,25 +1235,29 @@ module Channel9
 
       def transform_gasgn(name, val = nil)
         if (val.nil?)
-          builder.channel_special(:Object)
+          builder.channel_special(:globals)
           builder.swap
           builder.push(name)
           builder.swap
         else
-          builder.channel_special(:Object)
+          builder.channel_special(:globals)
           builder.push(name)
           transform(val)
         end
-        builder.message_new(:global_set, 0, 2)
+        builder.message_new(:set, 0, 2)
         builder.channel_call
         builder.pop
       end
       def transform_gvar(name)
-        builder.channel_special(:Object)
-        builder.push(name)
-        builder.message_new(:global_get, 0, 1)
-        builder.channel_call
-        builder.pop
+        if (match = name.to_s.match(/^__c9__(.+)$/))
+          builder.channel_special(match[1])
+        else
+          builder.channel_special(:globals)
+          builder.push(name)
+          builder.message_new(:get, 0, 1)
+          builder.channel_call
+          builder.pop
+        end
       end
       def transform_nth_ref(num)
         # TODO: This is a very bad stub. Fix me.
@@ -1268,13 +1283,14 @@ module Channel9
           builder.push(name)
           transform(val)
         end
-        builder.message_new(:instance_variable_set, 0, 2)
+        builder.message_new(:__c9_ivar_set__, 0, 2)
         builder.channel_call
         builder.pop
       end
       def transform_ivar(name)
         builder.frame_get("self")
         builder.push(name)
+        builder.message_new(:__c9_ivar_get__, 0, 1)
         builder.channel_call
         builder.pop
       end

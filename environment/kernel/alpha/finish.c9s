@@ -1,0 +1,71 @@
+$set_special_channel('Kernel', $Module.__c9_allocate__("Kernel"))
+$set_special_channel('Channel9', $Module.__c9_allocate__("Channel9"))
+
+$Object.__c9_include__($Kernel)
+
+$Object.__c9_add_constant__("Object", $Object)
+$Object.__c9_add_constant__("Class", $Class)
+$Object.__c9_add_constant__("Module", $Module)
+$Object.__c9_add_constant__("Kernel", $Kernel)
+$Object.__c9_add_constant__("Channel9", $Channel9)
+
+$set_special_channel("Kernel", $Kernel)
+$set_special_channel("Channel9", $Channel9)
+
+var make_primitive_class = (cname, prim_name) {
+	var class = $Class.__c9_allocate__(cname, $Object)
+	$set_special_channel("Channel9::Primitive::" + prim_name, class)
+	$Object.__c9_add_constant__(cname, class)
+}
+make_primitive_class("Fixnum", "Number")
+make_primitive_class("Float", "Float")
+make_primitive_class("Symbol", "String")
+make_primitive_class("StaticTuple", "Tuple")
+make_primitive_class("Table", "Table")
+make_primitive_class("Message", "Message")
+make_primitive_class("TrueClass", "TrueC")
+make_primitive_class("FalseClass", "FalseC")
+make_primitive_class("NilClass", "NilC")
+make_primitive_class("UndefClass", "UndefC")
+
+$Kernel.__c9_add_method__("to_s", (&msg) {
+	var self = bytecode(msg) {
+		message_sys_unpack 1
+		swap
+		pop
+	}
+	"<" + self.__c9_object_id__.to_string_primitive + ":" + self.__c9_class__.__c9_name__ + ">"
+})
+$Kernel.__c9_add_method__("initialize", () {nil})
+
+$Class.__c9_add_method__("allocate", (&msg) {
+	var self = bytecode(msg) {
+		message_sys_unpack 1
+		swap
+		pop
+	}
+	self.__c9_allocate__()
+})
+$Class.__c9_add_method__("new", (&msg) {
+	var self
+	var nmsg = bytecode(msg) {
+		message_unpack 0 1 0 # tuple -> msg
+		swap # msg -> tuple
+		message_sys_unpack 3 # self -> super -> proc -> msg -> tuple
+		local_set 0 "self" # super -> proc -> msg -> tuple
+		pop # proc -> msg -> tuple
+		message_new "initialize" 1 0 # imsg -> msg -> tuple
+		swap # msg -> imsg -> tuple
+		pop # imsg -> tuple
+		swap # tuple -> imsg
+		message_splat # imsg
+	}
+	var obj = self.allocate()
+	nmsg -> obj
+	obj
+})
+
+$Object.__c9_make_singleton__()
+
+$set_special_channel("global_self", $Object.__c9_allocate__())
+$set_special_channel("globals", $BasicHash($prime_gen))

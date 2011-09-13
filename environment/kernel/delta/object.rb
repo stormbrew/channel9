@@ -1,4 +1,11 @@
 class Object
+  def instance_variable_set(name, val)
+    __c9_ivar_set__(name.to_sym, val)
+  end
+  def instance_variable_get(name)
+    __c9_ivar_get__(name.to_sym)
+  end
+
   def class_variable_get(name)
     self.class.class_variable_get(name)
   end
