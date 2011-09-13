@@ -379,6 +379,18 @@ namespace Channel9
 					}
 					m_context->push(value(ptr<Message>(m_context->top())->name()));
 					break;
+				case MESSAGE_FORWARD: {
+					CHECK_STACK(1, 1);
+
+					const Message &msg = *ptr<Message>(m_context->top());
+					Message *nmsg = new_message(ins.arg1, msg.sysarg_count(), msg.arg_count() + 1);
+					std::copy(msg.sysargs(), msg.sysargs_end(), nmsg->sysargs());
+					nmsg->args()[0] = value(msg.m_name);
+					std::copy(msg.args(), msg.args_end(), nmsg->args() + 1);
+					m_context->pop();
+					m_context->push(value(nmsg));
+					break;
+				}
 				case MESSAGE_SYS_PREFIX: {
 					long long count = ins.arg1.machine_num, counter = 0;
 					CHECK_STACK(1 + count, 1);
