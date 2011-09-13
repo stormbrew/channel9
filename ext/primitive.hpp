@@ -208,6 +208,17 @@ namespace Channel9
 				if (first < self->m_count && last < self->m_count && last >= first)
 					return channel_send(cenv, ctx, value(self->substr(first, last - first + 1)), Nil);
 			}
+		} else if (name == "match") {
+			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
+			{
+				String *self = ptr<String>(oself), *other = ptr<String>(msg->args()[0]);
+				ptrdiff_t diff;
+				if (self->m_count > other->m_count)
+					diff = std::mismatch(other->begin(), other->end(), self->begin()).first - other->begin();
+				else
+					diff = std::mismatch(self->begin(), self->end(), other->begin()).first - self->begin();
+				return channel_send(cenv, ctx, value(int64_t(diff)), Nil);
+			}
 
 		} else if (name == "hash") {
 			String *self = ptr<String>(oself);
