@@ -16,6 +16,36 @@ module Channel9
       def initialize(debug = false)
         @env = Channel9::Environment.new(debug)
 
+        c9rb_root = File.expand_path(File.dirname(__FILE__) + "../../../..")
+        c9rb_env = c9rb_root + "/environment"
+
+        env.set_special_channel(:set_special_channel, CallbackChannel.new {|ienv, val, iret|
+          ienv.set_special_channel(val.positional[0].to_sym, val.positional[1])
+          iret.channel_send(ienv, val.positional[1], InvalidReturnChannel)
+        })
+
+        env.set_special_channel(:loader, self)
+        env.set_special_channel(:unwinder, Channel9::Ruby::Unwinder.new(env))
+
+        ["basic_hash", "object", "class", "module", "finish"].each do |file|
+          alpha = Channel9::Stream.from_json(File.read(c9rb_env + "/kernel/alpha/#{file}.c9b"))
+          alpha_context = Channel9::Context.new(@env, alpha)
+          @env.save_context do
+            alpha_context.channel_send(@env, nil, CallbackChannel.new {|ienv, val, iret|
+            })
+          end
+        end
+
+        ["singletons", "module", "string", "symbol", "kernel", "enumerable",
+         "static_tuple", "tuple", "array", "proc", "exceptions"].each do |file|
+          file = "#{c9rb_env}/kernel/beta/#{file}.rb"
+          load_file(file)
+        end
+
+        load_file("#{c9rb_env}/kernel/delta.rb")
+
+        return
+
         object_klass = Channel9::Ruby::RubyClass.new(env, "Object", nil)
         env.set_special_channel(:Object, object_klass)
 
@@ -133,8 +163,41 @@ module Channel9
           else
             ret.channel_send(env, nil, InvalidReturnChannel)
           end
+        when :load
+          path = msg.positional.first
+          stream = Channel9::Loader::Ruby.compile(path)
+          if (stream)
+            context = Channel9::Context.new(env, stream)
+            global_self = env.special_channel(:global_self)
+            context.channel_send(env, global_self, CallbackChannel.new {|ienv, imsg, iret|
+              ret.channel_send(env, true, InvalidReturnChannel)
+            })
+          else
+            ret.channel_send(env, false, InvalidReturnChannel)
+          end
+        when :backtrace
+          ctx = env.current_context
+          bt = []
+          while (!ctx.nil?)
+            bt.push(ctx.line_info.join(":"))
+
+            ctx = ctx.caller
+          end
+          ret.channel_send(env, bt, InvalidReturnChannel)
         else
           raise "BOOM: Unknown message for loader: #{msg.name}."
+        end
+      end
+
+      def load_file(path)
+        stream = Channel9::Loader::Ruby.compile(path)
+        if (stream)
+          context = Channel9::Context.new(env, stream)
+          global_self = env.special_channel(:global_self)
+          context.channel_send(env, global_self, CallbackChannel.new {|ienv, imsg, iret| })
+          return true
+        else
+          return false
         end
       end
 

@@ -1,0 +1,67 @@
+var prime_gen = () -> cont {
+	19 -> cont : cont
+	41 -> cont : cont
+	89 -> cont : cont
+	191 -> cont : cont
+	401 -> cont : cont
+	809 -> cont : cont
+	1607 -> cont : cont
+	3209 -> cont : cont
+	7321 -> cont : cont
+
+	// give up and just generate triples (to keep factors of 2 out, rather than 3)
+	var n = 3209
+	while (true) { n += 1 -> cont : cont }
+}
+$set_special_channel('prime_gen', prime_gen)
+
+var Hash = (table_size_seq) {
+	var table_size = (nil -> table_size_seq : table_size_seq)
+	var table = []
+	var next = nil
+
+	var get = (index) -> return {
+		var hash = index.hash() % table_size
+		if (hash < table.length()) {
+			var item = table.at(hash)
+
+			if (item) {
+				if (item.at(0) == index) { return <- item.at(1) }
+				if (next) { return <- next.get(index) }
+			}
+		}
+		return <- undef
+	}
+	var set = (index, val) -> return {
+		var hash = index.hash() % table_size
+		if (hash < table.length()) {
+			var item = table.at(hash)
+			if (item) {
+				if (item.at(0) != index) {
+					if (next == nil) {
+						next = Hash(table_size_seq)
+					}
+					return <- next.set(index, val)
+				}
+			}
+		}
+		table = table.replace(hash, [index,val])
+		return <- val
+	}
+
+	(&msg) -> return {
+		var name = bytecode(msg) {
+			message_name
+			swap
+			pop
+		}
+		switch (name)
+		case ('get') {
+			return <- msg -> get
+		} case ('set') {
+			return <- msg -> set
+		}
+	}
+}
+
+$set_special_channel('BasicHash', Hash)

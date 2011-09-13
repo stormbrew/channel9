@@ -1,89 +1,124 @@
 module Kernel
-  def sprintf(fmt, *vals)
-    fmt = fmt.to_s_prim
-    vals = vals.collect do |val|
-      if (val.kind_of? String)
-        val.to_s_prim
+  def initialize_copy(other)
+  end
+
+  def freeze
+  end
+
+  def nil?
+    false
+  end
+
+  def ==(other)
+    self.equal?(other)
+  end
+
+  def eql?(other)
+    self.equal?(other)
+  end
+
+  def ===(other)
+    self.equal?(other)
+  end
+
+  def =~(other)
+    nil
+  end
+
+  def class
+    __c9_class__
+  end
+
+  def load(name)
+    lp = $LOAD_PATH
+    i = lp.length - 1
+    name = name.to_s_prim
+    "loading: #{name}"
+    while (i >= 0)
+      path = lp[i].to_s_prim
+      if ($__c9_loader.load(path + "/" + name))
+        return true
+      end
+      i -= 1
+    end
+    raise LoadError, "Could not load library #{name}"
+  end
+
+  def raise(exc, desc = nil, bt = nil)
+    if (!exc)
+      exc = $!
+      if (!exc)
+        exc = RuntimeError
+      end
+    end
+    $__c9_unwinder.no_runtime_error(:"No RuntimeError class to raise.") if (!exc)
+    if (exc.kind_of?(String) || exc.kind_of?(Symbol))
+      bt = desc
+      desc = exc
+      exc = RuntimeError
+    end
+    if (!bt)
+      bt = $__c9_loader.backtrace.to_a
+    end
+    if (desc)
+      exc = exc.exception(desc)
+    else
+      exc = exc.exception()
+    end
+    $! = exc
+    $!.set_backtrace(bt)
+    $__c9_unwinder.raise($!)
+  end
+
+  def method_missing(name, *args)
+    raise NoMethodError, "undefined method `" + name.to_s + "' for " + to_s + ":" + self.class.to_s
+  end
+
+  def kind_of?(other)
+    if (other.class == Class)
+      # find our own class in the hierarchy of the other.
+      klass = self.class
+      while (klass)
+        if (klass == other)
+          return true
+        end
+        klass = klass.superclass
+      end
+    end
+    return false
+  end
+  alias is_a? kind_of?
+
+  def puts(*args)
+    args.each {|arg|
+      if (arg.kind_of?(::Channel9::Tuple) || arg.kind_of?(::StaticTuple) || arg.kind_of?(::Array))
+        puts(*arg)
+      elsif (arg.nil?)
+        print(:"nil\n")
       else
-        val
+        print arg,:"\n"
       end
-    end
-    Channel9::prim_sprintf(fmt, *vals).to_s
+    }
   end
 
-  def require(name)
-    if ($LOADED_FEATURES.include?(name))
-      return false
-    end
-    begin
-      load(name)
-      $LOADED_FEATURES << name
-      return true
-    rescue LoadError
-      load(name + ".rb")
-      $LOADED_FEATURES << name
-      return true
-    end
+  def exit(n)
+    special_channel(:exit).call(n)
   end
 
-  def to_s
-    "#<#{self.class}:" + "0x%0#{1.size}x" % object_id + ">"
+  def to_tuple_prim
+    to_a.to_tuple_prim
+  end
+  def to_a
+    [self]
   end
 
-  def at_exit(&block)
-    # TODO: Make not a stub.
+  def to_proc_prim
+    to_proc.to_proc_prim
   end
 
-  def lambda(&block)
-    block
+  def inspect
+    to_s
   end
-  def proc(&block)
-    block
-  end
-
-  def Array(ary)
-    Array.new(ary.to_tuple_prim)
-  end
-  def String(s)
-    String.new(s.to_s_prim)
-  end
-  def Integer(i)
-    i.to_i
-  end
-
-  def instance_eval(s = nil, &block)
-    if (s)
-      block = Channel9.compile_string(:eval, s, "__eval__", 1)
-      if (!block)
-        raise ParseError
-      end
-    end
-    instance_eval_prim(&block)
-  end
-  def eval(s, filename = "__eval__", line = 1)
-    proc = Channel9.compile_string(:eval, s, filename, line)
-    if (proc)
-      special_channel(:global_self).instance_eval(&proc)
-    else
-      raise ParseError
-    end
-  end
-  def instance_exec(*args, &block)
-    instance_eval_prim(*args, &block)
-  end
-  def instance_method(name)
-    if (method_defined?(name.to_sym))
-      UnboundMethod.new(name.to_sym, instance_method_prim(name.to_s_prim))
-    else
-      nil
-    end
-  end
-  def instance_variables
-    instance_variables_prim.to_a
-  end
-
-  def send(name, *args, &block)
-    send_prim(name.to_s_prim, *args, &block)
-  end
-  alias_method :__send__, :send
 end
+
+raise "BOOM!"

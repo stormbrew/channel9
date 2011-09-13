@@ -1,0 +1,210 @@
+var RubyClass = (name, super) {
+	var instance_methods = $BasicHash($prime_gen)
+	var constants = $BasicHash($prime_gen)
+	var included = []
+	var inner_obj = nil
+	
+	var self = (&msg) -> return {
+		var msg_name
+		var is_c9
+		bytecode(msg) {
+			message_name
+			dup_top
+			local_set 0 "msg_name"
+			push "__c9_"
+			message_new "match" 0 1
+			channel_call
+			pop
+			is 5
+			local_set 0 "is_c9"
+		}
+		if (is_c9) {
+			switch (msg_name)
+			case ('__c9_lookup__') {
+				var meth_name = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				
+				var meth = instance_methods.get(meth_name)
+				if (meth) {
+					return <- [meth,nil]
+				}
+
+				if (included.length > 0) {
+					var i = 0
+					var total = included.length
+					while (i < total) {
+						var res = included.at(i).__c9_lookup__(meth_name)
+						if (res) { return <- res }
+						i += 1
+					}
+				}
+
+				if (super) {
+					var res = super.__c9_lookup__(meth_name)
+					if (res) { return <- res }
+				}
+
+				return <- nil
+			} case ('__c9_primitive_call__') {
+				var instance
+				var imsg_name
+				var imsg
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set 0 "instance"
+					message_name
+					local_set 0 "imsg_name"
+					local_set 0 "imsg"
+				}
+				var minfo = self.__c9_lookup__(imsg_name)
+				if (minfo) {
+					bytecode(minfo.at(0), return, imsg, instance, minfo.at(1)) {
+						message_sys_prefix 2
+						channel_send
+					}
+				} else if (minfo = self.__c9_lookup__("method_missing")) {
+					bytecode(minfo.at(0), return, msg, self, minfo.at(1)) {
+						message_sys_prefix 2
+						message_forward "method_missing"
+						channel_send
+					}
+				} else {
+					$unwinder.no_message_handler(imsg_name)
+				}
+			} case ('__c9_make_singleton__') {
+				if (super) {
+					// the superclass of a singleton for a class is its parent class' singleton
+					inner_obj.__c9_set_singleton__($RubyClass(self.to_s, super.__c9_singleton__))
+				} else {
+					// if the class doesn't have a super, that means it's Object, whose singleton's
+					// parent class is Class.
+					inner_obj.__c9_set_singleton__($RubyClass(self.to_s, $Class))
+				}
+			} case ('__c9_allocate__') {
+				if (self == $Class) {
+					var class_name
+					var superclass
+					bytecode(msg) {
+						message_unpack 2 0 0
+						local_set 0 "class_name"
+						local_set 0 "superclass"
+					}
+					return <- $RubyClass(class_name, superclass)
+				} else if (self == $Module) {
+					var module_name = bytecode(msg) {
+						message_unpack 1 0 0
+						swap
+						pop
+					}
+					return <- $RubyModule(module_name)
+				} else {
+					return <- $RubyObject(self)
+				}
+			} case ('__c9_superclass__') {
+				return <- super
+			} case ('__c9_name__') {
+				return <- name
+			} case ('__c9_rebind_super__') {
+				return <- super = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+			} case ('__c9_include__') {
+				var mod = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				included = included.push(mod)
+				return <- mod
+			} case ('__c9_add_method__') {
+				var meth_name
+				var meth
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set 0 "meth_name"
+					local_set 0 "meth"
+				}
+				return <- instance_methods.set(meth_name, meth)
+			} case ('__c9_alias_method__') {
+				var new_name
+				var old_name
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set 0 "new_name"
+					local_set 0 "old_name"
+				}
+				var old_meth = self.__c9_lookup__(old_name)
+				if (old_meth) {
+					return <- instance_methods.set(new_name, old_meth.at(1))
+				} else {
+					return <- nil
+				}
+			} case ('__c9_add_constant__') {
+				var const_name
+				var const_val
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set 0 "const_name"
+					local_set 0 "const_val"
+				}
+				return <- constants.set(const_name, const_val)
+			} case ('__c9_get_constant__') {
+				var const_name = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				return <- constants.get(const_name)
+			} case ('__c9_get_constant_scoped__') {
+				var const_name
+				var next
+				var next_mod
+				var next_scope
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set 0 "const_name"
+					local_set 0 "next"
+				}
+				if (next) {
+					bytecode(next) {
+						tuple_unpack 2 0 0
+						local_set 0 "next_mod"
+						local_set 0 "next_scope"
+					}
+				}
+				var const = constants.get(const_name)
+				if (const) {
+					return <- const
+				} else if (next) {
+					return <- next_mod.__c9_get_constant_scoped__(const_name, next_scope)
+				}
+				return <- nil
+			} case ("__c9_scope_name__") {
+				if (self == $Object) {
+					return <- ""
+				} else {
+					return <- name + "::"
+				}
+			}
+		}
+		// forward to the normal object for this class.
+		return <- msg -> inner_obj
+	}
+	if ($Class) {
+		inner_obj = $RubyObject($Class)
+	} else {
+		inner_obj = $RubyObject(self)
+	}
+	inner_obj.__c9_wrap__(self)
+	self
+}
+
+$set_special_channel('RubyClass', RubyClass)
+$set_special_channel('Class', RubyClass('Class', nil))
+$set_special_channel('Object', RubyClass('Object', nil))
+$set_special_channel('Module', RubyClass('Module', $Object))
