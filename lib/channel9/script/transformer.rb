@@ -51,28 +51,28 @@ module Channel9
           [@line, @col]
         end
 
-        def compile_node(ctx, stream)
+        def compile_node(ctx, stream, void)
           line_info = [ctx.filename, line, col]
           if (ctx.last_line != line_info && line && col)
             stream.line(*line_info)
             ctx.last_line = line_info
           end
-          compile(ctx, stream)
+          compile(ctx, stream, void)
         end
       end
 
       class CommentNode < Node
         attr_accessor :text
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
         end
       end
 
       class ConstantNode < Node
         attr_accessor :val
 
-        def compile(ctx, stream)
-          stream.push(val)
+        def compile(ctx, stream, void)
+          stream.push(val) if (!void)
         end
       end
       class NilNode < ConstantNode; end
@@ -85,14 +85,15 @@ module Channel9
       class ListNode < Node
         attr_accessor :items
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           if (items.length == 1 && !items.first.is_a?(Node))
             stream.tuple_new(0)
           else
             items.reverse.each do |item|
-              item.compile_node(ctx, stream)
+              item.compile_node(ctx, stream, false)
             end
             stream.tuple_new(items.length)
+            stream.pop if (void)
           end
         end
       end
@@ -100,7 +101,7 @@ module Channel9
       class FunctionNode < Node
         attr_accessor :args, :msg, :output, :body
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           prefix = ctx.label_prefix('func')
           done_label = prefix + "done"
           body_label = prefix + "body"
@@ -133,7 +134,7 @@ module Channel9
               stream.local_set(0, msg)
             end
 
-            body.compile_node(ctx, stream)
+            body.compile_node(ctx, stream, false)
 
             stream.frame_get("return")
             stream.swap
@@ -142,6 +143,7 @@ module Channel9
 
           stream.set_label(done_label)
           stream.channel_new(body_label)
+          stream.pop if void
         end
       end
 
@@ -149,8 +151,8 @@ module Channel9
         attr_accessor :name
       end
       class SpecialVariableNode < VariableNode
-        def compile(ctx, stream)
-          stream.channel_special(name)
+        def compile(ctx, stream, void)
+          stream.channel_special(name) if (!void)
         end
       end
       class LocalVariableNode < VariableNode 
@@ -158,10 +160,10 @@ module Channel9
           ctx.find_var(name)
         end
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           var_depth = find(ctx)
           raise "Undeclared variable '#{name}' at #{ctx.filename}:#{line}:#{col}" if !var_depth
-          stream.local_get(var_depth, name)
+          stream.local_get(var_depth, name) if (!void)
         end
       end
       class LocalDeclareNode < LocalVariableNode
@@ -172,13 +174,13 @@ module Channel9
           0
         end
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           if (expression.nil?)
             super
           else
             find(ctx)
-            expression.compile_node(ctx, stream)
-            stream.dup_top
+            expression.compile_node(ctx, stream, false)
+            stream.dup_top if (!void)
             stream.local_set(0, name)
           end
         end
@@ -188,9 +190,9 @@ module Channel9
       class ValueInvokeNode < CallActionNode
         attr_accessor :args
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           args.each do |arg|
-            arg.compile_node(ctx, stream)
+            arg.compile_node(ctx, stream, false)
           end
           stream.message_new("call", 0, args.length)
         end
@@ -198,9 +200,9 @@ module Channel9
       class MemberInvokeNode < CallActionNode
         attr_accessor :name, :args
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           args.each do |arg|
-            arg.compile_node(ctx, stream)
+            arg.compile_node(ctx, stream, false)
           end
           stream.message_new(name, 0, args.length)
         end
@@ -209,20 +211,21 @@ module Channel9
       class CallNode < Node
         attr_accessor :on, :action
 
-        def compile(ctx, stream)
-          on.compile_node(ctx, stream)
-          action.compile_node(ctx, stream)
+        def compile(ctx, stream, void)
+          on.compile_node(ctx, stream, false)
+          action.compile_node(ctx, stream, false)
           stream.channel_call
           stream.pop # get rid of unwanted return channel
+          stream.pop if (void)
         end
       end
       class SendNode < Node
         attr_accessor :target, :expression, :continuation
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           # Todo: Make this recognize tail recursion.
-          target.compile_node(ctx, stream)
-          expression.compile_node(ctx, stream)
+          target.compile_node(ctx, stream, false)
+          expression.compile_node(ctx, stream, false)
           stream.channel_call
           if (continuation.nil?)
             stream.pop
@@ -230,32 +233,34 @@ module Channel9
             depth = continuation.find(ctx)
             stream.local_set(depth, continuation.name)
           end
+          stream.pop if (void)
         end
       end
       class ReturnNode < Node
         attr_accessor :target, :expression
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           # TODO: Make this not have such intimate knowledge
           # of CallNode and SendNode
           case expression
           when CallNode
-            expression.on.compile_node(ctx, stream)
-            target.compile_node(ctx, stream)
-            expression.action.compile_node(ctx, stream)
+            expression.on.compile_node(ctx, stream, false)
+            target.compile_node(ctx, stream, false)
+            expression.action.compile_node(ctx, stream, false)
             stream.channel_send
           else
-            target.compile_node(ctx, stream)
-            expression.compile_node(ctx, stream)
+            target.compile_node(ctx, stream, false)
+            expression.compile_node(ctx, stream, false)
             stream.channel_ret
           end
+          # no need to deal with void, these don't continue.
         end
       end
 
       class InstructionNode < Node
         attr_accessor :name, :args
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           begin
             stream.send(name, *args.collect {|arg| arg.val })
           rescue => e
@@ -267,37 +272,43 @@ module Channel9
       class BytecodeNode < Node
         attr_accessor :inputs, :instructions
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           if (inputs.length == 1 && !inputs.first.is_a?(Node))
             inputs.pop
           end
           inputs.each do |input|
-            input.compile_node(ctx, stream)
+            input.compile_node(ctx, stream, false)
           end
           instructions.each do |instruction|
-            instruction.compile_node(ctx, stream)
+            instruction.compile_node(ctx, stream, false)
           end
+          stream.pop if (void)
         end
       end
 
       class StatementNode < Node
         attr_accessor :doc, :expression
 
-        def compile(ctx, stream)
-          expression.compile_node(ctx, stream)
+        def compile(ctx, stream, void)
+          expression.compile_node(ctx, stream, void)
         end
       end
       class SequenceNode < Node
         attr_accessor :statements
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           if (statements.length == 1 && !statements.first.is_a?(Node))
             stream.push(nil)
           else
+            # get rid of a trailing comment node as it'll mess up our
+            # calculations for letting the last statement push something
+            # onto the stack.
+            statements.pop if (statements.last.kind_of?(CommentNode))
+            last_idx = statements.length - 1
             statements.each_with_index do |stmt, idx|
-              stmt.compile_node(ctx, stream)
-              # only leave the last result on the stack.
-              stream.pop if (idx != statements.length - 1)
+              # all but the last statement should be treated as void,
+              # and then the last one only if the block as a whole is void.
+              stmt.compile_node(ctx, stream, idx != last_idx || void)
             end
           end
         end
@@ -306,7 +317,7 @@ module Channel9
       class AssignTargetNode < Node
         attr_accessor :var, :op
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           var_depth = var.find(ctx)
           raise "Undeclared variable '#{var.name}' at #{ctx.filename}:#{line}:#{col}" if !var_depth
 
@@ -319,51 +330,54 @@ module Channel9
             stream.pop
           end
 
-          stream.dup_top
+          stream.dup_top if (!void)
           stream.local_set(var_depth, var.name)
         end
       end
       class AssignmentNode < Node
         attr_accessor :to, :expr
 
-        def compile(ctx, stream)
-          expr.compile_node(ctx, stream)
-          to.compile_node(ctx, stream)
+        def compile(ctx, stream, void)
+          expr.compile_node(ctx, stream, false)
+          to.compile_node(ctx, stream, void)
         end
       end
 
       class OperatorNode < Node
         attr_accessor :op, :right
 
-        def compile(ctx, stream)
-          right.compile_node(ctx, stream)
+        def compile(ctx, stream, void)
+          right.compile_node(ctx, stream, false)
           stream.message_new(op, 0, 1)
         end
       end
       class BinOpNode < Node
         attr_accessor :on, :action
 
-        def compile(ctx, stream)
-          on.compile_node(ctx, stream)
-          action.compile_node(ctx, stream)
+        def compile(ctx, stream, void)
+          on.compile_node(ctx, stream, false)
+          action.compile_node(ctx, stream, false)
           stream.channel_call
           stream.pop
+          stream.pop if (void)
         end
       end
       class SumNode < BinOpNode; end
       class ProductNode < BinOpNode; end
       class RelationalNode < BinOpNode; end
       class EqualityNode < BinOpNode
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           case action.op
           when '=='
-            on.compile_node(ctx, stream)
-            action.right.compile_node(ctx, stream)
+            on.compile_node(ctx, stream, false)
+            action.right.compile_node(ctx, stream, false)
             stream.is_eq
+            stream.pop if (void)
           when '!='
-            on.compile_node(ctx, stream)
-            action.right.compile_node(ctx, stream)
+            on.compile_node(ctx, stream, false)
+            action.right.compile_node(ctx, stream, false)
             stream.is_not_eq
+            stream.pop if (void)
           else
             super
           end
@@ -373,22 +387,22 @@ module Channel9
       class IfNode < Node
         attr_accessor :condition, :block, :else
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           prefix = ctx.label_prefix('if')
           done_label = prefix + "done"
           else_label = prefix + "else"
 
-          condition.compile_node(ctx, stream)
+          condition.compile_node(ctx, stream, false)
           stream.jmp_if_not(else_label)
           
-          block.compile_node(ctx, stream)
+          block.compile_node(ctx, stream, void)
           stream.jmp(done_label)
           
           stream.set_label(else_label)
           if (!self.else.nil?)
-            self.else.compile_node(ctx, stream)
+            self.else.compile_node(ctx, stream, void)
           else
-            stream.push(nil)
+            stream.push(nil) if (!void)
           end
           stream.set_label(done_label)
         end
@@ -397,19 +411,19 @@ module Channel9
       class WhileNode < Node
         attr_accessor :condition, :block
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           prefix = ctx.label_prefix('while')
           start_label = prefix + "start"
           done_label = prefix + "done"
 
           stream.set_label(start_label)
-          block.compile_node(ctx, stream)
-          stream.pop
-          condition.compile_node(ctx, stream)
-          stream.jmp_if(start_label)
+          condition.compile_node(ctx, stream, false)
+          stream.jmp_if_not(done_label)
+          block.compile_node(ctx, stream, true)
+          stream.jmp(start_label)
           stream.set_label(done_label)
 
-          stream.push(nil)
+          stream.push(nil) if (!void)
         end
       end
 
@@ -422,7 +436,7 @@ module Channel9
       class SwitchNode < Node
         attr_accessor :condition, :cases, :else
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           prefix = ctx.label_prefix("switch")
           else_label = prefix + "else"
           done_label = prefix + "done"
@@ -434,7 +448,7 @@ module Channel9
             raise "Duplicate label in switch statement #{ctx.file}:#{ctx.line}:#{ctx.column}"
           end
 
-          condition.compile_node(ctx, stream)
+          condition.compile_node(ctx, stream, false)
           cases.each_with_index do |c, idx|
             stream.dup_top
             stream.is(c.value.val)
@@ -445,15 +459,15 @@ module Channel9
           cases.each_with_index do |c, idx|
             stream.set_label(labels[idx])
             stream.pop # get rid of the test value.
-            c.block.compile_node(ctx, stream)
+            c.block.compile_node(ctx, stream, void)
             stream.jmp(done_label)
           end
 
           stream.set_label(else_label)
           if (self.else)
-            self.else.compile_node(ctx, stream)
+            self.else.compile_node(ctx, stream, void)
           else
-            stream.push(nil)
+            stream.push(nil) if (!void)
           end
           stream.set_label(done_label)
         end
@@ -462,15 +476,18 @@ module Channel9
       class ScriptNode < Node
         attr_accessor :body
 
-        def compile(ctx, stream)
+        def compile(ctx, stream, void)
           stream.frame_set("script-exit")
           stream.pop
 
-          body.compile_node(ctx, stream)
+          body.compile_node(ctx, stream, false)
 
           stream.frame_get("script-exit")
           stream.swap
           stream.channel_ret
+        end
+        def compile_node(ctx, stream)
+          super(ctx, stream, false)
         end
       end
 
