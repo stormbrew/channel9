@@ -44,11 +44,14 @@ module Channel9
     end
 
     def to_json(*a)
-      labels = @labels.invert
+      ilabels = Hash.new {|h,k| h[k] = []}
+      @labels.each {|label, line| ilabels[line].push label}
       instructions = []
       i = 0
       while (i < @instructions.length)
-        instructions << ["set_label", labels[i]] if (labels[i])
+        ilabels[i].each do |label|
+          instructions << ["set_label", label]
+        end
         instructions << ["line", *line_info[i]] if (line_info[i])
         instructions << @instructions[i]
         i += 1
