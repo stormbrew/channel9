@@ -34,16 +34,15 @@ begin
     pp ast
   end
   code = Channel9::Stream.new
+  environment = Channel9::Environment.new(debug)
   builder = Channel9::Builder.new(code)
   context = Channel9::Script::Transformer::Context.new(filename)
   ast.compile_node(context, builder)
+  context = Channel9::Context.new(environment, code)
 
   if (print)
     puts code.to_json
   elsif (run)
-    environment = Channel9::Environment.new(debug)
-    context = Channel9::Context.new(environment, code)
-
     stime = Time.now
     begin
       context.channel_send(environment, nil, Channel9::CleanExitChannel)
