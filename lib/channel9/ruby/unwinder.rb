@@ -9,7 +9,15 @@ module Channel9
             exit(1)
           })
         else
-          raise "BOOM: Uncaught unwind of unknown kind: #{msg}."
+          puts "Error: Uncaught unwind of unknown kind: #{msg}."
+          ctx = env.current_context
+          bt = []
+          while (!ctx.nil?)
+            puts(ctx.line_info.join(":"))
+
+            ctx = ctx.caller
+          end
+          exit(1)
         end
       end
     end
