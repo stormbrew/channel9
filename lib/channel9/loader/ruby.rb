@@ -215,7 +215,7 @@ module Channel9
             return nil
           end
           tree = s(type.to_sym, tree)
-          tree.filename = filename
+          tree.file = filename
           tree.line = line
           compiler = Channel9::Ruby::Compiler.new(builder)
           compiler.transform(tree)
