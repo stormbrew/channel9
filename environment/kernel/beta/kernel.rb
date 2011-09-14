@@ -120,5 +120,3 @@ module Kernel
     to_s
   end
 end
-
-raise "BOOM!"
