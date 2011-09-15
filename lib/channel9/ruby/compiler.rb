@@ -90,7 +90,7 @@ module Channel9
             transform_dot2([:lit, literal.first], [:lit, literal.last])
           end
         when Regexp
-          transform_colon3(:Regexp)
+          builder.channel_special(:Regexp)
           builder.push(literal.to_s)
           builder.message_new(:new, 0, 1)
           builder.channel_call
@@ -100,7 +100,7 @@ module Channel9
         end
       end
       def transform_dot2(first, last)
-        transform_colon3(:Range)
+        builder.channel_special(:Range)
         transform(first)
         transform(last)
         builder.push(false)
@@ -109,7 +109,7 @@ module Channel9
         builder.pop
       end
       def transform_dot3(first, last)
-        transform_colon3(:Range)
+        builder.channel_special(:Range)
         transform(first)
         transform(last)
         builder.push(true)
@@ -119,7 +119,7 @@ module Channel9
       end
 
       def transform_str(str)
-        transform_colon3(:String)
+        builder.channel_special(:String)
         builder.push(str)
         builder.message_new(:new, 0, 1)
         builder.channel_call
@@ -158,14 +158,14 @@ module Channel9
         end
       end
       def transform_dstr(initial, *strings)
-        transform_colon3(:String)
+        builder.channel_special(:String)
         transform_dsym(initial, *strings)
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop
       end
       def transform_dregx(initial, *strings)
-        transform_colon3(:Regexp)
+        builder.channel_special(:Regexp)
         transform_dsym(initial, *strings)
         builder.message_new(:new, 0, 1)
         builder.channel_call
@@ -173,14 +173,14 @@ module Channel9
       end
       def transform_dregx_once(initial, *strings)
         opt = strings.pop
-        transform_colon3(:Regexp)
+        builder.channel_special(:Regexp)
         transform_dsym(initial, *strings)
         builder.message_new(:new, 0, 1)
         builder.channel_call
         builder.pop
       end
       def transform_hash(*items)
-        transform_colon3(:Hash)
+        builder.channel_special(:Hash)
         items.reverse.each do |item|
           transform(item)
         end
@@ -204,7 +204,7 @@ module Channel9
           splat = items.pop
         end
 
-        transform_colon3(:Array)
+        builder.channel_special(:Array)
         items.reverse.each do |item|
           transform(item)
         end
@@ -596,7 +596,7 @@ module Channel9
             builder.set_label(argdone_label)
           end
           if (splatarg)
-            transform_colon3(:Array)
+            builder.channel_special(:Array)
             builder.swap
             builder.message_new(:new, 0, 1)
             builder.channel_call
@@ -608,7 +608,7 @@ module Channel9
             builder.frame_get("yield")
             builder.dup_top
             builder.jmp_if_not(no_yield_label)
-            transform_colon3(:Proc)
+            builder.channel_special(:Proc)
             builder.swap
             builder.message_new(:new_from_prim, 0, 1)
             builder.channel_call
