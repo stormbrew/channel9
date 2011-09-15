@@ -76,7 +76,7 @@ $Class.__c9_add_method__("new", (&msg) {
 		message_unpack 0 1 0 # tuple -> msg
 		swap # msg -> tuple
 		message_sys_unpack 3 # self -> super -> proc -> msg -> tuple
-		local_set 0 "self" # super -> proc -> msg -> tuple
+		lexical_set 0 "self" # super -> proc -> msg -> tuple
 		pop # proc -> msg -> tuple
 		message_new "initialize" 1 0 # imsg -> msg -> tuple
 		swap # msg -> imsg -> tuple

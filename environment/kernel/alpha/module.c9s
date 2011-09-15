@@ -10,13 +10,13 @@ var RubyModule = (name) {
 		bytecode(msg) {
 			message_name
 			dup_top
-			local_set 0 "msg_name"
+			lexical_set 0 "msg_name"
 			push "__c9_"
 			message_new "match" 0 1
 			channel_call
 			pop
 			is 5
-			local_set 0 "is_c9"
+			lexical_set 0 "is_c9"
 		}
 		if (is_c9) {
 			switch (msg_name)
@@ -40,8 +40,8 @@ var RubyModule = (name) {
 				var const_val
 				bytecode(msg) {
 					message_unpack 2 0 0
-					local_set 0 "const_name"
-					local_set 0 "const_val"
+					lexical_set 0 "const_name"
+					lexical_set 0 "const_val"
 				}
 				return <- constants.set(const_name, const_val)
 			} case ('__c9_get_constant__') {
@@ -58,14 +58,14 @@ var RubyModule = (name) {
 				var next_scope
 				bytecode(msg) {
 					message_unpack 2 0 0
-					local_set 0 "const_name"
-					local_set 0 "next"
+					lexical_set 0 "const_name"
+					lexical_set 0 "next"
 				}
 				if (next) {
 					bytecode(next) {
 						tuple_unpack 2 0 0
-						local_set 0 "next_mod"
-						local_set 0 "next_scope"
+						lexical_set 0 "next_mod"
+						lexical_set 0 "next_scope"
 					}
 				}
 				var const = constants.get(const_name)
@@ -80,8 +80,8 @@ var RubyModule = (name) {
 				var meth
 				bytecode(msg) {
 					message_unpack 2 0 0
-					local_set 0 "meth_name"
-					local_set 0 "meth"
+					lexical_set 0 "meth_name"
+					lexical_set 0 "meth"
 				}
 				return <- instance_methods.set(meth_name, meth)
 			} case ('__c9_alias_method__') {
@@ -89,8 +89,8 @@ var RubyModule = (name) {
 				var old_name
 				bytecode(msg) {
 					message_unpack 2 0 0
-					local_set 0 "new_name"
-					local_set 0 "old_name"
+					lexical_set 0 "new_name"
+					lexical_set 0 "old_name"
 				}
 				var old_meth = self.__c9_lookup__(old_name)
 				if (old_meth) {
