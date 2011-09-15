@@ -1,4 +1,4 @@
-var id_seq = 0
+var id_seq = 2148425000
 
 var RubyObject = (klass) {
 	var singleton = klass
@@ -91,7 +91,7 @@ var RubyObject = (klass) {
 				channel_send
 			}
 		} else {
-			$unwinder.no_message_handler(name)
+			$unwinder.no_message_handler(klass.__c9_name__, name)
 		}
 	}
 }

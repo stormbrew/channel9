@@ -37,6 +37,18 @@ $Kernel.__c9_add_method__("to_s", (&msg) {
 	"<" + self.__c9_object_id__.to_string_primitive + ":" + self.__c9_class__.__c9_name__ + ">"
 })
 $Kernel.__c9_add_method__("initialize", () {nil})
+$Kernel.__c9_add_method__("==", (&msg) {
+	bytecode(msg) {
+		message_sys_unpack 1
+		swap
+		message_unpack 1 0 0
+		swap
+		pop
+		is_eq
+	}
+})
+$Kernel.__c9_alias_method__("equal?", "==")
+$Kernel.__c9_alias_method__("eql?", "==")
 
 $Class.__c9_add_method__("allocate", (&msg) {
 	var self = bytecode(msg) {

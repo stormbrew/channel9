@@ -16,6 +16,9 @@ class Fixnum < Numeric
     # TODO: Make this smarter
     8
   end
+  def __c9_object_id__
+    self + self + 1 # turns whole number sequence into odd number sequence.
+  end
   def ===(other)
     if (other.class == Fixnum)
       if (other == self)

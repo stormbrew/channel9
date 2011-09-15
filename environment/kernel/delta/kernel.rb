@@ -26,9 +26,9 @@ module Kernel
     end
   end
 
-  def to_s
-    "#<#{self.class}:" + "0x%0#{1.size}x" % object_id + ">"
-  end
+#  def to_s
+#    "#<#{self.class}:" + object_id + ">" # "0x%0#{1.size}x" % object_id + ">"
+#  end
 
   def at_exit(&block)
     # TODO: Make not a stub.

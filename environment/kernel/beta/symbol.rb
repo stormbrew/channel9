@@ -15,6 +15,10 @@ class Symbol
     proc { |obj, *args| obj.send(self, *args) }
   end
 
+  def __c9_object_id__
+    __c9_primitive_id__
+  end
+
   def substr(first, last)
     first = length + first if (first < 0)
     last = length + last if (last < 0)
