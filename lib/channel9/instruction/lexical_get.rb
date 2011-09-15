@@ -1,6 +1,6 @@
 module Channel9
   module Instruction
-    # local_get depth, name
+    # lexical_get depth, name
     # ---
     # Pushes the named local onto the stack. 
     #
@@ -11,12 +11,12 @@ module Channel9
     # Gets the named local from the current context's variable scope
     # and pushes it onto the stack.
     # If depth is >0, pulls it from an enclosing scope's local scope.
-    class LOCAL_GET < Base
+    class LEXICAL_GET < Base
       def initialize(stream, depth, name)
         super(stream, 0, 1)
         @name = name
         @depth = depth
-        @id = stream.local(name)
+        @id = stream.lexical(name)
       end
 
       def arguments

@@ -3,17 +3,17 @@ require 'channel9/builder'
 require 'json'
 
 module Channel9
-  class Stream # a stream of bytecode with label and local tables
+  class Stream # a stream of bytecode with label and lexical tables
     attr :instructions
     attr :labels
-    attr :locals
+    attr :lexicals
     attr :line_info
     attr :framevars
 
     def initialize()
       @instructions = []
       @labels = {}
-      @locals = {}
+      @lexicals = {}
       @line_info = []
       @framevars = {}
       @pos = 0
@@ -85,11 +85,11 @@ module Channel9
       @line_info[@pos] = file, line, fpos
     end
 
-    def local(name)
-      @locals[name] ||= @locals.length
+    def lexical(name)
+      @lexicals[name] ||= @lexicals.length
     end
-    def local_name(id)
-      @locals.invert[id]
+    def lexical_name(id)
+      @lexicals.invert[id]
     end
     def framevar(name)
       @framevars[name] ||= @framevars.length

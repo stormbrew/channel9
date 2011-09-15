@@ -119,18 +119,18 @@ namespace Channel9
 
 	void IStream::add(Instruction instruction)
 	{
-		long long local_id;
+		long long lexical_id;
 		switch (instruction.instruction)
 		{
-		case LOCAL_SET:
-		case LOCAL_GET:
-			local_id = local(ptr<String>(instruction.arg2)->str());
-			instruction.arg3 = value(local_id);
+		case LEXICAL_SET:
+		case LEXICAL_GET:
+			lexical_id = lexical(ptr<String>(instruction.arg2)->str());
+			instruction.arg3 = value(lexical_id);
 			break;
 		case FRAME_GET:
 		case FRAME_SET:
-			local_id = frame(ptr<String>(instruction.arg1)->str());
-			instruction.arg3 = value(local_id);
+			lexical_id = frame(ptr<String>(instruction.arg1)->str());
+			instruction.arg3 = value(lexical_id);
 			break;
 		default:
 			break;
@@ -155,22 +155,22 @@ namespace Channel9
 			return SourcePos();
 	}
 
-	size_t IStream::local(const std::string &name)
+	size_t IStream::lexical(const std::string &name)
 	{
-		name_map::iterator it = m_locals.find(name);
-		if (it == m_locals.end())
+		name_map::iterator it = m_lexicals.find(name);
+		if (it == m_lexicals.end())
 		{
-			size_t num = m_locals.size();
-			m_locals[name] = num;
+			size_t num = m_lexicals.size();
+			m_lexicals[name] = num;
 			return num;
 		} else {
 			return it->second;
 		}
 	}
-	size_t IStream::local(const std::string &name) const
+	size_t IStream::lexical(const std::string &name) const
 	{
-		name_map::const_iterator it = m_locals.find(name);
-		if (it == m_locals.end())
+		name_map::const_iterator it = m_lexicals.find(name);
+		if (it == m_lexicals.end())
 		{
 			return -1;
 		} else {
@@ -199,9 +199,9 @@ namespace Channel9
 			return it->second;
 		}
 	}
-	size_t IStream::local_count() const
+	size_t IStream::lexical_count() const
 	{
-		return m_locals.size();
+		return m_lexicals.size();
 	}
 	size_t IStream::frame_count() const
 	{

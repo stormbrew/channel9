@@ -109,12 +109,12 @@ module Channel9
           stream.jmp(done_label)
           stream.set_label(body_label)
 
-          stream.local_linked_scope
+          stream.lexical_linked_scope
           ctx.variable_frame do
             if (output)
               stream.dup_top
               ctx.declare_var(output.name)
-              stream.local_set(0, output.name)
+              stream.lexical_set(0, output.name)
             end  
             stream.frame_set("return")
 
@@ -123,7 +123,7 @@ module Channel9
 
               args.each do |arg|
                 ctx.declare_var(arg.name)
-                stream.local_set(0, arg.name)
+                stream.lexical_set(0, arg.name)
               end
             end
 
@@ -131,7 +131,7 @@ module Channel9
               stream.pop # remove the message
             else
               ctx.declare_var(msg)
-              stream.local_set(0, msg)
+              stream.lexical_set(0, msg)
             end
 
             body.compile_node(ctx, stream, false)
@@ -163,7 +163,7 @@ module Channel9
         def compile(ctx, stream, void)
           var_depth = find(ctx)
           raise "Undeclared variable '#{name}' at #{ctx.filename}:#{line}:#{col}" if !var_depth
-          stream.local_get(var_depth, name) if (!void)
+          stream.lexical_get(var_depth, name) if (!void)
         end
       end
       class LocalDeclareNode < LocalVariableNode
@@ -181,7 +181,7 @@ module Channel9
             find(ctx)
             expression.compile_node(ctx, stream, false)
             stream.dup_top if (!void)
-            stream.local_set(0, name)
+            stream.lexical_set(0, name)
           end
         end
       end
@@ -231,7 +231,7 @@ module Channel9
             stream.pop
           else
             depth = continuation.find(ctx)
-            stream.local_set(depth, continuation.name)
+            stream.lexical_set(depth, continuation.name)
           end
           stream.pop if (void)
         end
@@ -324,14 +324,14 @@ module Channel9
           if (op != '=')
             real_op = op.gsub(/=$/, '')
             stream.message_new(real_op, 0, 1)
-            stream.local_get(var_depth, var.name)
+            stream.lexical_get(var_depth, var.name)
             stream.swap
             stream.channel_call
             stream.pop
           end
 
           stream.dup_top if (!void)
-          stream.local_set(var_depth, var.name)
+          stream.lexical_set(var_depth, var.name)
         end
       end
       class AssignmentNode < Node
