@@ -48,7 +48,7 @@ namespace Channel9
 	{
 		IStream *m_instructions;
 		const Instruction *m_pos;
-		VariableFrame *m_localvars;
+		VariableFrame *m_lexicalvars;
 		size_t m_stack_pos;
 		RunningContext *m_caller;
 
@@ -59,14 +59,14 @@ namespace Channel9
 			m_pos = &*m_instructions->begin() + pos;
 		}
 
-		void new_scope(VariableFrame *scope) { m_localvars = scope; }
+		void new_scope(VariableFrame *scope) { m_lexicalvars = scope; }
 	};
 
 	struct RunningContext
 	{
 		IStream *m_instructions;
 		const Instruction *m_pos;
-		VariableFrame *m_localvars;
+		VariableFrame *m_lexicalvars;
 		size_t m_stack_pos;
 		RunningContext *m_caller;
 
@@ -83,9 +83,9 @@ namespace Channel9
 			m_pos = &*m_instructions->begin() + pos;
 		}
 
-		const Value *stack_begin() const { return m_data + m_instructions->frame_count(); }
+		const Value *stack_begin() const { return m_data + m_instructions->stack_offset(); }
 		const Value *stack_pos() const { return m_data + m_stack_pos; }
-		size_t stack_count() const { return m_stack_pos - m_instructions->frame_count(); }
+		size_t stack_count() const { return m_stack_pos - m_instructions->stack_offset(); }
 		void push(const Value &val)
 		{
 			m_data[m_stack_pos++] = val;
@@ -97,24 +97,26 @@ namespace Channel9
 		const Value &top() const { return m_data[m_stack_pos-1]; }
 
 		const Value &get_framevar(size_t id) const { return m_data[id]; }
-		const Value &get_localvar(size_t id) const { return m_localvars->lookup(id); }
-		const Value &get_localvar(size_t id, size_t depth) const { return m_localvars->lookup(id, depth); }
+		const Value &get_localvar(size_t id) const { return m_data[m_instructions->local_offset() + id]; }
+		const Value &get_lexicalvar(size_t id) const { return m_lexicalvars->lookup(id); }
+		const Value &get_lexicalvar(size_t id, size_t depth) const { return m_lexicalvars->lookup(id, depth); }
 
 		void set_framevar(size_t id, const Value &val) { m_data[id] = val; }
-		void set_localvar(size_t id, const Value &val) { m_localvars->set(id, val); }
-		void set_localvar(size_t id, size_t depth, const Value &val) { m_localvars->set(id, depth, val); }
+		void set_localvar(size_t id, const Value &val) { m_data[m_instructions->local_offset() + id] = val; }
+		void set_lexicalvar(size_t id, const Value &val) { m_lexicalvars->set(id, val); }
+		void set_lexicalvar(size_t id, size_t depth, const Value &val) { m_lexicalvars->set(id, depth, val); }
 
-		void new_scope(VariableFrame *scope) { m_localvars = scope; }
+		void new_scope(VariableFrame *scope) { m_lexicalvars = scope; }
 	};
 
-	inline RunnableContext *new_context(IStream *instructions, VariableFrame *localvars = NULL, size_t pos = 0)
+	inline RunnableContext *new_context(IStream *instructions, VariableFrame *lexicalvars = NULL, size_t pos = 0)
 	{
 		size_t frame_count = instructions->frame_count();
 
 		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*instructions->frame_count(), RUNNABLE_CONTEXT);
 		ctx->m_instructions = instructions;
 		ctx->m_pos = &*instructions->begin();
-		ctx->m_localvars = localvars;
+		ctx->m_lexicalvars = lexicalvars;
 		ctx->m_stack_pos = frame_count;
 		memset(ctx->m_data, 0, sizeof(Value)*instructions->frame_count());
 		return ctx;
@@ -138,11 +140,11 @@ namespace Channel9
 	{
 		IStream *istream = ptr<RunnableContext>(copy)->m_instructions;
 		size_t frame_count = istream->frame_count();
-		size_t frame_extra = sizeof(Value)*(frame_count + istream->stack_size());
+		size_t frame_extra = sizeof(Value)*(istream->frame_size());
 		RunningContext *ctx = value_pool.alloc<RunningContext>(frame_extra, RUNNING_CONTEXT);
 
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
-		ctx->m_stack_pos = frame_count;
+		ctx->m_stack_pos = istream->stack_offset();
 		ctx->m_caller = caller;
 		return ctx;
 	}
@@ -150,7 +152,7 @@ namespace Channel9
 	inline void gc_scan(RunnableContext *ctx)
 	{
 		gc_scan(ctx->m_instructions);
-		value_pool.mark(&ctx->m_localvars);
+		value_pool.mark(&ctx->m_lexicalvars);
 		size_t i;
 		for (i = 0; i < ctx->m_stack_pos; i++)
 		{
@@ -162,7 +164,7 @@ namespace Channel9
 		gc_scan(ctx->m_instructions);
 		if (ctx->m_caller)
 			value_pool.mark(&ctx->m_caller);
-		value_pool.mark(&ctx->m_localvars);
+		value_pool.mark(&ctx->m_lexicalvars);
 		size_t i;
 		for (i = 0; i < ctx->m_stack_pos; i++)
 		{

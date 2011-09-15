@@ -1,6 +1,6 @@
 {
 	"code": [
-		["lexical_set", 0, "exit"],
+		["frame_set", "exit"],
 		["pop"],
 
 		["line", "gcd", 1, 0, "def gcd(a,b)"],
@@ -8,25 +8,25 @@
 		["lexical_set", 0, "gcd"],
 		["jmp", "gcd_done"],
 		["set_label", "gcd_body"],
-		["lexical_set", 0, "output"],
+		["local_set", "output"],
 		["message_unpack", 2, 0, 0],
 		["dup_top"], ["channel_special", "stdout"], ["swap"], ["channel_call"], ["pop"], ["pop"],
-		["lexical_set", 0, "a"],
+		["local_set", "a"],
 		["dup_top"], ["channel_special", "stdout"], ["swap"], ["channel_call"], ["pop"], ["pop"],
-		["lexical_set", 0, "b"],
+		["local_set", "b"],
 		["pop"],
 
 		["line", "gcd", 2, 0, " if (b != 0)"],
-		["lexical_get", 0, "b"],
+		["local_get", "b"],
 		["is", 0],
 		["jmp_if", "gcd_found"],
 
 		["line", "gcd", 3, 0, "  output <- gcd(b, a % b)"],
 		["lexical_get", 0, "gcd"],
-		["lexical_get", 0, "output"],
-		["lexical_get", 0, "b"],
-		["lexical_get", 0, "a"],
-		["lexical_get", 0, "b"],
+		["local_get", "output"],
+		["local_get", "b"],
+		["local_get", "a"],
+		["local_get", "b"],
 		["message_new", "%", 0, 1],
 		["channel_call"],
 		["pop"],
@@ -37,8 +37,8 @@
 		["set_label", "gcd_found"],
 
 		["line", "gcd", 5, 0, "  return a"],
-		["lexical_get", 0, "output"],
-		["lexical_get", 0, "a"],
+		["local_get", "output"],
+		["local_get", "a"],
 		["channel_ret"],
 
 		["set_label", "gcd_done"],
@@ -50,12 +50,12 @@
 		["message_new", "gcd", 0, 2],
 		["channel_call"],
 		["pop"],
-		["lexical_set", 0, "res"],
+		["local_set", "res"],
 
 		["line", "gcd", 7, 0, " $stdout <- res"],
 		["channel_special", "stdout"],
-		["lexical_get", 0, "exit"],
-		["lexical_get", 0, "res"],
+		["frame_get", "exit"],
+		["local_get", "res"],
 		["channel_send"]
 	]
 }
