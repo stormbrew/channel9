@@ -1,4 +1,4 @@
-var fibo_aux = (n,i,k) -> return {
+lexical fibo_aux = (n,i,k) -> return {
   if (i != n + 1) {
     return <- fibo_aux(n,i+1,k+i)
   } else {
@@ -6,7 +6,7 @@ var fibo_aux = (n,i,k) -> return {
   }
 }
 
-var fibo = (n) {
+local fibo = (n) {
   fibo_aux(n,1,0)
 }
 

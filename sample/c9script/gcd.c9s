@@ -1,4 +1,4 @@
-var gcd = (a, b) -> output {
+lexical gcd = (a, b) -> output {
 	if (b != 0) {
 		output <- gcd(b, a % b) // <- is basically return. Can't come back
 	} else {
