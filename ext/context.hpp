@@ -144,6 +144,7 @@ namespace Channel9
 		RunningContext *ctx = value_pool.alloc<RunningContext>(frame_extra, RUNNING_CONTEXT);
 
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
+		std::fill(ctx->m_data + istream->local_offset(), ctx->m_data + istream->stack_offset(), Nil);
 		ctx->m_stack_pos = istream->stack_offset();
 		ctx->m_caller = caller;
 		return ctx;
@@ -154,7 +155,8 @@ namespace Channel9
 		gc_scan(ctx->m_instructions);
 		value_pool.mark(&ctx->m_lexicalvars);
 		size_t i;
-		for (i = 0; i < ctx->m_stack_pos; i++)
+		size_t count = ctx->m_instructions->frame_count();
+		for (i = 0; i < count; i++)
 		{
 			gc_scan(ctx->m_data[i]);
 		}
