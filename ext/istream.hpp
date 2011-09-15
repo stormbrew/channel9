@@ -32,7 +32,7 @@ namespace Channel9
 		std::vector<SourcePos> m_source_info;
 
 		typedef std::map<std::string, size_t> name_map;
-		name_map m_locals;
+		name_map m_lexicals;
 		name_map m_frames;
 
 		std::vector<Instruction> m_instructions;
@@ -58,11 +58,11 @@ namespace Channel9
 
 		size_t label_pos(const std::string &label) const { return m_labels.find(label)->second; }
 
-		size_t local(const std::string &name);
-		size_t local(const std::string &name) const;
+		size_t lexical(const std::string &name);
+		size_t lexical(const std::string &name) const;
 		size_t frame(const std::string &name);
 		size_t frame(const std::string &name) const;
-		size_t local_count() const;
+		size_t lexical_count() const;
 		size_t frame_count() const;
 
 		size_t stack_size() const { return m_stack_size; }

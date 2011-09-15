@@ -206,13 +206,13 @@ namespace Channel9
 					m_context->pop();
 					break;
 
-				case LOCAL_CLEAN_SCOPE: {
+				case LEXICAL_CLEAN_SCOPE: {
 					CHECK_STACK(0, 0);
 					VariableFrame *frame = new_variable_frame(m_context->m_instructions);
 					m_context->new_scope(frame);
 					}
 					break;
-				case LOCAL_LINKED_SCOPE: {
+				case LEXICAL_LINKED_SCOPE: {
 					CHECK_STACK(0, 0);
 					VariableFrame *frame = new_variable_frame(m_context->m_instructions);
 					frame->link_frame(m_context->m_localvars);
@@ -234,22 +234,22 @@ namespace Channel9
 					m_context->pop();
 					}
 					break;
-				case LOCAL_GET: {
+				case LEXICAL_GET: {
 					CHECK_STACK(0, 1);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.arg3.machine_num;
-					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "local_get %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->get_localvar(localid, depth)));
+					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "lexical_get %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->get_localvar(localid, depth)));
 					if (depth == 0)
 						m_context->push(m_context->get_localvar(localid));
 					else
 						m_context->push(m_context->get_localvar(localid, depth));
 					}
 					break;
-				case LOCAL_SET: {
+				case LEXICAL_SET: {
 					CHECK_STACK(1, 0);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.arg3.machine_num;
-					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "local_set %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
+					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "lexical_set %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
 					if (depth == 0)
 						m_context->set_localvar(localid, m_context->top());
 					else
