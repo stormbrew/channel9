@@ -69,7 +69,6 @@ namespace Channel9
 		size_t frame(const std::string &name);
 		size_t frame(const std::string &name) const;
 		size_t lexical_count() const;
-		size_t local_count() const;
 		size_t frame_count() const;
 
 		size_t stack_size() const { return m_stack_size; }
