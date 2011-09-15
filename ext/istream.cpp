@@ -4,9 +4,8 @@
 
 namespace Channel9
 {
-	size_t IStream::normalize(size_t stack_size, size_t pos, std::vector<pos_info> &pos_map)
+	size_t IStream::normalize(size_t stack_size, name_map &locals, size_t pos, std::vector<pos_info> &pos_map)
 	{
-		size_t max_size = stack_size;
 		bool done = false;
 		while (!done)
 		{
@@ -37,6 +36,21 @@ namespace Channel9
 					ins.arg3 = value((long long)branch_pos);
 				}
 				break;
+			case LOCAL_SET:
+			case LOCAL_GET:
+				{
+					std::string name = ptr<String>(ins.arg1)->c_str();
+					name_map::iterator it = locals.find(name);
+					if (it == locals.end())
+					{
+						ins.arg3 = value((long long)locals.size());
+						locals.insert(make_pair(name, locals.size()));
+						if (m_local_size < locals.size()) m_local_size = locals.size();
+					} else {
+						ins.arg3 = value((long long)it->second);
+					}
+				}
+				break;
 			case CHANNEL_RET:
 			case CHANNEL_SEND:
 				done = true;
@@ -47,10 +61,10 @@ namespace Channel9
 
 			TRACE_OUT(TRACE_VM, TRACE_INFO) {
 				SourcePos spos = source_pos(pos-1);
-				tprintf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], max: %d\n  Line Info: %s:%d\n",
+				tprintf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], stack_max: %d, local_max: %d\n  Line Info: %s:%d\n",
 					(int)pos-1, inspect(ins).c_str(),
 					(int)stack_size, (int)insinfo.in, (int)insinfo.out, (int)(stack_size - insinfo.in + insinfo.out),
-					(int)max_size, spos.file.c_str(), (int)spos.line_num);
+					(int)m_stack_size, (int)m_local_size, spos.file.c_str(), (int)spos.line_num);
 			}
 			assert(stack_size >= insinfo.in);
 
@@ -68,7 +82,7 @@ namespace Channel9
 				info.first = true;
 				info.second = stack_size;
 
-				if (stack_size > max_size) max_size = stack_size;
+				if (stack_size > m_stack_size) m_stack_size = stack_size;
 
 				switch (ins.instruction)
 				{
@@ -81,16 +95,15 @@ namespace Channel9
 					{
 						size_t branch_pos = (size_t)ins.arg3.machine_num;
 						TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Conditional branch. Options: %d | %d\n", (int)pos, (int)branch_pos);
-						size_t r_max = normalize(stack_size, branch_pos, pos_map);
-						if (r_max > max_size) max_size = r_max;
+						normalize(stack_size, locals, branch_pos, pos_map);
 					}
 					break;
 				case CHANNEL_NEW:
 					{
 						size_t branch_pos = (size_t)ins.arg3.machine_num;
 						TRACE_PRINTF(TRACE_VM, TRACE_INFO, "New channel. Options: %d | %d\n", (int)pos, (int)branch_pos);
-						size_t r_max = normalize(2, branch_pos, pos_map);
-						if (r_max > max_size) max_size = r_max;
+						std::map<std::string, size_t> sublocals;
+						normalize(2, sublocals, branch_pos, pos_map);
 					}
 					break;
 				case CHANNEL_RET:
@@ -102,17 +115,22 @@ namespace Channel9
 				}
 			}
 		}
-		return max_size;
+		return m_stack_size;
 	}
 
 	size_t IStream::normalize()
 	{
-		size_t stack_size = 2; // entry point always starts at 2.
 		size_t pos = 0;
 		typedef std::pair<bool, size_t> pos_info;
 		std::vector<pos_info> pos_map(m_instructions.size(), pos_info(false, 0));
+		std::map<std::string, size_t> locals;
 
-		m_stack_size = normalize(stack_size, pos, pos_map);
+		m_stack_size = 2;
+		m_local_size = 0;
+		normalize(2, locals, pos, pos_map);
+		m_stack_offset = frame_count() + m_local_size;
+		m_local_offset = frame_count();
+		m_frame_size = m_stack_size + m_stack_offset;
 		TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Found max stack of stream to be %d\n", (int)m_stack_size);
 		return m_stack_size;
 	}

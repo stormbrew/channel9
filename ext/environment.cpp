@@ -215,7 +215,7 @@ namespace Channel9
 				case LEXICAL_LINKED_SCOPE: {
 					CHECK_STACK(0, 0);
 					VariableFrame *frame = new_variable_frame(m_context->m_instructions);
-					frame->link_frame(m_context->m_localvars);
+					frame->link_frame(m_context->m_lexicalvars);
 					m_context->new_scope(frame);
 					}
 					break;
@@ -234,15 +234,30 @@ namespace Channel9
 					m_context->pop();
 					}
 					break;
+				case LOCAL_GET: {
+					CHECK_STACK(0, 1);
+					size_t localid = (size_t)ins.arg3.machine_num;
+					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Getting local var %s (%d)\n", ptr<String>(ins.arg1)->c_str(), (int)localid);
+					m_context->push(m_context->get_localvar(localid));
+					}
+					break;
+				case LOCAL_SET: {
+					CHECK_STACK(1, 0);
+					size_t localid = (size_t)ins.arg3.machine_num;
+					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Setting local var %s (%d) to: %s\n", ptr<String>(ins.arg1)->c_str(), (int)localid, inspect(m_context->top()).c_str());
+					m_context->set_localvar(localid, m_context->top());
+					m_context->pop();
+					}
+					break;
 				case LEXICAL_GET: {
 					CHECK_STACK(0, 1);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.arg3.machine_num;
-					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "lexical_get %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->get_localvar(localid, depth)));
+					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "lexical_get %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->get_lexicalvar(localid, depth)));
 					if (depth == 0)
-						m_context->push(m_context->get_localvar(localid));
+						m_context->push(m_context->get_lexicalvar(localid));
 					else
-						m_context->push(m_context->get_localvar(localid, depth));
+						m_context->push(m_context->get_lexicalvar(localid, depth));
 					}
 					break;
 				case LEXICAL_SET: {
@@ -251,9 +266,9 @@ namespace Channel9
 					size_t localid = (size_t)ins.arg3.machine_num;
 					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "lexical_set %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
 					if (depth == 0)
-						m_context->set_localvar(localid, m_context->top());
+						m_context->set_lexicalvar(localid, m_context->top());
 					else
-						m_context->set_localvar(localid, depth, m_context->top());
+						m_context->set_lexicalvar(localid, depth, m_context->top());
 					m_context->pop();
 					}
 					break;

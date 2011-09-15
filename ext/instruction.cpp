@@ -23,6 +23,8 @@ namespace Channel9
 			INUM_DEF(DUP_TOP);
 			INUM_DEF(FRAME_GET);
 			INUM_DEF(FRAME_SET);
+			INUM_DEF(LOCAL_GET);
+			INUM_DEF(LOCAL_SET);
 			INUM_DEF(IS);
 			INUM_DEF(IS_EQ);
 			INUM_DEF(IS_NOT);
@@ -77,6 +79,8 @@ namespace Channel9
 			INAME_DEF(DUP_TOP);
 			INAME_DEF(FRAME_GET);
 			INAME_DEF(FRAME_SET);
+			INAME_DEF(LOCAL_GET);
+			INAME_DEF(LOCAL_SET);
 			INAME_DEF(IS);
 			INAME_DEF(IS_EQ);
 			INAME_DEF(IS_NOT);
@@ -138,6 +142,8 @@ namespace Channel9
 		IINFO(LEXICAL_LINKED_SCOPE, 0, 0, 0, false);
 		IINFO(FRAME_GET, 0, 1, 1, false);
 		IINFO(FRAME_SET, 1, 0, 1, false);
+		IINFO(LOCAL_GET, 0, 1, 1, false);
+		IINFO(LOCAL_SET, 1, 0, 1, false);
 		IINFO(LEXICAL_GET, 0, 1, 2, false);
 		IINFO(LEXICAL_SET, 1, 0, 2, false);
 
@@ -213,6 +219,8 @@ namespace Channel9
 		case JMP_IF_NOT:
 		case LEXICAL_GET:
 		case LEXICAL_SET:
+		case LOCAL_GET:
+		case LOCAL_SET:
 		case FRAME_GET:
 		case FRAME_SET:
 			str << ", c:" << inspect(ins.arg3);

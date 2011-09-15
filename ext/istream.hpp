@@ -41,9 +41,13 @@ namespace Channel9
 
 		// only valid after call to normalize
 		size_t m_stack_size;
+		size_t m_local_size;
+		size_t m_stack_offset;
+		size_t m_local_offset;
+		size_t m_frame_size;
 
 		typedef std::pair<bool, size_t> pos_info;
-		size_t normalize(size_t stack_size, size_t pos, std::vector<pos_info> &pos_map);
+		size_t normalize(size_t stack_size, name_map &locals, size_t pos, std::vector<pos_info> &pos_map);
 
 	public:
 		void add(const std::string &instruction, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil)
@@ -60,12 +64,18 @@ namespace Channel9
 
 		size_t lexical(const std::string &name);
 		size_t lexical(const std::string &name) const;
+		size_t local(const std::string &name);
+		size_t local(const std::string &name) const;
 		size_t frame(const std::string &name);
 		size_t frame(const std::string &name) const;
 		size_t lexical_count() const;
+		size_t local_count() const;
 		size_t frame_count() const;
 
 		size_t stack_size() const { return m_stack_size; }
+		size_t stack_offset() const { return m_stack_offset; }
+		size_t local_offset() const { return m_local_offset; }
+		size_t frame_size() const { return m_frame_size; }
 
 		// Turn jmp label references into numeric references.
 		// Returns the maximum stack size.
