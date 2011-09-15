@@ -121,6 +121,7 @@ namespace Channel9
 					break;
 				case DEBUGGER:
 					CHECK_STACK(0, 0);
+					DO_DEBUG __asm__("int3");
 					break;
 
 				case POP:
