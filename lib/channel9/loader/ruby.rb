@@ -37,10 +37,21 @@ module Channel9
         end
 
         ["singletons", "module", "string", "symbol", "kernel", "enumerable",
-         "static_tuple", "tuple", "array", "proc", "exceptions"].each do |file|
+         "static_tuple", "tuple", "array", "proc", "exceptions", "class"].each do |file|
           file = "#{c9rb_env}/kernel/beta/#{file}.rb"
           load_file(file)
         end
+
+        env.set_special_channel(:initial_load_path, [
+            :"#{c9rb_root}/environment/kernel", 
+            :"#{c9rb_root}/environment/lib",
+            :"#{c9rb_root}/environment/site-lib",
+            :"."
+          ])
+        env.set_special_channel(:print, CallbackChannel.new {|ienv, val, iret| 
+          print(val.positional.first.to_s)
+          iret.channel_send(@env, val, InvalidReturnChannel) 
+        })
 
         load_file("#{c9rb_env}/kernel/delta.rb")
 

@@ -1,7 +1,5 @@
 var prime_gen = () -> cont {
-	19 -> cont : cont
 	41 -> cont : cont
-	89 -> cont : cont
 	191 -> cont : cont
 	401 -> cont : cont
 	809 -> cont : cont

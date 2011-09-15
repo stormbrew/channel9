@@ -89,6 +89,12 @@ module Kernel
   end
   alias is_a? kind_of?
 
+  def print(*args)
+    args.each {|text|
+      $__c9_print.call(text.to_s_prim)
+    }
+  end
+
   def puts(*args)
     args.each {|arg|
       if (arg.kind_of?(::Channel9::Tuple) || arg.kind_of?(::StaticTuple) || arg.kind_of?(::Array))
@@ -116,7 +122,18 @@ module Kernel
     to_proc.to_proc_prim
   end
 
+  def to_s_prim
+    to_s.to_s_prim
+  end
+
   def inspect
     to_s
+  end
+
+  def __id__
+    __c9_object_id__
+  end
+  def object_id
+    __c9_object_id__
   end
 end

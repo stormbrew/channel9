@@ -1,3 +1,6 @@
+var prim_id_seq = 0
+var prim_map = $BasicHash($prime_gen)
+
 var RubyClass = (name, super) {
 	var instance_methods = $BasicHash($prime_gen)
 	var constants = $BasicHash($prime_gen)
@@ -26,7 +29,6 @@ var RubyClass = (name, super) {
 					swap
 					pop
 				}
-				
 				var meth = instance_methods.get(meth_name)
 				if (meth) {
 					return <- [meth,nil]
@@ -59,6 +61,22 @@ var RubyClass = (name, super) {
 					local_set 0 "imsg_name"
 					local_set 0 "imsg"
 				}
+
+				switch (imsg_name)
+				case ('__c9_class__') {
+					return <- self
+				} case ('__c9_primitive_id__') {
+					var id = prim_map.get(instance)
+					if (id) {
+						return <- id
+					} else {
+						prim_id_seq += 2
+						prim_map.set(instance, prim_id_seq)
+						return <- prim_id_seq
+					}
+				}
+				// At some point, need to implement ivars for primitive objects. Ugh.
+
 				var minfo = self.__c9_lookup__(imsg_name)
 				if (minfo) {
 					bytecode(minfo.at(0), return, imsg, instance, minfo.at(1)) {
@@ -72,16 +90,21 @@ var RubyClass = (name, super) {
 						channel_send
 					}
 				} else {
-					$unwinder.no_message_handler(imsg_name)
+					$unwinder.no_primitive_message_handler(name, imsg_name)
 				}
 			} case ('__c9_make_singleton__') {
-				if (super) {
-					// the superclass of a singleton for a class is its parent class' singleton
-					inner_obj.__c9_set_singleton__($RubyClass(self.to_s, super.__c9_singleton__))
+				var singleton = inner_obj.__c9_singleton__
+				if (singleton) {
+					return <- singleton
 				} else {
-					// if the class doesn't have a super, that means it's Object, whose singleton's
-					// parent class is Class.
-					inner_obj.__c9_set_singleton__($RubyClass(self.to_s, $Class))
+					if (super) {
+						// the superclass of a singleton for a class is its parent class' singleton
+						inner_obj.__c9_set_singleton__($RubyClass("Class:" + name, super.__c9_singleton__))
+					} else {
+						// if the class doesn't have a super, that means it's Object, whose singleton's
+						// parent class is Class.
+						inner_obj.__c9_set_singleton__($RubyClass("Class:" + name, $Class))
+					}
 				}
 			} case ('__c9_allocate__') {
 				if (self == $Class) {
@@ -140,7 +163,7 @@ var RubyClass = (name, super) {
 				}
 				var old_meth = self.__c9_lookup__(old_name)
 				if (old_meth) {
-					return <- instance_methods.set(new_name, old_meth.at(1))
+					return <- instance_methods.set(new_name, old_meth.at(0))
 				} else {
 					return <- nil
 				}
@@ -192,6 +215,7 @@ var RubyClass = (name, super) {
 				}
 			}
 		}
+		// "Class call to " + name + "." + msg_name + " forwarded to object" -> $stdout
 		// forward to the normal object for this class.
 		return <- msg -> inner_obj
 	}

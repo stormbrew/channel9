@@ -1,6 +1,6 @@
 # Convert the $LOAD_PATH to a normal array instead of the
 # tuple it started as.
-$LOAD_PATH = Array.new($LOAD_PATH)
+$LOAD_PATH = Array.new($__c9_initial_load_path)
 $: = $LOAD_PATH
 $LOADED_FEATURES = []
 
@@ -13,28 +13,28 @@ module Channel9
   end
 end
 
-load 'beta/kernel.rb'
-load 'beta/object.rb'
-load 'beta/class.rb'
-load 'beta/module.rb'
+load 'delta/kernel.rb'
+load 'delta/object.rb'
+load 'delta/class.rb'
+load 'delta/module.rb'
 
-load 'beta/comparable.rb'
+load 'delta/comparable.rb'
 
-load 'beta/channel9.rb'
+load 'delta/channel9.rb'
 
-load 'beta/string.rb'
-load 'beta/fixnum.rb'
-load 'beta/float.rb'
-load 'beta/message.rb'
-load 'beta/table.rb'
-load 'beta/range.rb'
-load 'beta/hash.rb'
+load 'delta/string.rb'
+load 'delta/fixnum.rb'
+load 'delta/float.rb'
+load 'delta/message.rb'
+load 'delta/table.rb'
+load 'delta/range.rb'
+load 'delta/hash.rb'
 
-load 'beta/file.rb'
-load 'beta/dir.rb'
-load 'beta/time.rb'
+load 'delta/file.rb'
+load 'delta/dir.rb'
+load 'delta/time.rb'
 
-load 'beta/regexp.rb'
+load 'delta/regexp.rb'
 
-load 'beta/signal.rb'
-load 'beta/thread.rb'
+load 'delta/signal.rb'
+load 'delta/thread.rb'

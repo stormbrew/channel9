@@ -14,7 +14,7 @@ class Object
   end
 
   def extend(mod)
-    self.singleton!.include(mod)
+    self.__c9_make_singleton__.include(mod)
   end
   def singleton_methods
     [] # TODO: Implement properly.
@@ -37,6 +37,4 @@ class Object
   def frozen?
     false
   end
-
-  alias_method :__id__, :object_id
 end

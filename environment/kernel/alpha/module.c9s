@@ -5,12 +5,12 @@ var RubyModule = (name) {
 	var inner_obj = $RubyObject($Module)
 
 	var self = (&msg) -> return {
-		var name
+		var msg_name
 		var is_c9
 		bytecode(msg) {
 			message_name
 			dup_top
-			local_set 0 "name"
+			local_set 0 "msg_name"
 			push "__c9_"
 			message_new "match" 0 1
 			channel_call
@@ -19,7 +19,7 @@ var RubyModule = (name) {
 			local_set 0 "is_c9"
 		}
 		if (is_c9) {
-			switch (name)
+			switch (msg_name)
 			case ('__c9_lookup__') {
 				var meth_name = bytecode(msg) {
 					message_unpack 1 0 0
@@ -94,7 +94,7 @@ var RubyModule = (name) {
 				}
 				var old_meth = self.__c9_lookup__(old_name)
 				if (old_meth) {
-					return <- instance_methods.set(new_name, old_meth.at(1))
+					return <- instance_methods.set(new_name, old_meth.at(0))
 				} else {
 					return <- nil
 				}

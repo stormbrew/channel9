@@ -865,7 +865,7 @@ module Channel9
         done_label = builder.make_label(label_prefix + ".done")
 
         transform(obj)
-        builder.message_new(:singleton!, 0, 0)
+        builder.message_new(:__c9_make_singleton__, 0, 0)
         builder.channel_call
         builder.pop
         builder.jmp(done_label)
@@ -966,7 +966,8 @@ module Channel9
         builder.channel_call
         builder.pop
 
-        builder.message_new(:new, 0, 2)
+        builder.swap
+        builder.message_new(:__c9_allocate__, 0, 2)
         builder.channel_call
         builder.pop
 
@@ -1068,7 +1069,7 @@ module Channel9
         builder.channel_special(:Module)
         builder.swap
 
-        builder.message_new(:new, 0, 1)
+        builder.message_new(:__c9_allocate__, 0, 1)
         builder.channel_call
         builder.pop
 
@@ -1164,6 +1165,7 @@ module Channel9
       def transform_colon2(lhs, name)
         transform(lhs)
         builder.push(name)
+        builder.message_new(:__c9_get_constant__, 0, 1)
         builder.channel_call
         builder.pop
       end
@@ -1249,7 +1251,7 @@ module Channel9
         builder.pop
       end
       def transform_gvar(name)
-        if (match = name.to_s.match(/^__c9__(.+)$/))
+        if (match = name.to_s.match(/^\$__c9_(.+)$/))
           builder.channel_special(match[1])
         else
           builder.channel_special(:globals)
