@@ -14,13 +14,13 @@ var RubyObject = (klass) {
 		bytecode(msg) {
 			message_name
 			dup_top
-			local_set 0 "name"
+			lexical_set 0 "name"
 			push "__c9_"
 			message_new "match" 0 1
 			channel_call
 			pop
 			is 5
-			local_set 0 "is_c9"
+			lexical_set 0 "is_c9"
 		}
 		if (is_c9) {
 			switch (name)
@@ -36,8 +36,8 @@ var RubyObject = (klass) {
 				var ivar_val
 				bytecode(msg) {
 					message_unpack 2 0 0
-					local_set 0 "ivar_name"
-					local_set 0 "ivar_val"
+					lexical_set 0 "ivar_name"
+					lexical_set 0 "ivar_val"
 				}
 				return <- ivars.set(ivar_name, ivar_val)
 			} case ("__c9_object_id__") {
@@ -52,7 +52,7 @@ var RubyObject = (klass) {
 				// re-identify self as being the wrapping object.
 				bytecode(msg) {
 					message_unpack 1 0 0
-					local_set 1 "self"
+					lexical_set 1 "self"
 				}
 				return <- self
 			} case ("__c9_singleton__") {

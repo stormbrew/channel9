@@ -25,7 +25,7 @@ module Channel9
         parent_vtables = @state[:vtable] || []
         with_state(:vtable => [Set.new, *parent_vtables], &block)
       end
-      def find_local_depth(name, add = false)
+      def find_lexical_depth(name, add = false)
         @state[:vtable].each_with_index do |tbl, idx|
           if tbl.include?(name.to_sym)
             return idx 
@@ -561,7 +561,7 @@ module Channel9
           if (defargs.length == 0)
             builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
             args.each do |arg|
-              builder.local_set(find_local_depth(arg, true), arg)
+              builder.lexical_set(find_lexical_depth(arg, true), arg)
             end
           else
             must_have = args.length - defargs.length
@@ -573,7 +573,7 @@ module Channel9
             builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
             i = 0
             must_have.times do
-              builder.local_set(find_local_depth(args[i], true), args[i])
+              builder.lexical_set(find_lexical_depth(args[i], true), args[i])
               i += 1
             end
 
@@ -581,7 +581,7 @@ module Channel9
               builder.frame_get("arg.count")
               builder.is(i)
               builder.jmp_if(defarg_labels[i-must_have])
-              builder.local_set(find_local_depth(args[i], true), args[i])
+              builder.lexical_set(find_lexical_depth(args[i], true), args[i])
               i += 1
             end
             builder.jmp(argdone_label)
@@ -601,7 +601,7 @@ module Channel9
             builder.message_new(:new, 0, 1)
             builder.channel_call
             builder.pop
-            builder.local_set(find_local_depth(splatarg, true), splatarg)
+            builder.lexical_set(find_lexical_depth(splatarg, true), splatarg)
           end
           if (blockarg)
             no_yield_label = builder.make_label("no_yield")
@@ -613,7 +613,7 @@ module Channel9
             builder.message_new(:new_from_prim, 0, 1)
             builder.channel_call
             builder.pop
-            builder.local_set(find_local_depth(blockarg, true), blockarg)
+            builder.lexical_set(find_lexical_depth(blockarg, true), blockarg)
             builder.push(nil)
             builder.set_label(no_yield_label)
             builder.pop
@@ -670,7 +670,7 @@ module Channel9
 
         builder.jmp(method_done_label)
         builder.set_label(method_label)
-        builder.local_clean_scope
+        builder.lexical_clean_scope
         builder.frame_set("return")
         
         if (nru = need_return_unwind(code))
@@ -871,7 +871,7 @@ module Channel9
         builder.jmp(done_label)
 
         builder.set_label(body_label)
-        builder.local_clean_scope
+        builder.lexical_clean_scope
         builder.frame_set("return")
         builder.message_sys_unpack(1)
         builder.dup_top
@@ -978,7 +978,7 @@ module Channel9
         builder.jmp(done_label)
 
         builder.set_label(body_label)
-        builder.local_clean_scope
+        builder.lexical_clean_scope
         builder.frame_set("return")
         builder.message_sys_unpack(1)
         builder.dup_top
@@ -1079,7 +1079,7 @@ module Channel9
         builder.jmp(done_label)
 
         builder.set_label(body_label)
-        builder.local_clean_scope
+        builder.lexical_clean_scope
         builder.frame_set("return")
         builder.message_sys_unpack(1)
         builder.dup_top
@@ -1229,10 +1229,10 @@ module Channel9
       def transform_lasgn(name, val = nil)
         transform(val) if !val.nil?
         builder.dup_top
-        builder.local_set(find_local_depth(name, true), name)
+        builder.lexical_set(find_lexical_depth(name, true), name)
       end
       def transform_lvar(name)
-        builder.local_get(find_local_depth(name), name)
+        builder.lexical_get(find_lexical_depth(name), name)
       end
 
       def transform_gasgn(name, val = nil)
@@ -1521,7 +1521,7 @@ module Channel9
         builder.pop
 
         with_linked_vtable do
-          builder.local_linked_scope if (new_scope)
+          builder.lexical_linked_scope if (new_scope)
           if (args.nil?)
             # no args, pop the message off the stack.
             builder.pop
@@ -1667,7 +1667,7 @@ module Channel9
         end
         builder.set_label(found_label)
         if (err_assign)
-          builder.local_set(find_local_depth(err_assign, true), err_assign)
+          builder.lexical_set(find_lexical_depth(err_assign, true), err_assign)
         else
           builder.pop
         end
