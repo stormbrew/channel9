@@ -8,14 +8,27 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <vector>
 
 namespace Channel9
 {
 	class CallableContext
 	{
+	private:
+		typedef std::vector<CallableContext*> context_set;
+		static context_set contexts;
+		static bool sweep_flag;
+
+		bool m_sweep;
+	
 	public:
+		CallableContext() : m_sweep(sweep_flag) 
+		{ contexts.push_back(this); }
+
+		static void sweep();
+
 		virtual void send(Environment *env, const Value &val, const Value &ret) = 0;
-		virtual void scan() = 0;
+		virtual void scan(); // Make SURE to call down to this.
 		virtual ~CallableContext() {};
 	};
 

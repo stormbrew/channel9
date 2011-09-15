@@ -18,7 +18,6 @@ namespace Channel9
 			printf("Trap: Tried to return to unreturnable context.");
 			exit(1);
 		}
-		virtual void scan() {}
 		virtual ~NoReturnContext() {}
 	};
 
@@ -69,6 +68,8 @@ namespace Channel9
 		{
 			gc_scan(it->second);
 		}
+
+		no_return_ctx.scan();
 	}
 
 	void Environment::run(RunningContext *context)

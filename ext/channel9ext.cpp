@@ -85,9 +85,6 @@ public:
 		if (error)
 			throw RubyUnwind(error);
 	}
-
-	void scan()
-	{}
 };
 
 

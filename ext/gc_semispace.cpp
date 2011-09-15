@@ -94,6 +94,10 @@ namespace Channel9
 
 		m_next_gc = std::max(CHUNK_SIZE*0.9, m_used * GC_GROWTH_LIMIT);
 
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Sweeping CallableContext objects\n");
+
+		CallableContext::sweep();
+
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
 
 		m_in_gc = false;
