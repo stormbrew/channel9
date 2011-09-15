@@ -17,8 +17,9 @@ module Channel9
         end
 
         def find_var(name)
+          return [0, @variable_frames.first[name]] if @variable_frames.first[name]
           @variable_frames.each_with_index do |frame, idx|
-            return idx if frame[name]
+            return [idx, frame[name]] if (frame[name] == 'lexical' || frame[name] == 'frame')
           end
           nil
         end
@@ -30,8 +31,8 @@ module Channel9
             @variable_frames.shift
           end
         end
-        def declare_var(name)
-          @variable_frames.first[name] = true
+        def declare_var(name, type)
+          @variable_frames.first[name] = type
         end
       end
 
@@ -106,37 +107,32 @@ module Channel9
           done_label = prefix + "done"
           body_label = prefix + "body"
 
+          output_var = output || LocalDeclareNode.new(nil, :name => 'return', :type => 'frame')
+
           stream.jmp(done_label)
           stream.set_label(body_label)
 
           stream.lexical_linked_scope
           ctx.variable_frame do
-            if (output)
-              stream.dup_top
-              ctx.declare_var(output.name)
-              stream.lexical_set(0, output.name)
-            end  
-            stream.frame_set("return")
+            output_var.compile_argument(ctx, stream, true)
 
             if (args && args.first && args.length > 0)
               stream.message_unpack(args.length, 0, 0)
 
               args.each do |arg|
-                ctx.declare_var(arg.name)
-                stream.lexical_set(0, arg.name)
+                arg.compile_argument(ctx, stream, true)
               end
             end
 
             if (msg.nil?)
               stream.pop # remove the message
             else
-              ctx.declare_var(msg)
-              stream.lexical_set(0, msg)
+              msg.compile_argument(ctx, stream, true)
             end
 
             body.compile_node(ctx, stream, false)
 
-            stream.frame_get("return")
+            output_var.compile_get(ctx, stream, false)
             stream.swap
             stream.channel_ret
           end
@@ -160,28 +156,103 @@ module Channel9
           ctx.find_var(name)
         end
 
-        def compile(ctx, stream, void)
-          var_depth = find(ctx)
+        # arguments always default to local
+        def compile_argument(ctx, stream, void)
+          ctx.declare_var(name, "local")
+          stream.dup_top if (!void)
+          stream.local_set(name)
+        end
+
+        def compile_get(ctx, stream, void)
+          compile(ctx, stream, void)
+        end
+
+        def compile_set(ctx, stream, void)
+          var_depth, type = find(ctx)
           raise "Undeclared variable '#{name}' at #{ctx.filename}:#{line}:#{col}" if !var_depth
-          stream.lexical_get(var_depth, name) if (!void)
+
+          case (type)
+          when 'lexical'
+            stream.lexical_set(var_depth, name)
+          when 'local'
+            stream.local_set(name)
+          when 'frame'
+            stream.frame_set(name)
+          else
+            raise "Unknown variable type #{type}"
+          end
+        end
+
+        def compile(ctx, stream, void)
+          var_depth, type = *find(ctx)
+          raise "Undeclared variable '#{name}' at #{ctx.filename}:#{line}:#{col}" if !var_depth
+          if (!void)
+            case (type)
+            when 'lexical'
+              stream.lexical_get(var_depth, name)
+            when 'local'
+              stream.local_get(name)
+            when 'frame'
+              stream.frame_get(name)
+            else
+              raise "Unknown variable type #{type}"
+            end
+          end
         end
       end
       class LocalDeclareNode < LocalVariableNode
+        attr_accessor :type
         attr_accessor :expression
 
         def find(ctx)
-          ctx.declare_var(name)
-          0
+          ctx.declare_var(name, type)
+          [0, type]
         end
 
+        # compile with the value to be set already on
+        # the stack.
+        def compile_argument(ctx, stream, void)
+          find(ctx)
+          stream.dup_top if (!void)
+          case (type)
+          when 'lexical'
+            stream.lexical_set(0, name)
+          when 'local'
+            stream.local_set(name)
+          when 'frame'
+            stream.frame_set(name)
+          else
+            raise "Unknown variable type #{type}"
+          end
+        end
+
+        def compile_set(ctx, stream, void)
+          compile_argument(ctx, stream, void)
+        end
+
+        def compile_get(ctx, stream, void)
+          var_depth, type = *find(ctx)
+          raise "Undeclared variable '#{name}' at #{ctx.filename}:#{line}:#{col}" if !var_depth
+          if (!void)
+            case (type)
+            when 'lexical'
+              stream.lexical_get(var_depth, name)
+            when 'local'
+              stream.local_get(name)
+            when 'frame'
+              stream.frame_get(name)
+            else
+              raise "Unknown variable type #{type}"
+            end
+          end
+        end
         def compile(ctx, stream, void)
           if (expression.nil?)
             super
           else
             find(ctx)
             expression.compile_node(ctx, stream, false)
-            stream.dup_top if (!void)
-            stream.lexical_set(0, name)
+            compile_argument(ctx, stream, void)
           end
         end
       end
@@ -230,8 +301,7 @@ module Channel9
           if (continuation.nil?)
             stream.pop
           else
-            depth = continuation.find(ctx)
-            stream.lexical_set(depth, continuation.name)
+            continuation.compile_set(ctx, stream, true)
           end
           stream.pop if (void)
         end
@@ -318,20 +388,20 @@ module Channel9
         attr_accessor :var, :op
 
         def compile(ctx, stream, void)
-          var_depth = var.find(ctx)
+          var_depth, type = var.find(ctx)
           raise "Undeclared variable '#{var.name}' at #{ctx.filename}:#{line}:#{col}" if !var_depth
 
           if (op != '=')
             real_op = op.gsub(/=$/, '')
             stream.message_new(real_op, 0, 1)
-            stream.lexical_get(var_depth, var.name)
+            var.compile_node(ctx, stream, false)
             stream.swap
             stream.channel_call
             stream.pop
           end
 
           stream.dup_top if (!void)
-          stream.lexical_set(var_depth, var.name)
+          var.compile_set(ctx, stream, void)
         end
       end
       class AssignmentNode < Node
@@ -509,10 +579,10 @@ module Channel9
         FunctionNode.new(body, :body => body, :args => args, :output => output)
       }
       rule(:func => simple(:body), :args => sequence(:args), :output_var => simple(:output), :msg_var => simple(:msg)) {
-        FunctionNode.new(body, :body => body, :args => args, :output => output, :msg => msg.to_s)
+        FunctionNode.new(body, :body => body, :args => args, :output => output, :msg => msg)
       }
       rule(:func => simple(:body), :args => sequence(:args), :msg_var => simple(:msg)) {
-        FunctionNode.new(body, :body => body, :args => args, :msg => msg.to_s)
+        FunctionNode.new(body, :body => body, :args => args, :msg => msg)
       }
       rule(:func => simple(:body), :args => sequence(:args)) {
         FunctionNode.new(body, :body => body, :args => args)
@@ -524,22 +594,22 @@ module Channel9
         FunctionNode.new(body, :body => body, :args => [args])
       }
       rule(:func => simple(:body), :args => simple(:args), :output_var => simple(:output), :msg_var => simple(:msg)) {
-        FunctionNode.new(body, :body => body, :args => [args], :output => output, :msg => msg.to_s)
+        FunctionNode.new(body, :body => body, :args => [args], :output => output, :msg => msg)
       }
       rule(:func => simple(:body), :args => simple(:args), :msg_var => simple(:msg)) {
-        FunctionNode.new(body, :body => body, :args => [args], :msg => msg.to_s)
+        FunctionNode.new(body, :body => body, :args => [args], :msg => msg)
       }
       rule(:func => simple(:body), :output_var => simple(:output), :msg_var => simple(:msg)) {
-        FunctionNode.new(body, :body => body, :output => output, :msg => msg.to_s)
+        FunctionNode.new(body, :body => body, :output => output, :msg => msg)
       }
       rule(:func => simple(:body), :msg_var => simple(:msg)) {
-        FunctionNode.new(body, :body => body, :msg => msg.to_s)
+        FunctionNode.new(body, :body => body, :msg => msg)
       }
 
       rule(:local_var => simple(:name)) { LocalVariableNode.new(name, :name => name.to_s) }
-      rule(:declare_var => simple(:name)) { LocalDeclareNode.new(name, :name => name.to_s) }
-      rule(:declare_var => simple(:name), :assign => simple(:expression)) { 
-        LocalDeclareNode.new(name, :name => name.to_s, :expression => expression) 
+      rule(:declare_var => simple(:name), :type => simple(:type)) { LocalDeclareNode.new(name, :name => name.to_s, :type => type.to_s) }
+      rule(:declare_var => simple(:name), :type => simple(:type), :assign => simple(:expression)) { 
+        LocalDeclareNode.new(name, :name => name.to_s, :type => type.to_s, :expression => expression) 
       }
       rule(:special_var => simple(:name)) { SpecialVariableNode.new(name, :name => name.to_s) }
 

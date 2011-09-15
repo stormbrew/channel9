@@ -1,14 +1,14 @@
-var ho
-var hi = () {
-	var cont = ho
-	var count = 0
+lexical ho
+lexical hi = () {
+	local cont = ho
+	local count = 0
 	while (count != 1000) {
 		"hi " + count.to_string_primitive -> $stdout
 		count = (count + 1 -> cont : cont)
 	}
 }
 
-var ho = (&count) -> cont {
+lexical ho = (&count) -> cont {
 	while (true) {
 		"ho " + count.to_string_primitive -> $stdout
 		count = (count + 1 -> cont : cont)

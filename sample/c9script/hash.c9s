@@ -1,13 +1,13 @@
-var HashClass = (table_size) {
+lexical HashClass = (lexical table_size) {
 	"New hash(" + table_size.to_string_primitive + ")" -> $stdout
 
-	var table = []
-	var next = nil
+	lexical table = []
+	lexical next = nil
 
-	var get = (index) -> return {
-		var hash = index.hash() % table_size
+	lexical get = (index) -> return {
+		local hash = index.hash() % table_size
 		if (hash < table.length()) {
-			var item = table.at(hash)
+			local item = table.at(hash)
 
 			if (item) {
 				if (item.at(0) == index) { return <- item.at(1) }
@@ -16,11 +16,11 @@ var HashClass = (table_size) {
 		}
 		return <- undef
 	}
-	var set = (index, val) -> return {
-		var hash = index.hash() % table_size
+	lexical set = (index, val) -> return {
+		local hash = index.hash() % table_size
 		"setting " + index + "(" + hash.to_string_primitive + ")" -> $stdout
 		if (hash < table.length()) {
-			var item = table.at(hash)
+			local item = table.at(hash)
 			if (item) {
 				if (item.at(0) != index) {
 					if (next == nil) {
@@ -35,7 +35,7 @@ var HashClass = (table_size) {
 	}
 
 	(&msg) -> return {
-		var name = bytecode(msg) {
+		local name = bytecode(msg) {
 			message_name
 			swap
 			pop
@@ -49,9 +49,9 @@ var HashClass = (table_size) {
 	}
 }
 
-var hash = HashClass(19)
+local hash = HashClass(19)
 
-var n = 0
+local n = 0
 while (n != 200) {
 	"adding " + n.to_string_primitive -> $stdout
 	hash.set("hi " + n.to_string_primitive, n+1)

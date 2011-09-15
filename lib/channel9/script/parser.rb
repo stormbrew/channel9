@@ -44,9 +44,12 @@ module Channel9
       rule(:local_var) {
         symbol.as(:local_var)
       }
+      rule(:var_type) {
+        (str("lexical") | str("local") | str("frame"))
+      }
       rule(:declare_var) {
-        (str("var") >> lws >> symbol.as(:declare_var) >> lws? >> str("=") >> lws? >> expression.as(:assign)) |
-        (str("var") >> lws >> symbol.as(:declare_var))
+        (var_type.as(:type) >> lws >> symbol.as(:declare_var) >> lws? >> str("=") >> lws? >> expression.as(:assign)) |
+        (var_type.as(:type) >> lws >> symbol.as(:declare_var))
       }
       rule(:special_var) {
         str('$') >> symbol.as(:special_var)
@@ -87,12 +90,12 @@ module Channel9
       }
 
       rule(:argdef) {
-        local_var >> (iws? >> str(',') >> iws? >> local_var).repeat
+        variable >> (iws? >> str(',') >> iws? >> variable).repeat
       }
 
       rule(:argdef_list) {
-        (str('(') >> iws? >> argdef.as(:args) >> iws? >> str(",") >> iws? >> str('&') >> symbol.as(:msg_var) >> iws? >> str(')')) |
-        (str('(') >> iws? >> str('&') >> symbol.as(:msg_var) >> iws? >> str(')')) |
+        (str('(') >> iws? >> argdef.as(:args) >> iws? >> str(",") >> iws? >> str('&') >> variable.as(:msg_var) >> iws? >> str(')')) |
+        (str('(') >> iws? >> str('&') >> variable.as(:msg_var) >> iws? >> str(')')) |
         (str('(') >> iws? >> argdef.maybe.as(:args) >> iws? >> str(')'))
       }
 
