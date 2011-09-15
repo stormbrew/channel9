@@ -12,11 +12,23 @@ $Object.__c9_add_constant__("Channel9", $Channel9)
 $set_special_channel("Kernel", $Kernel)
 $set_special_channel("Channel9", $Channel9)
 
-var make_primitive_class = (cname, prim_name) {
+var make_basic_class = (cname) {
 	var class = $Class.__c9_allocate__(cname, $Object)
-	$set_special_channel("Channel9::Primitive::" + prim_name, class)
 	$Object.__c9_add_constant__(cname, class)
+	$set_special_channel(cname, class)
+	class
 }
+var make_primitive_class = (cname, prim_name) {
+	var class = make_basic_class(cname)
+	$set_special_channel("Channel9::Primitive::" + prim_name, class)
+	class
+}
+make_basic_class("Proc")
+make_basic_class("Regexp")
+make_basic_class("Hash")
+make_basic_class("Range")
+make_basic_class("String")
+make_basic_class("Array")
 make_primitive_class("Fixnum", "Number")
 make_primitive_class("Float", "Float")
 make_primitive_class("Symbol", "String")
