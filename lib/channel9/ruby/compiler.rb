@@ -895,18 +895,8 @@ module Channel9
 
         builder.set_label(done_label)
 
-        builder.dup_top
-        builder.message_new(:"__c9_make_singleton__", 0, 0)
-        builder.channel_call
-        builder.pop
-        builder.push(:__sbody__)
         builder.channel_new(body_label)
-        builder.message_new(:__c9_add_method__, 0, 2)
-        builder.channel_call
-        builder.pop
-        builder.pop
-
-        builder.message_new(:__sbody__, 0, 0)
+        builder.message_new(:__c9_instance_eval__, 0, 1)
         builder.channel_call
         builder.pop
       end
