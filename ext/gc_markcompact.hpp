@@ -154,14 +154,14 @@ namespace Channel9
 		{
 			assert(size < 8000);
 
-			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Alloc %u type %x ... ", (unsigned)size, type);
+			TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... ", (unsigned)size, type);
 
 			size += (8 - size % 8) % 8; //8 byte align
 
 			while(1){
 				Data * data = m_cur_block->alloc(size, type);
 
-				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "from block %p, got %p ... ", m_cur_block, data);
+				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "from block %p, got %p ... ", m_cur_block, data);
 
 				if(data){
 					if(new_alloc)
@@ -170,7 +170,7 @@ namespace Channel9
 						m_data_blocks++;
 					}
 
-					TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
+					TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
 
 					return data->m_data;
 				}
@@ -181,7 +181,7 @@ namespace Channel9
 				m_cur_block = m_empty_blocks.back();
 				m_empty_blocks.pop_back();
 
-				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "grabbing a new empty block: %p ... ", m_cur_block);
+				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "grabbing a new empty block: %p ... ", m_cur_block);
 			}
 			return NULL;
 		}
@@ -194,7 +194,7 @@ namespace Channel9
 
 			Block * b = (Block *)mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
 
-			TRACE_PRINTF(TRACE_GC, TRACE_INFO, "alloc chunk %p, %i zeros\n", b, (int)count_bottom_zeros4((uintptr_t)b));
+			TRACE_PRINTF(TRACE_ALLOC, TRACE_INFO, "alloc chunk %p, %i zeros\n", b, (int)count_bottom_zeros4((uintptr_t)b));
 
 			assert(count_bottom_zeros4((uintptr_t)b) >= BLOCK_SIZE); //make sure blocks will be properly aligned
 

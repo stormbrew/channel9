@@ -18,6 +18,7 @@ subscription |= (2**30-1) if traces.include?('all')
 subscription |= 1 if traces.include?('general')
 subscription |= 2 if traces.include?('vm')
 subscription |= 4 if traces.include?('gc')
+subscription |= 8 if traces.include?('alloc')
 $CFLAGS << " -DTRACE_SUB=" + subscription.to_s
 
 levels = {

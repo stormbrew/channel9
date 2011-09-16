@@ -89,7 +89,7 @@ namespace Channel9
 			assert(size < (CHUNK_SIZE >> 4));
 
 			if(!m_in_gc)
-				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
+				TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
 
 			size += (8 - size % 8) % 8; //8 byte align
 
@@ -106,7 +106,7 @@ namespace Channel9
 					data->m_count = size;
 
 					if(!m_in_gc)
-						TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
+						TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
 
 					return data->m_data;
 				}
