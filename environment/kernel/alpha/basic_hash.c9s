@@ -13,10 +13,13 @@ lexical prime_gen = () -> cont {
 }
 $set_special_channel('prime_gen', prime_gen)
 
-lexical Hash = (lexical table_size_seq) {
-	lexical table_size = (nil -> table_size_seq : table_size_seq)
-	lexical table = []
-	lexical next = nil
+lexical Hash = (lexical table_size_seq, lexical table, lexical table_size, lexical next) {
+	if (table == nil)
+	{
+		table_size = (nil -> table_size_seq : table_size_seq)
+		table = []
+		next = nil
+	}
 
 	lexical get = (index) -> return {
 		local hash = index.hash() % table_size
@@ -46,6 +49,9 @@ lexical Hash = (lexical table_size_seq) {
 		table = table.replace(hash, [index,val])
 		return <- val
 	}
+	lexical dup = () {
+		return <- Hash(table_size_seq, table, table_size, next)
+	}
 
 	(&msg) -> return {
 		local name = bytecode(msg) {
@@ -58,6 +64,8 @@ lexical Hash = (lexical table_size_seq) {
 			return <- msg -> get
 		} case ('set') {
 			return <- msg -> set
+		} case ('dup') {
+			return <- msg -> dup
 		}
 	}
 }
