@@ -130,6 +130,14 @@ module Kernel
     to_s
   end
 
+  def dup
+    nobj = __c9_dup__
+    nobj.initialize_copy(self)
+    nobj
+  end
+  def initialize_copy(other)
+  end
+
   def __id__
     __c9_object_id__
   end

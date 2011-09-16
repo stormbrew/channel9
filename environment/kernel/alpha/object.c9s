@@ -1,11 +1,13 @@
 lexical id_seq = 2148425000
 
-lexical RubyObject = (lexical klass) {
+lexical RubyObject = (lexical klass, lexical ivars) {
 	lexical singleton = klass
 	// TODO: make the generator be shared among all instances
 	// of the same class so they all start with appropriately
 	// sized hashes.
-	lexical ivars = $BasicHash($prime_gen)
+	if (ivars == nil) {
+		ivars = $BasicHash($prime_gen)
+	}
 	lexical id = nil
 
 	lexical self = (&msg) -> return {
@@ -84,6 +86,8 @@ lexical RubyObject = (lexical klass) {
 					message_new "call" 1 0
 					channel_send
 				}
+			} case ("__c9_dup__") {
+				return <- RubyObject(klass, ivars.dup)
 			}
 		}
 
