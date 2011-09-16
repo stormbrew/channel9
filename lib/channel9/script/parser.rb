@@ -51,6 +51,10 @@ module Channel9
         (var_type.as(:type) >> lws >> symbol.as(:declare_var) >> lws? >> str("=") >> lws? >> expression.as(:assign)) |
         (var_type.as(:type) >> lws >> symbol.as(:declare_var))
       }
+      rule(:arg_declare_var) {
+        (var_type.as(:type) >> lws >> symbol.as(:declare_var)) |
+        symbol.as(:declare_var)
+      }
       rule(:special_var) {
         str('$') >> symbol.as(:special_var)
       }
@@ -90,12 +94,12 @@ module Channel9
       }
 
       rule(:argdef) {
-        variable >> (iws? >> str(',') >> iws? >> variable).repeat
+        arg_declare_var >> (iws? >> str(',') >> iws? >> arg_declare_var).repeat
       }
 
       rule(:argdef_list) {
-        (str('(') >> iws? >> argdef.as(:args) >> iws? >> str(",") >> iws? >> str('&') >> variable.as(:msg_var) >> iws? >> str(')')) |
-        (str('(') >> iws? >> str('&') >> variable.as(:msg_var) >> iws? >> str(')')) |
+        (str('(') >> iws? >> argdef.as(:args) >> iws? >> str(",") >> iws? >> str('&') >> arg_declare_var.as(:msg_var) >> iws? >> str(')')) |
+        (str('(') >> iws? >> str('&') >> arg_declare_var.as(:msg_var) >> iws? >> str(')')) |
         (str('(') >> iws? >> argdef.maybe.as(:args) >> iws? >> str(')'))
       }
 

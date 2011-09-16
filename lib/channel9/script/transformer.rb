@@ -8,7 +8,8 @@ module Channel9
         def initialize(filename)
           @filename = filename
           @label_prefixes = Hash.new {|h,k| h[k] = 0 }
-          @variable_frames = [{}]
+          @variable_frames = [[0, {}]]
+          @lexical_scope_level = 0
         end
 
         def label_prefix(name)
@@ -17,22 +18,27 @@ module Channel9
         end
 
         def find_var(name)
-          return [0, @variable_frames.first[name]] if @variable_frames.first[name]
-          @variable_frames.each_with_index do |frame, idx|
-            return [idx, frame[name]] if (frame[name] == 'lexical' || frame[name] == 'frame')
+          return [0, @variable_frames.first[1][name]] if @variable_frames.first[1][name]
+          @variable_frames.each do |idx, frame|
+            return [@lexical_scope_level - idx, frame[name]] if (frame[name] == 'lexical' || frame[name] == 'frame')
           end
           nil
         end
-        def variable_frame(&block)
+        def variable_frame(stream, has_lexical_scope, &block)
           begin
-            @variable_frames.unshift({})
+            if (has_lexical_scope)
+              stream.lexical_linked_scope
+              @lexical_scope_level += 1
+            end
+            @variable_frames.unshift([@lexical_scope_level, {}])
             block.call
           ensure
             @variable_frames.shift
+            @lexical_scope_level -= 1 if (has_lexical_scope)
           end
         end
         def declare_var(name, type)
-          @variable_frames.first[name] = type
+          @variable_frames.first[1][name] = type
         end
       end
 
@@ -47,6 +53,7 @@ module Channel9
           other.each {|k, v|
             send(:"#{k}=", v)
           }
+          @other = other
         end
         def line_and_column
           [@line, @col]
@@ -59,6 +66,28 @@ module Channel9
             ctx.last_line = line_info
           end
           compile(ctx, stream, void)
+        end
+
+        def visit_child(child, &action)
+          if (child.respond_to?(:visit))
+            child.visit(&action)
+          elsif (child.respond_to?(:to_ary) && child.respond_to?(:each))
+            child.each {|i| visit_child(i, &action) }
+          else
+            action.call(child)
+          end
+        end
+
+        # visits all child nodes calling action. If action
+        # returns stop, it won't continue recursing. To
+        # stop all processing, use throw.
+        def visit(&action)
+          cont = action.call(self)
+          if (cont != :stop)
+            @other.each {|k,child|
+              visit_child(child, &action)
+            }
+          end
         end
       end
 
@@ -112,8 +141,18 @@ module Channel9
           stream.jmp(done_label)
           stream.set_label(body_label)
 
-          stream.lexical_linked_scope
-          ctx.variable_frame do
+          has_lexical_declaration = false
+          visit do |node|
+            case node
+            when self
+            when FunctionNode
+              :stop # don't look in child nodes.
+            when LocalDeclareNode
+              has_lexical_declaration = true if (node.type == 'lexical')
+            end
+          end
+
+          ctx.variable_frame(stream, has_lexical_declaration) do
             output_var.compile_argument(ctx, stream, true)
 
             if (args && args.first && args.length > 0)
@@ -607,6 +646,7 @@ module Channel9
       }
 
       rule(:local_var => simple(:name)) { LocalVariableNode.new(name, :name => name.to_s) }
+      rule(:declare_var => simple(:name)) { LocalDeclareNode.new(name, :name => name.to_s, :type => "local") }
       rule(:declare_var => simple(:name), :type => simple(:type)) { LocalDeclareNode.new(name, :name => name.to_s, :type => type.to_s) }
       rule(:declare_var => simple(:name), :type => simple(:type), :assign => simple(:expression)) { 
         LocalDeclareNode.new(name, :name => name.to_s, :type => type.to_s, :expression => expression) 
