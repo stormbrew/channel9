@@ -31,7 +31,13 @@ namespace Channel9
 
 	void gc_scan(Value &from)
 	{
-		switch (type(from))
+		ValueType obj_type = type(from);
+		DO_DEBUG {
+			if (basic_type(from) != HEAP_TYPE && obj_type != CALLABLE_CONTEXT)
+				return;
+		}
+
+		switch (obj_type)
 		{
 		case STRING:{
 			String *str = ptr<String>(from);
@@ -75,7 +81,9 @@ namespace Channel9
 				from = make_value_ptr(RUNNABLE_CONTEXT, ctx);
 			break;
 		}
-		default: break;
+		default: 
+			assert(false && "Unknown type in GC scan.");
+			break;
 		}
 	}
 
