@@ -104,14 +104,16 @@ namespace Channel9
 	}
 	inline Value value(double float_num)
 	{//cut off the bottom 4 bits of precision
-		uint64_t num = type_mask(FLOAT_NUM) | (*reinterpret_cast<uint64_t*>(&float_num) >> 4);
-		Value val = {((uint64_t)(num))};
+		Value val;
+		val.float_num = float_num;
+		val.raw = type_mask(FLOAT_NUM) | (val.raw >> 4);
 		return val;
 	}
 	inline double float_num(Value val)
 	{
-		uint64_t num = (val.raw & Value::VALUE_MASK) << 4;
-		return *reinterpret_cast<double*>(&num);
+		Value nval = val;
+		nval.raw = (nval.raw & Value::VALUE_MASK) << 4;
+		return nval.float_num;
 	}
 
 	inline Value value(const std::string &str) { return make_value_ptr(STRING, new_string(str)); }
