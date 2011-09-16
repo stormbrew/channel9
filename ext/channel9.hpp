@@ -25,7 +25,6 @@ namespace Channel9
 		// are allocated on the normal heap so need
 		// to be treated as plain old values.
 		CALLABLE_CONTEXT= 0x40,
-		VARIABLE_FRAME  = 0x50,
 
 		// Bit pattern of 0000 1000 indicates falsy,
 		// all other type patterns are truthy.
@@ -43,6 +42,7 @@ namespace Channel9
 		// next nibble of the address
 		HEAP_TYPE 		= 0xE0,
 
+		VARIABLE_FRAME  = 0xE2,
 		STRING          = 0xE3,
 		TUPLE           = 0xE4,
 		MESSAGE         = 0xE5,

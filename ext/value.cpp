@@ -33,7 +33,7 @@ namespace Channel9
 	{
 		ValueType obj_type = type(from);
 		DO_DEBUG {
-			if (basic_type(from) != HEAP_TYPE && obj_type != CALLABLE_CONTEXT && obj_type != VARIABLE_FRAME)
+			if (basic_type(from) != HEAP_TYPE && obj_type != CALLABLE_CONTEXT)
 				return;
 		}
 
@@ -60,6 +60,13 @@ namespace Channel9
 		case CALLABLE_CONTEXT:{
 			//can't move, not in the collector
 			gc_scan(ptr<CallableContext>(from));
+			break;
+		}
+
+		case VARIABLE_FRAME:{
+			VariableFrame *frame = ptr<VariableFrame>(from);
+			if (value_pool.mark(&frame))
+				from = make_value_ptr(VARIABLE_FRAME, frame);
 			break;
 		}
 		case RUNNING_CONTEXT:{
@@ -143,6 +150,9 @@ namespace Channel9
 		}
 		case CALLABLE_CONTEXT:
 			res << "call_ctx:" << ptr<CallableContext>(val);
+			break;
+		case VARIABLE_FRAME:
+			res << "variable_frame:" << ptr<VariableFrame>(val);
 			break;
 		case RUNNING_CONTEXT:
 			res << "running_ctx:" << ptr<RunningContext>(val);

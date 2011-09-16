@@ -73,7 +73,7 @@ namespace Channel9
 			}
 		}
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Found %u empty blocks\n", m_empty_blocks.size());
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Found %u empty blocks\n", (unsigned)m_empty_blocks.size());
 
 		//set the current allocating block to an empty one
 		if(m_empty_blocks.empty())
