@@ -15,6 +15,7 @@
 #define TRACE_GENERAL 1
 #define TRACE_VM      2
 #define TRACE_GC      4
+#define TRACE_ALLOC   8
 
 
 #ifndef TRACE_LEVEL
