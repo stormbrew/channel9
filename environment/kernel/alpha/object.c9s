@@ -1,43 +1,43 @@
-var id_seq = 2148425000
+lexical id_seq = 2148425000
 
-var RubyObject = (klass) {
-	var singleton = klass
+lexical RubyObject = (lexical klass) {
+	lexical singleton = klass
 	// TODO: make the generator be shared among all instances
 	// of the same class so they all start with appropriately
 	// sized hashes.
-	var ivars = $BasicHash($prime_gen)
-	var id = nil
+	lexical ivars = $BasicHash($prime_gen)
+	lexical id = nil
 
-	var self = (&msg) -> return {
-		var name
-		var is_c9
+	lexical self = (&msg) -> return {
+		local name
+		local is_c9
 		bytecode(msg) {
 			message_name
 			dup_top
-			lexical_set 0 "name"
+			local_set "name"
 			push "__c9_"
 			message_new "match" 0 1
 			channel_call
 			pop
 			is 5
-			lexical_set 0 "is_c9"
+			local_set "is_c9"
 		}
 		if (is_c9) {
 			switch (name)
 			case ("__c9_ivar_get__") {
-				var ivar_name = bytecode(msg) {
+				local ivar_name = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
 					pop
 				}
 				return <- ivars.get(ivar_name)
 			} case ("__c9_ivar_set__") {
-				var ivar_name
-				var ivar_val
+				local ivar_name
+				local ivar_val
 				bytecode(msg) {
 					message_unpack 2 0 0
-					lexical_set 0 "ivar_name"
-					lexical_set 0 "ivar_val"
+					local_set "ivar_name"
+					local_set "ivar_val"
 				}
 				return <- ivars.set(ivar_name, ivar_val)
 			} case ("__c9_object_id__") {
@@ -77,7 +77,7 @@ var RubyObject = (klass) {
 			}
 		}
 
-		var minfo = singleton.__c9_lookup__(name)
+		local minfo = singleton.__c9_lookup__(name)
 		if (minfo) {
 			// build a new message
 			bytecode(minfo.at(0), return, msg, self, minfo.at(1)) {
@@ -85,7 +85,7 @@ var RubyObject = (klass) {
 				channel_send
 			}
 		} else if (minfo = singleton.__c9_lookup__("method_missing")) {
-			var fwd_msg = bytecode(minfo.at(0), return, msg, self, minfo.at(1)) {
+			local fwd_msg = bytecode(minfo.at(0), return, msg, self, minfo.at(1)) {
 				message_sys_prefix 2
 				message_forward "method_missing"
 				channel_send

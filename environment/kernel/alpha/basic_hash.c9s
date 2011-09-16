@@ -1,4 +1,4 @@
-var prime_gen = () -> cont {
+lexical prime_gen = () -> cont {
 	41 -> cont : cont
 	191 -> cont : cont
 	401 -> cont : cont
@@ -8,20 +8,20 @@ var prime_gen = () -> cont {
 	7321 -> cont : cont
 
 	// give up and just generate triples (to keep factors of 2 out, rather than 3)
-	var n = 3209
+	local n = 7321
 	while (true) { n += 1 -> cont : cont }
 }
 $set_special_channel('prime_gen', prime_gen)
 
-var Hash = (table_size_seq) {
-	var table_size = (nil -> table_size_seq : table_size_seq)
-	var table = []
-	var next = nil
+lexical Hash = (lexical table_size_seq) {
+	lexical table_size = (nil -> table_size_seq : table_size_seq)
+	lexical table = []
+	lexical next = nil
 
-	var get = (index) -> return {
-		var hash = index.hash() % table_size
+	lexical get = (index) -> return {
+		local hash = index.hash() % table_size
 		if (hash < table.length()) {
-			var item = table.at(hash)
+			local item = table.at(hash)
 
 			if (item) {
 				if (item.at(0) == index) { return <- item.at(1) }
@@ -30,10 +30,10 @@ var Hash = (table_size_seq) {
 		}
 		return <- undef
 	}
-	var set = (index, val) -> return {
-		var hash = index.hash() % table_size
+	lexical set = (index, val) -> return {
+		local hash = index.hash() % table_size
 		if (hash < table.length()) {
-			var item = table.at(hash)
+			local item = table.at(hash)
 			if (item) {
 				if (item.at(0) != index) {
 					if (next == nil) {
@@ -48,7 +48,7 @@ var Hash = (table_size_seq) {
 	}
 
 	(&msg) -> return {
-		var name = bytecode(msg) {
+		local name = bytecode(msg) {
 			message_name
 			swap
 			pop

@@ -1,33 +1,33 @@
-var RubyModule = (name) {
-	var instance_methods = $BasicHash($prime_gen)
-	var constants = $BasicHash($prime_gen)
-	var included = []
-	var inner_obj = $RubyObject($Module)
+lexical RubyModule = (lexical name) {
+	lexical instance_methods = $BasicHash($prime_gen)
+	lexical constants = $BasicHash($prime_gen)
+	lexical included = []
+	lexical inner_obj = $RubyObject($Module)
 
-	var self = (&msg) -> return {
-		var msg_name
-		var is_c9
+	lexical self = (&msg) -> return {
+		local msg_name
+		local is_c9
 		bytecode(msg) {
 			message_name
 			dup_top
-			lexical_set 0 "msg_name"
+			local_set "msg_name"
 			push "__c9_"
 			message_new "match" 0 1
 			channel_call
 			pop
 			is 5
-			lexical_set 0 "is_c9"
+			local_set "is_c9"
 		}
 		if (is_c9) {
 			switch (msg_name)
 			case ('__c9_lookup__') {
-				var meth_name = bytecode(msg) {
+				local meth_name = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
 					pop
 				}
 				
-				var meth = instance_methods.get(meth_name)
+				local meth = instance_methods.get(meth_name)
 				if (meth) {
 					return <- [meth,nil]
 				} else {
@@ -36,39 +36,39 @@ var RubyModule = (name) {
 			} case ('__c9_name__') {
 				return <- name
 			} case ('__c9_add_constant__') {
-				var const_name
-				var const_val
+				local const_name
+				local const_val
 				bytecode(msg) {
 					message_unpack 2 0 0
-					lexical_set 0 "const_name"
-					lexical_set 0 "const_val"
+					local_set "const_name"
+					local_set "const_val"
 				}
 				return <- constants.set(const_name, const_val)
 			} case ('__c9_get_constant__') {
-				var const_name = bytecode(msg) {
+				local const_name = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
 					pop
 				}
 				return <- constants.get(const_name)
 			} case ('__c9_get_constant_scoped__') {
-				var const_name
-				var next
-				var next_mod
-				var next_scope
+				local const_name
+				local next
+				local next_mod
+				local next_scope
 				bytecode(msg) {
 					message_unpack 2 0 0
-					lexical_set 0 "const_name"
-					lexical_set 0 "next"
+					local_set "const_name"
+					local_set "next"
 				}
 				if (next) {
 					bytecode(next) {
 						tuple_unpack 2 0 0
-						lexical_set 0 "next_mod"
-						lexical_set 0 "next_scope"
+						local_set "next_mod"
+						local_set "next_scope"
 					}
 				}
-				var const = constants.get(const_name)
+				local const = constants.get(const_name)
 				if (const) {
 					return <- const
 				} else if (next) {
@@ -76,23 +76,23 @@ var RubyModule = (name) {
 				}
 				return <- nil
 			} case ('__c9_add_method__') {
-				var meth_name
-				var meth
+				local meth_name
+				local meth
 				bytecode(msg) {
 					message_unpack 2 0 0
-					lexical_set 0 "meth_name"
-					lexical_set 0 "meth"
+					local_set "meth_name"
+					local_set "meth"
 				}
 				return <- instance_methods.set(meth_name, meth)
 			} case ('__c9_alias_method__') {
-				var new_name
-				var old_name
+				local new_name
+				local old_name
 				bytecode(msg) {
 					message_unpack 2 0 0
-					lexical_set 0 "new_name"
-					lexical_set 0 "old_name"
+					local_set "new_name"
+					local_set "old_name"
 				}
-				var old_meth = self.__c9_lookup__(old_name)
+				local old_meth = self.__c9_lookup__(old_name)
 				if (old_meth) {
 					return <- instance_methods.set(new_name, old_meth.at(0))
 				} else {
