@@ -54,7 +54,7 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 				// re-identify self as being the wrapping object.
 				bytecode(msg) {
 					message_unpack 1 0 0
-					lexical_set 1 "self"
+					lexical_set 0 "self"
 				}
 				return <- self
 			} case ("__c9_singleton__") {
@@ -82,7 +82,7 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 					swap
 					pop
 					local_get "return"
-					lexical_get 1 "self"
+					lexical_get 0 "self"
 					message_new "call" 1 0
 					channel_send
 				}
