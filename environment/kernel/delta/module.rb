@@ -2,7 +2,7 @@ class Module
   def attr_reader(*names)
     names.each do |name|
       define_method(name) do
-        __c9_ivar_set__(:"@#{name}")
+        __c9_ivar_get__(:"@#{name}")
       end
     end
   end
