@@ -92,6 +92,18 @@ namespace Channel9
 			c->m_used = 0;
 		}
 
+		//clear unused pinned objects
+		std::vector<Data*> new_pinned_objs;
+		for(std::vector<Data*>::iterator i = m_pinned_objs.begin(); i != m_pinned_objs.end(); ++i)
+		{
+			if((*i)->m_pool == m_cur_pool)
+				new_pinned_objs.push_back(*i);
+			else
+				free(*i);
+		}
+		m_pinned_objs.swap(new_pinned_objs);
+
+		//decide on the next gc cycle
 		m_next_gc = std::max(CHUNK_SIZE*0.9, m_used * GC_GROWTH_LIMIT);
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
