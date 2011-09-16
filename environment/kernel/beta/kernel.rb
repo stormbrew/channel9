@@ -108,7 +108,7 @@ module Kernel
   end
 
   def exit(n)
-    special_channel(:exit).call(n)
+    $__c9_exit.call(n)
   end
 
   def to_tuple_prim

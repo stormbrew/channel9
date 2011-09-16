@@ -12,8 +12,7 @@ module Channel9
   end
 
   def self.compile_string(type, string, filename, line)
-    loader = special_channel(:loader)
-    compiled = loader.compile(type.to_s_prim, string.to_s_prim, filename.to_s_prim, line.to_i)
+    compiled = $__c9_loader.compile(type.to_s_prim, string.to_s_prim, filename.to_s_prim, line.to_i)
     if (compiled) # never ever do more than test the compiled object or it will invoke the closure.
       return Proc.new_from_prim(compiled)
     else

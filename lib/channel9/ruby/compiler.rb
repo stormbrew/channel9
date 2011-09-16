@@ -896,7 +896,7 @@ module Channel9
         builder.set_label(done_label)
 
         builder.channel_new(body_label)
-        builder.message_new(:__c9_instance_eval__, 0, 1)
+        builder.message_new(:__c9_instance_eval__, 1, 0)
         builder.channel_call
         builder.pop
       end

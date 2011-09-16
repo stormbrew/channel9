@@ -58,12 +58,12 @@ module Kernel
         raise ParseError
       end
     end
-    instance_eval_prim(&block)
+    __c9_instance_eval__(&block)
   end
   def eval(s, filename = "__eval__", line = 1)
     proc = Channel9.compile_string(:eval, s, filename, line)
     if (proc)
-      special_channel(:global_self).instance_eval(&proc)
+      $__c9_global_self.instance_eval(&proc)
     else
       raise ParseError
     end
