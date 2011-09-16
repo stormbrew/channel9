@@ -12,14 +12,14 @@ $Object.__c9_add_constant__("Channel9", $Channel9)
 $set_special_channel("Kernel", $Kernel)
 $set_special_channel("Channel9", $Channel9)
 
-var make_basic_class = (cname) {
-	var class = $Class.__c9_allocate__(cname, $Object)
+lexical make_basic_class = (cname) {
+	local class = $Class.__c9_allocate__(cname, $Object)
 	$Object.__c9_add_constant__(cname, class)
 	$set_special_channel(cname, class)
 	class
 }
-var make_primitive_class = (cname, prim_name) {
-	var class = make_basic_class(cname)
+lexical make_primitive_class = (cname, prim_name) {
+	local class = make_basic_class(cname)
 	$set_special_channel("Channel9::Primitive::" + prim_name, class)
 	class
 }
@@ -41,7 +41,7 @@ make_primitive_class("NilClass", "NilC")
 make_primitive_class("UndefClass", "UndefC")
 
 $Kernel.__c9_add_method__("to_s", (&msg) {
-	var self = bytecode(msg) {
+	local self = bytecode(msg) {
 		message_sys_unpack 1
 		swap
 		pop
@@ -63,7 +63,7 @@ $Kernel.__c9_alias_method__("equal?", "==")
 $Kernel.__c9_alias_method__("eql?", "==")
 
 $Class.__c9_add_method__("allocate", (&msg) {
-	var self = bytecode(msg) {
+	local self = bytecode(msg) {
 		message_sys_unpack 1
 		swap
 		pop
@@ -71,12 +71,12 @@ $Class.__c9_add_method__("allocate", (&msg) {
 	self.__c9_allocate__()
 })
 $Class.__c9_add_method__("new", (&msg) {
-	var self
-	var nmsg = bytecode(msg) {
+	local self
+	local nmsg = bytecode(msg) {
 		message_unpack 0 1 0 # tuple -> msg
 		swap # msg -> tuple
 		message_sys_unpack 3 # self -> super -> proc -> msg -> tuple
-		lexical_set 0 "self" # super -> proc -> msg -> tuple
+		local_set "self" # super -> proc -> msg -> tuple
 		pop # proc -> msg -> tuple
 		message_new "initialize" 1 0 # imsg -> msg -> tuple
 		swap # msg -> imsg -> tuple
@@ -84,7 +84,7 @@ $Class.__c9_add_method__("new", (&msg) {
 		swap # tuple -> imsg
 		message_splat # imsg
 	}
-	var obj = self.allocate()
+	local obj = self.allocate()
 	nmsg -> obj
 	obj
 })
