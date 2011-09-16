@@ -76,7 +76,7 @@ lexical RubyObject = (lexical klass) {
 				return <- singleton
 			} case ("__c9_instance_eval__") {
 				bytecode(msg) {
-					message_unpack 1 0 0
+					message_sys_unpack 1
 					swap
 					pop
 					local_get "return"
