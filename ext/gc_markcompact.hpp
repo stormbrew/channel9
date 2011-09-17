@@ -27,17 +27,20 @@ namespace Channel9
 
 		struct Data
 		{
+			uint32_t m_count;   //number of bytes of memory in this allocation
 			uint16_t m_type;
 			uint8_t  m_block_size; //so (this & ~((1<<blocksize)-1)) gives the pointer to the block header
-			bool     m_mark;
-			uint32_t m_count;   //number of bytes of memory in this allocation
+			unsigned m_mark   : 1; //is this marked
+			unsigned m_pinned : 1; //is this pinned in memory
+			unsigned m_padding : 6;//padding for 8 byte alignment
 			uchar    m_data[0]; //the actual data, 8 byte aligned
 
-			void init(uint16_t type, uint8_t block_size, uint32_t count){
-				m_type = type;
+			void init(uint32_t count, uint16_t type, uint8_t block_size, bool pinned){
+				m_count  = count;
+				m_type   = type;
 				m_block_size = block_size;
-				m_mark = false;
-				m_count = count;
+				m_mark   = false;
+				m_pinned = pinned;
 			}
 
 			uchar * begin() { return m_data; }
@@ -51,7 +54,10 @@ namespace Channel9
 			}
 
 			Data * next() const { return (Data*)((uchar*)(this + 1) + m_count); }
-			Block * block() const { return (Block *)((uintptr_t)this & ~((1 << m_block_size)-1)); }
+			Block * block() const {
+				if(m_pinned) return NULL;
+				return (Block *)(clear_bottom_bits((uintptr_t)this, m_block_size));
+			}
 			static Data *ptr_for(const void *ptr) { return (Data*)ptr - 1; }
 		};
 
@@ -90,7 +96,7 @@ namespace Channel9
 				if(m_next_alloc + alloc_size <= m_capacity)
 				{
 					Data * ret = (Data*)(m_data + m_next_alloc);
-					ret->init(type, m_block_size, size);
+					ret->init(size, type, m_block_size, false);
 					m_next_alloc += alloc_size;
 					DO_DEBUG VALGRIND_MEMPOOL_ALLOC(m_data, ret, size);
 					return ret;
@@ -147,6 +153,8 @@ namespace Channel9
 		uint64_t m_dfs_updated;
 
 		std::set<GCRoot*> m_roots;
+		std::vector<Data *> m_pinned_objs;
+		Block m_pinned_block;
 
 		void collect();
 
@@ -154,14 +162,14 @@ namespace Channel9
 		{
 			assert(size < 8000);
 
-			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Alloc %u type %x ... ", (unsigned)size, type);
+			TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... ", (unsigned)size, type);
 
 			size += (8 - size % 8) % 8; //8 byte align
 
 			while(1){
 				Data * data = m_cur_block->alloc(size, type);
 
-				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "from block %p, got %p ... ", m_cur_block, data);
+				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "from block %p, got %p ... ", m_cur_block, data);
 
 				if(data){
 					if(new_alloc)
@@ -170,7 +178,7 @@ namespace Channel9
 						m_data_blocks++;
 					}
 
-					TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
+					TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
 
 					return data->m_data;
 				}
@@ -181,7 +189,7 @@ namespace Channel9
 				m_cur_block = m_empty_blocks.back();
 				m_empty_blocks.pop_back();
 
-				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, "grabbing a new empty block: %p ... ", m_cur_block);
+				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "grabbing a new empty block: %p ... ", m_cur_block);
 			}
 			return NULL;
 		}
@@ -194,7 +202,7 @@ namespace Channel9
 
 			Block * b = (Block *)mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
 
-			TRACE_PRINTF(TRACE_GC, TRACE_INFO, "alloc chunk %p, %i zeros\n", b, (int)count_bottom_zeros4((uintptr_t)b));
+			TRACE_PRINTF(TRACE_ALLOC, TRACE_INFO, "alloc chunk %p, %i zeros\n", b, (int)count_bottom_zeros4((uintptr_t)b));
 
 			assert(count_bottom_zeros4((uintptr_t)b) >= BLOCK_SIZE); //make sure blocks will be properly aligned
 
@@ -220,13 +228,53 @@ namespace Channel9
 
 			m_cur_block = m_empty_blocks.back();
 			m_empty_blocks.pop_back();
+			m_pinned_block.init(0);
 		}
 
-		template <typename tObj>
-		tObj *alloc(size_t extra, uint16_t type)
+		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
+		{
+			if(pinned)
+				alloc_pinned<tObj>(extra, type);
+
+			size_t size = sizeof(tObj) + extra;
+			if(size <= SMALL)
+				return alloc_small<tObj>(extra, type);
+			else if(size <= MEDIUM)
+				return alloc_med<tObj>(extra, type);
+			else
+				return alloc_big<tObj>(extra, type);
+		}
+
+		template <typename tObj> tObj *alloc_small(size_t extra, uint16_t type)
 		{
 			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type, true));
 		}
+		template <typename tObj> tObj *alloc_med(size_t extra, uint16_t type)
+		{
+			assert(false && "Markcompact::alloc_med is not implemented");
+			return NULL;
+		}
+		template <typename tObj> tObj *alloc_big(size_t extra, uint16_t type)
+		{
+			assert(false && "Markcompact::alloc_med is not implemented");
+			return NULL;
+		}
+
+		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type){
+			size_t size = sizeof(tObj) + extra;
+			size += (8 - size % 8) % 8; //8 byte align
+
+			Data * data = (Data*) malloc(size + sizeof(Data));
+			data->init(size, type, 0, true);
+			m_pinned_objs.push_back(data);
+			m_pinned_block.m_capacity += size + sizeof(Data);
+
+			m_used += size;
+			m_data_blocks++;
+
+			return reinterpret_cast<tObj*>(data->m_data);
+		}
+
 
 		template <typename tObj>
 		bool validate(tObj * from)
@@ -257,6 +305,9 @@ namespace Channel9
 				m_used += d->m_count + sizeof(Data);
 
 				Block * b = d->block();
+				if(b == NULL)
+					b = & m_pinned_block;
+
 				if(!b->m_mark)
 				{
 					b->m_mark = true;

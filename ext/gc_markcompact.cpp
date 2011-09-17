@@ -124,6 +124,25 @@ namespace Channel9
 			}
 		}
 
+		//clear unused pinned objects
+		if(m_pinned_block.m_mark)
+		{
+			if(m_pinned_block.m_in_use < m_pinned_block.m_capacity*FRAG_LIMIT)
+			{
+				std::vector<Data*> new_pinned_objs;
+				for(std::vector<Data*>::iterator i = m_pinned_objs.begin(); i != m_pinned_objs.end(); ++i)
+				{
+					if((*i)->m_mark)
+						new_pinned_objs.push_back(*i);
+					else
+						free(*i);
+				}
+				m_pinned_objs.swap(new_pinned_objs);
+				m_pinned_block.m_capacity = m_pinned_block.m_in_use;
+			}
+			m_pinned_block.m_mark = false;
+		}
+
 		m_gc_phase = Updating;
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done compacting, %llu Data/%llu bytes moved, %llu Blocks/%llu bytes left fragmented, Begin Updating DFS\n", moved_blocks, moved_bytes, skipped, fragmented);

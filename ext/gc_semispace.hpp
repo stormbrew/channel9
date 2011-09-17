@@ -1,6 +1,7 @@
 #pragma once
 
 #include <set>
+#include <vector>
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
@@ -19,11 +20,21 @@ namespace Channel9
 
 		struct Data
 		{
-			uint16_t m_type;
-			uint8_t  m_forward; //forwarding pointer?
-			uint8_t  m_pool; //which pool
 			uint32_t m_count; //number of bytes of memory in this allocation
+			uint16_t m_type;
+			unsigned m_forward : 1; //forwarding pointer?
+			unsigned m_pool    : 1; //which pool
+			unsigned m_pinned  : 1; //is this pinned?
+			unsigned m_padding : 13; //align to 8 bytes
 			uchar    m_data[0]; //the actual data, 8 byte aligned
+
+			void init(uint32_t count, uint16_t type, bool pool, bool pin){
+				m_count = count;
+				m_type = type;
+				m_forward = false;
+				m_pool = pool;
+				m_pinned = pin;
+			}
 
 			Data *next() const { return (Data*)((uchar*)(this + 1) + m_count); }
 			static Data *ptr_for(const void *ptr) { return (Data*)ptr - 1; }
@@ -81,6 +92,7 @@ namespace Channel9
 		uint64_t m_next_gc;  //garbage collect when m_next_gc < m_used
 
 		std::set<GCRoot*> m_roots;
+		std::vector<Data *> m_pinned_objs;
 
 		void collect();
 
@@ -89,7 +101,7 @@ namespace Channel9
 			assert(size < (CHUNK_SIZE >> 4));
 
 			if(!m_in_gc)
-				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
+				TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
 
 			size += (8 - size % 8) % 8; //8 byte align
 
@@ -100,13 +112,10 @@ namespace Channel9
 					m_used += size;
 					m_data_blocks++;
 
-					data->m_type = type;
-					data->m_forward = 0;
-					data->m_pool = m_cur_pool;
-					data->m_count = size;
+					data->init(size, type, m_cur_pool, false);
 
 					if(!m_in_gc)
-						TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
+						TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
 
 					return data->m_data;
 				}
@@ -145,10 +154,30 @@ namespace Channel9
 			m_cur_chunk = m_pools[m_cur_pool];
 		}
 
-		template <typename tObj>
-		tObj *alloc(size_t extra, uint16_t type)
+		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
 		{
-			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type));
+			if(pinned)
+				return alloc_pinned<tObj>(extra, type);
+			else
+				return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type));
+		}
+
+		template <typename tObj> tObj *alloc_small(size_t extra, uint16_t type){ return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type)); }
+		template <typename tObj> tObj *alloc_med  (size_t extra, uint16_t type){ return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type)); }
+		template <typename tObj> tObj *alloc_big  (size_t extra, uint16_t type){ return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type)); }
+
+		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type){
+			size_t size = sizeof(tObj) + extra;
+			size += (8 - size % 8) % 8; //8 byte align
+
+			Data * data = (Data*) malloc(size + sizeof(Data));
+			data->init(size, type, m_cur_pool, true);
+			m_pinned_objs.push_back(data);
+
+			m_used += size;
+			m_data_blocks++;
+
+			return reinterpret_cast<tObj*>(data->m_data);
 		}
 
 		template <typename tObj>
@@ -168,7 +197,14 @@ namespace Channel9
 
 			if(old->m_pool == m_cur_pool){
 				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
-				return from;
+				return false;
+			}
+
+			if(old->m_pinned){
+				old->m_pool = m_cur_pool;
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X pinned, update pool, recursing\n", from, old->m_type);
+				gc_scan(from);
+				return false;
 			}
 
 			if(old->m_forward){
