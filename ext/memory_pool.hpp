@@ -16,9 +16,19 @@ namespace Channel9
 	class GCRoot;
 
 	class GC { // GC base class, must be subclassed by one of the others
+		//small allocations are smaller than SMALL, medium is smaller than MEDIUM, everything bigger is big
+		//these are defaults, may be overwritten by the collectors themselves, or even ignored entirely
+		static const unsigned int SMALL = 500;
+		static const unsigned int MEDIUM = 8000;
 
 		// extra is how much to allocate, type is one of Channel9::ValueType, return the new location
-		template <typename tObj> tObj *alloc(size_t extra, uint16_t type);
+		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false);
+
+		template <typename tObj> tObj *alloc_small (size_t extra, uint16_t type);
+		template <typename tObj> tObj *alloc_med   (size_t extra, uint16_t type);
+		template <typename tObj> tObj *alloc_big   (size_t extra, uint16_t type);
+		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type);
+
 
 		// notify the gc that an obj is pointed to, might mark it, might move it, might do something else. Returns true if it moved
 		template <typename tObj> bool mark(tObj ** from);

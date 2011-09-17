@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "bittwiddle.hpp"
+
 class ForwardTable {
 	struct Entry {
 		uintptr_t from, to;
@@ -42,7 +44,7 @@ public:
 	template<typename tObj>
 	void set(tObj * fromptr, tObj * toptr){ return set((uintptr_t) fromptr, (uintptr_t) toptr); }
 	void set(uintptr_t from, uintptr_t to){
-		uintptr_t i = mix(from) & mask;
+		uintptr_t i = mix_bits(from) & mask;
 		while(table[i].from != 0)
 			i = (i+1) & mask;
 		table[i] = Entry(from, to);
@@ -52,15 +54,10 @@ public:
 	template<typename tObj>
 	tObj *    get(tObj * fromptr){ return (tObj *) get((uintptr_t) fromptr); }
 	uintptr_t get(uintptr_t from){
-		for(uintptr_t i = mix(from) & mask; table[i].from; i = (i+1) & mask)
+		for(uintptr_t i = mix_bits(from) & mask; table[i].from; i = (i+1) & mask)
 			if(table[i].from == from)
 				return table[i].to;
 		return 0;
-	}
-
-	//give a good distribution over the hash space to have fewer collisions
-	static uintptr_t mix(uintptr_t in){
-		return (in >> trimbits);
 	}
 };
 
