@@ -1,4 +1,6 @@
 #pragma once
+#include <stddef.h>
+#include <stdint.h>
 
 namespace Channel9
 {
@@ -51,6 +53,26 @@ namespace Channel9
 
 		NEGATIVE_NUMBER = 0xF0
 	};
+
+	/* On some platforms (*cough* OSX/x64 *cough*), uintptr_t doesn't map
+	 * to the same type as any of the uint*_t types (uint64 is long long and
+	 * uintptr_t is long), and this makes function overloading just plain not
+	 * work. To get around this, we redefine uintptr_t for the channel9
+	 * namespace so it matches one of those types.
+	 */
+	template <size_t ptrsize_t>
+	struct ptrsize;
+	template <>
+	struct ptrsize<4>
+	{
+		typedef uint32_t ptrtype_t;
+	};
+	template <>
+	struct ptrsize<8>
+	{
+		typedef uint64_t ptrtype_t;
+	};
+	typedef ptrsize<sizeof(void*)>::ptrtype_t uintptr_t;
 }
 
 #include "trace.hpp"
