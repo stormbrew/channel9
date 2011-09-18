@@ -1,5 +1,6 @@
 {
 	"code": [
+		["line", "gcd", 0, 0],
 		["frame_set", "exit"],
 		["pop"],
 

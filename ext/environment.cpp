@@ -351,7 +351,7 @@ namespace Channel9
 					const Tuple &tuple = *ptr<Tuple>(m_context->top()); m_context->pop();
 					const Message &msg = *ptr<Message>(m_context->top()); m_context->pop();
 
-					Message *nmsg = new_message(msg.m_name, msg.sysarg_count(), msg.arg_count() + tuple.size());
+					Message *nmsg = new_message(msg.m_id, msg.sysarg_count(), msg.arg_count() + tuple.size());
 					std::copy(msg.sysargs(), msg.sysargs_end(), nmsg->sysargs());
 					std::copy(msg.args(), msg.args_end(), nmsg->args());
 					std::copy(tuple.begin(), tuple.end(), nmsg->args() + msg.arg_count());
@@ -363,7 +363,7 @@ namespace Channel9
 					CHECK_STACK(1 + count, 1);
 					const Message &msg = *ptr<Message>(*(m_context->stack_pos() - 1 - count));
 
-					Message *nmsg = new_message(msg.m_name, msg.sysarg_count(), msg.arg_count() + count);
+					Message *nmsg = new_message(msg.m_id, msg.sysarg_count(), msg.arg_count() + count);
 					std::copy(msg.sysargs(), msg.sysargs_end(), nmsg->sysargs());
 					std::copy(msg.args(), msg.args_end(), nmsg->args());
 
@@ -383,10 +383,6 @@ namespace Channel9
 					CHECK_STACK(1, 2);
 					m_context->push(value((long long)ptr<Message>(m_context->top())->arg_count()));
 					break;
-				case MESSAGE_NAME:
-					CHECK_STACK(1, 2);
-					m_context->push(value(ptr<Message>(m_context->top())->name()));
-					break;
 				case MESSAGE_CHECK:
 					CHECK_STACK(1, 1);
 					if (!is(m_context->top(), MESSAGE))
@@ -402,7 +398,7 @@ namespace Channel9
 					const Message &msg = *ptr<Message>(m_context->top());
 					Message *nmsg = new_message(ins.arg1, msg.sysarg_count(), msg.arg_count() + 1);
 					std::copy(msg.sysargs(), msg.sysargs_end(), nmsg->sysargs());
-					nmsg->args()[0] = value(msg.m_name);
+					nmsg->args()[0] = value(new_string(msg.name()));
 					std::copy(msg.args(), msg.args_end(), nmsg->args() + 1);
 					m_context->pop();
 					m_context->push(value(nmsg));
@@ -414,7 +410,7 @@ namespace Channel9
 					
 					const Value *sdata = m_context->stack_pos() - 1 - count;
 					const Message &msg = *ptr<Message>(*sdata++);
-					Message *nmsg = new_message(msg.name(), msg.sysarg_count() + count, msg.arg_count());
+					Message *nmsg = new_message(msg.m_id, msg.sysarg_count() + count, msg.arg_count());
 					Message::iterator to = nmsg->sysargs();
 					while (counter++ < count)
 					{

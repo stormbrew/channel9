@@ -140,7 +140,7 @@ namespace Channel9
 			for (it = ptr<Message>(val)->sysargs(); it != ptr<Message>(val)->sysargs_end(); it++)
 				res << inner_inspect(*it) << ",";
 
-			res << "]." << *ptr<Message>(val)->name() << "(";
+			res << "]." << ptr<Message>(val)->name() << "(";
 
 			for (it = ptr<Message>(val)->args(); it != ptr<Message>(val)->args_end(); it++)
 				res << inner_inspect(*it) << ",";

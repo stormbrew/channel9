@@ -1,5 +1,6 @@
 {
 	"code": [
+		["line", "test.c9b", 0, 0],
 		["lexical_set", 0, "exit"],
 		["pop"],
 
