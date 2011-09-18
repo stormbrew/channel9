@@ -12,8 +12,6 @@ namespace Channel9
 			Entry(uintptr_t f = 0, uintptr_t t = 0) : from(f), to(t) { }
 		};
 
-		static const int trimbits = 3; //trim the bottom bits of the pointer since they're always 0 anyway
-
 		uintptr_t size; //how many slots
 		uintptr_t num;  //how many are used
 		uintptr_t mask;
@@ -64,3 +62,4 @@ namespace Channel9
 		}
 	};
 }
+
