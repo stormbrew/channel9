@@ -2,7 +2,7 @@
 
 namespace Channel9
 {
-	//round a number up to the nearest power of 2
+	//round a number up to the nearest full power of 2
 	template<typename uint>
 	inline uint ceil_power2(uint v) {
 		v--;
@@ -55,6 +55,15 @@ namespace Channel9
 		return v;
 	}
 
+	//round up to a multiple of a specific power of 2
+	template<typename uint>
+	inline uint ceil_power2(uint n, int bits){
+		uint p = 1 << bits;
+		uint m = p-1;
+		return (n + m) & ~m;
+//		return n + ((p - (n & m)) & m);
+//		return n + ((p - (n % p)) % p);
+	}
 
 
 	//returns true if exactly 1 bit is set
@@ -213,3 +222,4 @@ namespace Channel9
 		return h;
 	}
 }
+
