@@ -42,9 +42,6 @@ namespace Channel9
 
 	private:
 
-		static const double   GC_GROWTH_LIMIT = 2.0;
-		static const uint64_t CHUNK_SIZE = 2<<20; // 2mb
-
 		struct Chunk
 		{
 			Chunk *  m_next; //linked list of chunks
@@ -82,6 +79,9 @@ namespace Channel9
 			}
 		};
 
+		static const double   GC_GROWTH_LIMIT = 2.0;
+		static const uint64_t CHUNK_SIZE = (2<<20) - sizeof(Chunk) - 8; // 2mb (-8 for the malloc header)
+
 		Chunk * m_pools[2]; //two sets of pools, each garbage collection swaps between them, active is stored in m_cur_pool
 		int     m_cur_pool; //which of the two pools are we using now
 		Chunk * m_cur_chunk; //which chunk are we allocating from
@@ -98,20 +98,21 @@ namespace Channel9
 
 		uchar *next(size_t size, uint16_t type)
 		{
-			assert(size < (CHUNK_SIZE >> 4));
-
 			if(!m_in_gc)
 				TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
 
 			size += (8 - size % 8) % 8; //8 byte align
+			size_t alloc_size = size + sizeof(Data);
+
+			m_used += alloc_size;
+			m_data_blocks++;
+
+			Chunk * chunk = m_cur_chunk;
 
 			while(1){
-				Data * data = m_cur_chunk->alloc(size + sizeof(Data));
+				Data * data = chunk->alloc(alloc_size);
 
 				if(data){
-					m_used += size;
-					m_data_blocks++;
-
 					data->init(size, type, m_cur_pool, false);
 
 					if(!m_in_gc)
@@ -120,27 +121,34 @@ namespace Channel9
 					return data->m_data;
 				}
 
-				if(m_cur_chunk->m_next)
-				{ //advance
-					m_cur_chunk = m_cur_chunk->m_next;
-					m_cur_chunk->init(m_cur_chunk->m_capacity);
+				if(chunk->m_next)
+				{ //advance to allocate out of the next chunk
+					chunk = chunk->m_next;
 				} else {
 					//allocate a new chunk
-					Chunk * c = new_chunk();
+					Chunk * c = new_chunk(alloc_size);
 
-					m_cur_chunk->m_next = c;
-					m_cur_chunk = c;
+					chunk->m_next = c;
+					chunk = c;
 				}
+
+				// only advance if there wasn't enough room for a small object, otherwise put medium and big objects
+				// in the next chunk while continuing to put small ones in the current chunk
+				if(alloc_size < SMALL)
+					m_cur_chunk = chunk;
 			}
 			return NULL;
 		}
 
-		Chunk * new_chunk()
+		Chunk * new_chunk(size_t alloc_size = 0)
 		{
-			Chunk * c = (Chunk *)malloc(CHUNK_SIZE);
-			c->init(CHUNK_SIZE - sizeof(Chunk));
-			DO_DEBUG VALGRIND_MAKE_MEM_NOACCESS(c->m_data, CHUNK_SIZE);
-			m_alloced += CHUNK_SIZE;
+			if(alloc_size < CHUNK_SIZE)
+				alloc_size = CHUNK_SIZE;
+
+			Chunk * c = (Chunk *)malloc(alloc_size + sizeof(Chunk));
+			c->init(alloc_size);
+			DO_DEBUG VALGRIND_MAKE_MEM_NOACCESS(c->m_data, alloc_size);
+			m_alloced += alloc_size;
 			return c;
 		}
 
