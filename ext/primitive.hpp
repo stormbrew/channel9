@@ -11,12 +11,11 @@ namespace Channel9
 {
 	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Value &msg)
 	{
-		static GCRef<Value> prim_call = value(new_string("__c9_primitive_call__"));
 		TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Forwarding primitive call: %s.%s from:%s to class:%s\n",
 			inspect(oself).c_str(), inspect(msg).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
 		Message *orig = ptr<Message>(msg);
-		assert(*orig->name() != "__c9_primitive_call__");
-		Message *fwd = new_message(*prim_call, 0, 2);
+		assert(orig->message_id() != MESSAGE_C9_PRIMITIVE_CALL);
+		Message *fwd = new_message(PROTOCOL_C9_SYSTEM | MESSAGE_C9_PRIMITIVE_CALL, 0, 2);
 
 		Message::iterator out = fwd->args();
 		*out++ = oself;
@@ -28,70 +27,54 @@ namespace Channel9
 	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg_val)
 	{
 		Message &msg = *ptr<Message>(msg_val);
-		const String &name = *msg.name();
 		long long self = oself.machine_num;
-		switch (name.length())
+		if (msg.arg_count() == 1 && is_number(msg.args()[0]))
 		{
-		case 1:
-			if (msg.arg_count() == 1 && is_number(msg.args()[0]))
+			long long other = msg.args()[0].machine_num;
+			switch (msg.message_id())
 			{
-				long long other = msg.args()[0].machine_num;
-				switch (name[0])
-				{
-				case '+':
-					return channel_send(cenv, ctx, value(self + other), Nil);
-				case '-':
-					return channel_send(cenv, ctx, value(self - other), Nil);
-				case '*':
-					return channel_send(cenv, ctx, value(self * other), Nil);
-				case '/':
-					return channel_send(cenv, ctx, value(self / other), Nil);
-				case '&':
-					return channel_send(cenv, ctx, value(self & other), Nil);
-				case '|':
-					return channel_send(cenv, ctx, value(self | other), Nil);
-				case '%':
-					return channel_send(cenv, ctx, value(self % other), Nil);
-				case '<':
-					return channel_send(cenv, ctx, bvalue(self < other), Nil);
-				case '>':
-					return channel_send(cenv, ctx, bvalue(self > other), Nil);
-				}
+			case MESSAGE_PLUS:
+				return channel_send(cenv, ctx, value(self + other), Nil);
+			case MESSAGE_MINUS:
+				return channel_send(cenv, ctx, value(self - other), Nil);
+			case MESSAGE_MULTIPLY:
+				return channel_send(cenv, ctx, value(self * other), Nil);
+			case MESSAGE_DIVIDE:
+				return channel_send(cenv, ctx, value(self / other), Nil);
+			case MESSAGE_BITWISE_AND:
+				return channel_send(cenv, ctx, value(self & other), Nil);
+			case MESSAGE_BITWISE_OR:
+				return channel_send(cenv, ctx, value(self | other), Nil);
+			case MESSAGE_MODULUS:
+				return channel_send(cenv, ctx, value(self % other), Nil);
+			case MESSAGE_LT:
+				return channel_send(cenv, ctx, bvalue(self < other), Nil);
+			case MESSAGE_GT:
+				return channel_send(cenv, ctx, bvalue(self > other), Nil);
+			case MESSAGE_LT_EQUAL:
+				return channel_send(cenv, ctx, bvalue(self <= other), Nil);
+			case MESSAGE_GT_EQUAL:
+				return channel_send(cenv, ctx, bvalue(self >= other), Nil);
+			case MESSAGE_POWER:
+				return channel_send(cenv, ctx, value(int64_t(pow(self, other))), Nil);
 			}
-			break;
-		case 2:
-			if (msg.arg_count() == 1 && is_number(msg.args()[0]))
-			{
-				long long other = msg.args()[0].machine_num;
-				if (name[1] == '=')
-				{
-					switch (name[0])
-					{
-					case '<':
-						return channel_send(cenv, ctx, bvalue(self <= other), Nil);
-					case '>':
-						return channel_send(cenv, ctx, bvalue(self >= other), Nil);
-					}
-				} else if (name == "**") {
-					return channel_send(cenv, ctx, value(int64_t(pow(self, other))), Nil);
-				}
-			}
-			break;
-		default:
-			if (name == "to_string_primitive")
+		}
+		switch (msg.message_id())
+		{
+		case MESSAGE_TO_STRING_PRIMITIVE:
 			{
 				std::stringstream str;
 				str << oself.machine_num;
 				return channel_send(cenv, ctx, value(str.str()), Nil);
-			} else if (name == "to_float_primitive") {
-				return channel_send(cenv, ctx, value((double)self), Nil);
-			} else if (name == "negate") {
-				return channel_send(cenv, ctx, value(-self), Nil);
-			} else if (name == "hash") {
-				// TODO: This is a terrible hash function. Use a better one.
-				return channel_send(cenv, ctx, value(self), Nil);
 			}
+		case MESSAGE_TO_FLOAT_PRIMITIVE:
+			return channel_send(cenv, ctx, value((double)self), Nil);
+		case MESSAGE_NEGATE:
+			return channel_send(cenv, ctx, value(-self), Nil);
+		case MESSAGE_HASH:
+			return channel_send(cenv, ctx, value((long long)mix_bits(uint64_t(self))), Nil);
 		}
+
 		Value def = cenv->special_channel("Channel9::Primitive::Number");
 		forward_primitive_call(cenv, def, ctx, oself, msg_val);
 	}
@@ -99,60 +82,44 @@ namespace Channel9
 	inline void float_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg_val)
 	{
 		Message &msg = *ptr<Message>(msg_val);
-		const String &name = *msg.name();
 		double self = float_num(oself);
-		switch (name.length())
+		if (msg.arg_count() == 1 && is(msg.args()[0], FLOAT_NUM))
 		{
-		case 1:
-			if (msg.arg_count() == 1 && is(msg.args()[0], FLOAT_NUM))
+			double other = float_num(msg.args()[0]);
+			switch (msg.message_id())
 			{
-				double other = float_num(msg.args()[0]);
-				switch (name[0])
-				{
-				case '+':
-					return channel_send(cenv, ctx, value(self + other), Nil);
-				case '-':
-					return channel_send(cenv, ctx, value(self - other), Nil);
-				case '*':
-					return channel_send(cenv, ctx, value(self * other), Nil);
-				case '/':
-					return channel_send(cenv, ctx, value(self / other), Nil);
-				case '<':
-					return channel_send(cenv, ctx, bvalue(self < other), Nil);
-				case '>':
-					return channel_send(cenv, ctx, bvalue(self > other), Nil);
-				}
+			case MESSAGE_PLUS:
+				return channel_send(cenv, ctx, value(self + other), Nil);
+			case MESSAGE_MINUS:
+				return channel_send(cenv, ctx, value(self - other), Nil);
+			case MESSAGE_MULTIPLY:
+				return channel_send(cenv, ctx, value(self * other), Nil);
+			case MESSAGE_DIVIDE:
+				return channel_send(cenv, ctx, value(self / other), Nil);
+			case MESSAGE_LT:
+				return channel_send(cenv, ctx, bvalue(self < other), Nil);
+			case MESSAGE_GT:
+				return channel_send(cenv, ctx, bvalue(self > other), Nil);
+			case MESSAGE_LT_EQUAL:
+				return channel_send(cenv, ctx, bvalue(self <= other), Nil);
+			case MESSAGE_GT_EQUAL:
+				return channel_send(cenv, ctx, bvalue(self >= other), Nil);
+			case MESSAGE_POWER:
+				return channel_send(cenv, ctx, value(int64_t(pow(self, other))), Nil);			
 			}
-			break;
-		case 2:
-			if (msg.arg_count() == 1 && is(msg.args()[0], FLOAT_NUM))
-			{
-				double other = float_num(msg.args()[0]);
-				if (name[1] == '=')
-				{
-					switch (name[0])
-					{
-					case '<':
-						return channel_send(cenv, ctx, bvalue(self <= other), Nil);
-					case '>':
-						return channel_send(cenv, ctx, bvalue(self >= other), Nil);
-					}
-				} else if (name == "**") {
-					return channel_send(cenv, ctx, value(pow(self, other)), Nil);
-				}
-			}
-			break;
-		default:
-			if (name == "to_string_primitive")
+		}
+		switch (msg.message_id())
+		{
+		case MESSAGE_TO_STRING_PRIMITIVE:
 			{
 				std::stringstream str;
 				str << float_num(oself);
 				return channel_send(cenv, ctx, value(str.str()), Nil);
-			} else if (name == "to_num_primitive") {
-				return channel_send(cenv, ctx, value((int64_t)self), Nil);
-			} else if (name == "negate") {
-				return channel_send(cenv, ctx, value(-self), Nil);
 			}
+		case MESSAGE_TO_NUM_PRIMITIVE:
+			return channel_send(cenv, ctx, value((int64_t)self), Nil);
+		case MESSAGE_NEGATE:
+			return channel_send(cenv, ctx, value(-self), Nil);
 		}
 		Value def = cenv->special_channel("Channel9::Primitive::Float");
 		forward_primitive_call(cenv, def, ctx, oself, msg_val);
@@ -161,46 +128,42 @@ namespace Channel9
 	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg_val)
 	{
 		Message *msg = ptr<Message>(msg_val);
-		const String &name = *msg->name();
-		if (name.length() == 1)
+
+		switch (msg->message_id())
 		{
+		case MESSAGE_PLUS:
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
 				String *other = ptr<String>(msg->args()[0]), *self = ptr<String>(oself);
-				switch (name[0])
-				{
-				case '+':
-					// because of reallocation, we need to do the work here. Basically, after
-					// allocating we need to re-fetch the pointer values for the strings.
-					String *ret = new_string(self->m_count + other->m_count);
-					msg = ptr<Message>(msg_val);
-					other = ptr<String>(msg->args()[0]);
-					self = ptr<String>(oself);
-					std::copy(self->begin(), self->end(), ret->m_data);
-					std::copy(other->begin(), other->end(), ret->m_data + self->m_count);
-					return channel_send(cenv, ctx, value(ret), Nil);
-				}
+				String *ret = new_string(self->m_count + other->m_count);
+				std::copy(self->begin(), self->end(), ret->m_data);
+				std::copy(other->begin(), other->end(), ret->m_data + self->m_count);
+				return channel_send(cenv, ctx, value(ret), Nil);
 			}
-		} else if (name == "to_num_primitive") {
-			std::stringstream str(ptr<String>(oself)->c_str());
-			long long num = 0;
-			str >> num;
-			return channel_send(cenv, ctx, value(num), Nil);
-
-		} else if (name == "to_chr") {
-			String *self = ptr<String>(oself);
-			if (self->m_count == 1)
-				return channel_send(cenv, ctx, value((long long)self->m_data[0]), Nil);
-
-		} else if (name == "split") {
+			break;
+		case MESSAGE_TO_NUM_PRIMITIVE:
+			{
+				std::stringstream str(ptr<String>(oself)->c_str());
+				long long num = 0;
+				str >> num;
+				return channel_send(cenv, ctx, value(num), Nil);
+			}
+		case MESSAGE_TO_CHR:
+			{
+				String *self = ptr<String>(oself);
+				if (self->m_count == 1)
+					return channel_send(cenv, ctx, value((long long)self->m_data[0]), Nil);
+			}
+			break;
+		case MESSAGE_SPLIT:
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
 				String *self = ptr<String>(oself);
 				String *by = ptr<String>(msg->args()[0]);
 				return channel_send(cenv, ctx, value(split_string(self, by)), Nil);
 			}
-
-		} else if (name == "substr") {
+			break;
+		case MESSAGE_SUBSTR:
 			if (msg->arg_count() == 2 && is(msg->args()[0], POSITIVE_NUMBER) && is(msg->args()[1], POSITIVE_NUMBER))
 			{
 				String *self = ptr<String>(oself);
@@ -208,7 +171,8 @@ namespace Channel9
 				if (first < self->m_count && last < self->m_count && last >= first)
 					return channel_send(cenv, ctx, value(self->substr(first, last - first + 1)), Nil);
 			}
-		} else if (name == "match") {
+			break;
+		case MESSAGE_MATCH:
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
 				String *self = ptr<String>(oself), *other = ptr<String>(msg->args()[0]);
@@ -219,28 +183,30 @@ namespace Channel9
 					diff = std::mismatch(self->begin(), self->end(), other->begin()).first - self->begin();
 				return channel_send(cenv, ctx, value(int64_t(diff)), Nil);
 			}
-
-		} else if (name == "hash") {
-			String *self = ptr<String>(oself);
-			// djb2 algorithm
-			unsigned long hash = 5381;
-
-			for (String::iterator it = self->begin(); it != self->end(); it++)
+			break;
+		case MESSAGE_HASH:
 			{
-				hash = ((hash << 5) + hash) ^ *it;
+				String *self = ptr<String>(oself);
+				// djb2 algorithm
+				unsigned long hash = 5381;
+
+				for (String::iterator it = self->begin(); it != self->end(); it++)
+				{
+					hash = ((hash << 5) + hash) ^ *it;
+				}
+				hash &= 0x7fffffffffffffff; // don't want negative hashes.
+
+				return channel_send(cenv, ctx, value((long long)hash), Nil);
 			}
-			hash &= 0x7fffffffffffffff; // don't want negative hashes.
-
-			return channel_send(cenv, ctx, value((long long)hash), Nil);
-
-		} else if (name == "length") {
+		case MESSAGE_LENGTH:
 			return channel_send(cenv, ctx, value((long long)ptr<String>(oself)->length()), Nil);
-		} else if (name == "==") {
+		case MESSAGE_EQUAL:
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
 				String *other = ptr<String>(msg->args()[0]), *self = ptr<String>(oself);
 				return channel_send(cenv, ctx, bvalue(*self == *other), Nil);
 			}
+			break;
 		}
 		Value def = cenv->special_channel("Channel9::Primitive::String");
 		forward_primitive_call(cenv, def, ctx, oself, msg_val);
@@ -249,8 +215,9 @@ namespace Channel9
 	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg_val)
 	{
 		Message &msg = *ptr<Message>(msg_val);
-		const String &name = *msg.name();
-		if (name == "at") {
+		switch (msg.message_id())
+		{
+		case MESSAGE_AT:
 			if (msg.arg_count() == 1 && is_number(msg.args()[0]))
 			{
 				const Tuple &self = *ptr<Tuple>(oself);
@@ -262,36 +229,52 @@ namespace Channel9
 					return channel_send(cenv, ctx, self[self.size() - idx], Nil);
 				}
 			}
-		} else if (name == "length") {
+			break;
+		case MESSAGE_LENGTH:
 			return channel_send(cenv, ctx, value((long long)ptr<Tuple>(oself)->size()), Nil);
-		} else if (name == "+") {
+		case MESSAGE_PLUS:
 			return channel_send(cenv, ctx, value(join_tuple(ptr<Tuple>(oself), ptr<Tuple>(msg.args()[0]))), Nil);
-		} else if (name == "push") {
+		case MESSAGE_PUSH:
 			return channel_send(cenv, ctx, value(join_tuple(ptr<Tuple>(oself), msg.args()[0])), Nil);
-		} else if (name == "pop") {
-			Tuple *tuple = ptr<Tuple>(oself);
-			if (tuple->m_count > 0)
-				return channel_send(cenv, ctx, value(sub_tuple(tuple, 0, tuple->m_count - 1)), Nil);
-		} else if (name == "front_push") {
+		case MESSAGE_POP:
+			{
+				Tuple *tuple = ptr<Tuple>(oself);
+				if (tuple->m_count > 0)
+					return channel_send(cenv, ctx, value(sub_tuple(tuple, 0, tuple->m_count - 1)), Nil);
+			}
+			break;
+		case MESSAGE_FRONT_PUSH:
 			return channel_send(cenv, ctx, value(join_tuple(msg.args()[0], ptr<Tuple>(oself))), Nil);
-		} else if (name == "front_pop") {
-			Tuple *tuple = ptr<Tuple>(oself);
-			if (tuple->m_count > 0)
-				return channel_send(cenv, ctx, value(sub_tuple(tuple, 1, tuple->m_count - 1)), Nil);
-		} else if (name == "replace") {
-			Tuple *tuple = ptr<Tuple>(oself);
-			long long idx = msg.args()[0].machine_num;
-			Value val = msg.args()[1];
-			if (idx >= 0)
-				return channel_send(cenv, ctx, value(replace_tuple(tuple, (size_t)idx, val)), Nil);
-		} else if (name == "first") {
-			Tuple *tuple = ptr<Tuple>(oself);
-			if (tuple->m_count > 0)
-				return channel_send(cenv, ctx, tuple->m_data[0], Nil);
-		} else if (name == "last") {
-			Tuple *tuple = ptr<Tuple>(oself);
-			if (tuple->m_count > 0)
-				return channel_send(cenv, ctx, tuple->m_data[tuple->m_count-1], Nil);
+		case MESSAGE_FRONT_POP:
+			{
+				Tuple *tuple = ptr<Tuple>(oself);
+				if (tuple->m_count > 0)
+					return channel_send(cenv, ctx, value(sub_tuple(tuple, 1, tuple->m_count - 1)), Nil);
+			}
+			break;
+		case MESSAGE_REPLACE:
+			{
+				Tuple *tuple = ptr<Tuple>(oself);
+				long long idx = msg.args()[0].machine_num;
+				Value val = msg.args()[1];
+				if (idx >= 0)
+					return channel_send(cenv, ctx, value(replace_tuple(tuple, (size_t)idx, val)), Nil);
+			}
+			break;
+		case MESSAGE_FIRST:
+			{
+				Tuple *tuple = ptr<Tuple>(oself);
+				if (tuple->m_count > 0)
+					return channel_send(cenv, ctx, tuple->m_data[0], Nil);
+			}
+			break;
+		case MESSAGE_LAST:
+			{
+				Tuple *tuple = ptr<Tuple>(oself);
+				if (tuple->m_count > 0)
+					return channel_send(cenv, ctx, tuple->m_data[tuple->m_count-1], Nil);
+			}
+			break;
 		}
 
 		Value def = cenv->special_channel("Channel9::Primitive::Tuple");
@@ -302,8 +285,10 @@ namespace Channel9
 	{
 		Message &msg = *ptr<Message>(msg_val);
 		Message &self = *ptr<Message>(oself);
-		const String &name = *msg.name();
-		if (name == "name") {
+
+		switch (msg.message_id())
+		{
+		case MESSAGE_NAME:
 			return channel_send(cenv, ctx, value(self.name()), Nil);
 		}
 

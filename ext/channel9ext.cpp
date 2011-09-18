@@ -540,7 +540,7 @@ static VALUE rb_Message_new(GCRef<Message*> msg_p)
 		rb_ary_push(args, c9_to_rb(*it));
 	}
 
-	VALUE argv[3] = {ID2SYM(rb_intern((*msg_p)->name()->c_str())), sysargs, args};
+	VALUE argv[3] = {ID2SYM(rb_intern((*msg_p)->name().c_str())), sysargs, args};
 	rb_obj_call_init(obj, 3, argv);
 	return obj;
 }
