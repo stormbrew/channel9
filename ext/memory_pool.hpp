@@ -18,12 +18,17 @@ namespace Channel9
 	class GC { // GC base class, must be subclassed by one of the others
 		//small allocations are smaller than SMALL, medium is smaller than MEDIUM, everything bigger is big
 		//these are defaults, may be overwritten by the collectors themselves, or even ignored entirely
+		//small is the maximum amount of memory we want to just be wasting if we can't fit the current allocation into the current block/chunk
+		//medium is the point where we may want to switch to a different allocation strategy to minimize moving large objects
+		//both are intentionally chosen as values a little below powers of 2 to leave room for block/chunk headers
 		static const unsigned int SMALL = 500;
 		static const unsigned int MEDIUM = 8000;
 
 		// extra is how much to allocate, type is one of Channel9::ValueType, return the new location
+		// likely to call one of the more specific versions below
 		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false);
 
+		//potentially faster versions to be called only if the size is known at compile time
 		template <typename tObj> tObj *alloc_small (size_t extra, uint16_t type);
 		template <typename tObj> tObj *alloc_med   (size_t extra, uint16_t type);
 		template <typename tObj> tObj *alloc_big   (size_t extra, uint16_t type);
