@@ -10,6 +10,7 @@
 
 #include "channel9.hpp"
 #include "memcheck.h"
+#include "bittwiddle.hpp"
 
 namespace Channel9
 {
@@ -101,7 +102,7 @@ namespace Channel9
 			if(!m_in_gc)
 				TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
 
-			size += (8 - size % 8) % 8; //8 byte align
+			size = ceil_power2(size, 3); //8 byte align
 			size_t alloc_size = size + sizeof(Data);
 
 			m_used += alloc_size;
@@ -176,7 +177,7 @@ namespace Channel9
 
 		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type){
 			size_t size = sizeof(tObj) + extra;
-			size += (8 - size % 8) % 8; //8 byte align
+			size = ceil_power2(size, 3); //8 byte align
 
 			Data * data = (Data*) malloc(size + sizeof(Data));
 			data->init(size, type, m_cur_pool, true);
