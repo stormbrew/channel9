@@ -29,9 +29,9 @@ lexical RubyModule = (lexical name) {
 				
 				local meth = instance_methods.get(meth_name)
 				if (meth) {
-					return <- [meth,nil]
+					return <- meth
 				} else {
-					return <- nil
+					return <- undef
 				}
 			} case ('__c9_name__') {
 				return <- name
@@ -94,7 +94,7 @@ lexical RubyModule = (lexical name) {
 				}
 				local old_meth = self.__c9_lookup__(old_name)
 				if (old_meth) {
-					return <- instance_methods.set(new_name, old_meth.at(0))
+					return <- instance_methods.set(new_name, old_meth)
 				} else {
 					return <- nil
 				}

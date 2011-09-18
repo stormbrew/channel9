@@ -1,4 +1,8 @@
 lexical id_seq = 2148425000
+lexical method_missing_lookup_msg = bytecode() {
+	push "method_missing"
+	message_new "__c9_lookup__" 0 1
+}
 
 lexical RubyObject = (lexical klass, lexical ivars) {
 	lexical singleton = klass
@@ -91,15 +95,19 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 			}
 		}
 
-		local minfo = singleton.__c9_lookup__(name)
-		if (minfo) {
+		local lookup_msg = bytecode(name) {
+			message_new "__c9_lookup__" 0 1
+		}
+
+		local meth = lookup_msg -> singleton : local lookup_cont
+		if (meth) {
 			// build a new message
-			bytecode(minfo.at(0), return, msg, self, minfo.at(1)) {
+			bytecode(meth, return, msg, self, lookup_cont) {
 				message_sys_prefix 2
 				channel_send
 			}
-		} else if (minfo = singleton.__c9_lookup__("method_missing")) {
-			local fwd_msg = bytecode(minfo.at(0), return, msg, self, minfo.at(1)) {
+		} else if (meth = method_missing_lookup_msg -> singleton : lookup_cont) {
+			local fwd_msg = bytecode(meth, return, msg, self, lookup_cont) {
 				message_sys_prefix 2
 				message_forward "method_missing"
 				channel_send
