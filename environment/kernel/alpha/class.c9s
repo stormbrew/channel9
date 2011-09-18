@@ -1,5 +1,9 @@
 lexical prim_id_seq = 0
 lexical prim_map = $BasicHash($prime_gen)
+lexical method_missing_lookup_msg = bytecode() {
+	push "method_missing"
+	message_new "__c9_lookup__" 0 1
+}
 
 lexical RubyClass = (lexical name, lexical super) {
 	lexical instance_methods = $BasicHash($prime_gen)
@@ -31,7 +35,9 @@ lexical RubyClass = (lexical name, lexical super) {
 				}
 				local meth = instance_methods.get(meth_name)
 				if (meth) {
-					return <- [meth,nil]
+					// use a message send instead of a return so we can come back
+					// here to continue the lookup
+					meth -> return : return
 				}
 
 				if (included.length > 0) {
@@ -39,17 +45,19 @@ lexical RubyClass = (lexical name, lexical super) {
 					local total = included.length
 					while (i < total) {
 						local res = included.at(i).__c9_lookup__(meth_name)
-						if (res) { return <- res }
+						if (res) { res -> return : return }
 						i += 1
 					}
 				}
 
 				if (super) {
-					local res = super.__c9_lookup__(meth_name)
-					if (res) { return <- res }
+					// forward on to the superclass for it to figure out.
+					bytecode(super, return, msg) {
+						channel_send
+					}
 				}
 
-				return <- nil
+				return <- undef
 			} case ('__c9_primitive_call__') {
 				local instance
 				local imsg_name
@@ -77,14 +85,17 @@ lexical RubyClass = (lexical name, lexical super) {
 				}
 				// At some point, need to implement ivars for primitive objects. Ugh.
 
-				local minfo = self.__c9_lookup__(imsg_name)
-				if (minfo) {
-					bytecode(minfo.at(0), return, imsg, instance, minfo.at(1)) {
+				local lookup_msg = bytecode(imsg_name) {
+					message_new "__c9_lookup__" 0 1
+				}
+				local meth = lookup_msg -> self : local lookup_cont
+				if (meth) {
+					bytecode(meth, return, imsg, instance, lookup_cont) {
 						message_sys_prefix 2
 						channel_send
 					}
-				} else if (minfo = self.__c9_lookup__("method_missing")) {
-					bytecode(minfo.at(0), return, msg, self, minfo.at(1)) {
+				} else if (meth = method_missing_lookup_msg -> self : local lookup_cont) {
+					bytecode(meth, return, msg, self, lookup_cont) {
 						message_sys_prefix 2
 						message_forward "method_missing"
 						channel_send
@@ -163,7 +174,7 @@ lexical RubyClass = (lexical name, lexical super) {
 				}
 				local old_meth = self.__c9_lookup__(old_name)
 				if (old_meth) {
-					return <- instance_methods.set(new_name, old_meth.at(0))
+					return <- instance_methods.set(new_name, old_meth)
 				} else {
 					return <- nil
 				}

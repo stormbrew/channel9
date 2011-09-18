@@ -672,6 +672,8 @@ module Channel9
         builder.set_label(method_label)
         builder.lexical_clean_scope
         builder.frame_set("return")
+        builder.dup_top
+        builder.frame_set("message")
         
         if (nru = need_return_unwind(code))
           builder.channel_special(:unwinder)
@@ -745,20 +747,82 @@ module Channel9
       end
 
       def transform_super(*args)
-        builder.frame_get("super")
-        args.each do |arg|
-          transform(arg)
-        end
-        builder.message_new(@state[:name], 0, args.length)
-        builder.channel_call
-        builder.pop
-      end
+        label = builder.make_label("super")
+        fail_label = label + ".fail"
+        done_label = label + ".done"
 
-      def transform_zsuper
+        # get the new call and the new super
         builder.frame_get("super")
         builder.push(nil)
         builder.channel_call
+
+        # swizzle them around so we can check if we got one.
+        builder.swap
+        builder.dup_top
+        builder.jmp_if_not(fail_label)
+        builder.swap
+
+        builder.frame_get("self")
+        builder.swap
+
+        # TODO: deal with procargs
+        builder.push nil
+
+        # add the new arguments
+        args.each do |arg|
+          transform(arg)
+        end
+        builder.message_new(@state[:name], 3, args.length)
+        builder.channel_call
         builder.pop
+
+        builder.jmp(done_label)
+        builder.set_label(fail_label)
+
+        raise_error(:NoMethodError, "No superclass method for `#{@state[:name]}'")
+
+        builder.set_label(done_label)
+      end
+
+      def transform_zsuper
+        label = builder.make_label("super")
+        fail_label = label + ".fail"
+        done_label = label + ".done"
+
+        # get the new call and the new super
+        builder.frame_get("super")
+        builder.push(nil)
+        builder.channel_call
+
+        # swizzle them around so we can check if we got one.
+        builder.swap
+        builder.dup_top
+        builder.jmp_if_not(fail_label)
+        builder.swap
+
+        builder.frame_get("self")
+        builder.swap
+
+        builder.frame_get("yield")
+
+        builder.message_new(@state[:name], 3, 0)
+
+        builder.frame_get("message")
+        builder.message_unpack(0, 3, 0)
+        builder.swap
+        builder.pop
+
+        builder.message_splat
+
+        builder.channel_call
+        builder.pop
+
+        builder.jmp(done_label)
+        builder.set_label(fail_label)
+
+        raise_error(:NoMethodError, "No superclass method for `#{@state[:name]}'")
+
+        builder.set_label(done_label)
       end
 
       def transform_yield(*args)
