@@ -164,7 +164,7 @@ namespace Channel9
 
 			TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... ", (unsigned)size, type);
 
-			size += (8 - size % 8) % 8; //8 byte align
+			size = ceil_power2(size, 3); //8 byte align
 
 			while(1){
 				Data * data = m_cur_block->alloc(size, type);
