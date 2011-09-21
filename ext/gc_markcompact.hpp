@@ -56,7 +56,7 @@ namespace Channel9
 			Data * next() const { return (Data*)((uchar*)(this + 1) + m_count); }
 			Block * block() const {
 				if(m_pinned) return NULL;
-				return (Block *)(clear_bottom_bits((uintptr_t)this, m_block_size));
+				return (Block *)(floor_power2((uintptr_t)this, m_block_size));
 			}
 			static Data *ptr_for(const void *ptr) { return (Data*)ptr - 1; }
 		};
@@ -65,8 +65,9 @@ namespace Channel9
 
 		static const double   GC_GROWTH_LIMIT = 2.0;
 		static const double   FRAG_LIMIT = 0.8; //compact if the block is less than this full
-		static const uint64_t CHUNK_SIZE = 15;
-		static const uint64_t BLOCK_SIZE = 12;
+		static const uint64_t CHUNK_SIZE = 20; //how much to allocate at a time
+		static const uint64_t BLOCK_SIZE = 15; //prefer block alignment over page alignment
+		static const uint64_t PAGE_SIZE = 12;  //linux defines 4kb pages, so that's what's used here as mmap guarantees page alignment
 
 		struct Block
 		{
@@ -135,8 +136,9 @@ namespace Channel9
 
 
 		std::vector<Chunk>   m_chunks;       // list of all chunks
-		std::vector<Block *> m_empty_blocks; // list of empty blocks
-		Block * m_cur_block;
+		std::vector<Block *> m_empty_blocks;  // list of empty blocks
+		Block * m_cur_medium_block;//block to allocate medium objects out of, moved to small once if it fails to allocate a medium object
+		Block * m_cur_small_block; //block to allocate small objects out of, may point to the same as medium
 
 
 		ForwardTable forward;
@@ -158,63 +160,90 @@ namespace Channel9
 
 		void collect();
 
-		uchar *next(size_t size, uint16_t type, bool new_alloc)
+		uchar *next(size_t size, uint16_t type, bool new_alloc){ return next(size, type, new_alloc, (size <= SMALL)); }
+		uchar *next(size_t size, uint16_t type, bool new_alloc, bool small)
 		{
-			assert(size < 8000);
-
 			TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... ", (unsigned)size, type);
 
 			size = ceil_power2(size, 3); //8 byte align
+			size_t alloc_size = size + sizeof(Data);
+
+			if(new_alloc)
+			{
+				m_used += alloc_size;
+				m_data_blocks++;
+			}
+
+			Block * block = (small ? m_cur_small_block : m_cur_medium_block);
 
 			while(1){
-				Data * data = m_cur_block->alloc(size, type);
+				Data * data = block->alloc(size, type);
 
-				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "from block %p, got %p ... ", m_cur_block, data);
+				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "from block %p, got %p ... ", block, data);
 
 				if(data){
-					if(new_alloc)
-					{
-						m_used += size + sizeof(Data);
-						m_data_blocks++;
-					}
-
 					TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
 
 					return data->m_data;
 				}
 
-				if(m_empty_blocks.empty())
-					alloc_chunk();
+				if(small && block != m_cur_medium_block){
+					//promote small to the medium block
+					block = m_cur_small_block = m_cur_medium_block;
+				}else{
+					if(m_empty_blocks.empty())
+						alloc_chunk();
 
-				m_cur_block = m_empty_blocks.back();
-				m_empty_blocks.pop_back();
+					block = m_empty_blocks.back();
+					m_empty_blocks.pop_back();
 
-				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "grabbing a new empty block: %p ... ", m_cur_block);
+					if(small){
+						m_cur_small_block = m_cur_medium_block = block;
+					}else{
+						//demote the medium block to small, possibly wasting a bit of space in the old small block
+						m_cur_small_block = m_cur_medium_block;
+						m_cur_medium_block = block;
+					}
+				}
+
+				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "grabbing a new empty block: %p ... ", block);
 			}
 			return NULL;
 		}
 
-		void alloc_chunk(unsigned int size = 0){
-			if(size)
-				size = ceil_power2(size);
-			else
-				size = 1<<CHUNK_SIZE;
+		void alloc_chunk(){
 
-			Block * b = (Block *)mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
+			//allocate a bit extra because we're going to align to block size and then unmap the left overs
+			size_t chunk_size = (1 << CHUNK_SIZE);
+			size_t alloc_size = chunk_size + (1 << BLOCK_SIZE);
+
+			char * p = (char *)mmap(NULL, alloc_size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANON, -1, 0);
+			char * pe = p + alloc_size;
+
+			char * a = (char *)ceil_power2((uintptr_t)p, BLOCK_SIZE); //where does the alignment start
+			char * ae = a + chunk_size;
+
+			if(p != a)
+				munmap(p, a - p); //unmap the memory before the block alignment
+			munmap(ae, pe - ae);  //unmap the memory after the chunk ends
+
+			Block * b = (Block *)a;
 
 			TRACE_PRINTF(TRACE_ALLOC, TRACE_INFO, "alloc chunk %p, %i zeros\n", b, (int)count_bottom_zeros4((uintptr_t)b));
 
 			assert(count_bottom_zeros4((uintptr_t)b) >= BLOCK_SIZE); //make sure blocks will be properly aligned
 
-			m_alloced += size;
+			m_alloced += chunk_size;
 
 			Chunk c;
-			c.init(size, b);
+			c.init(chunk_size, b);
 
 			m_chunks.push_back(c);
 
 			for(Block * i = c.begin(); i != c.end(); i = i->next()){
 				assert(i < c.end());
+				assert(count_bottom_zeros4((uintptr_t)i) >= BLOCK_SIZE);
+
 				i->init(BLOCK_SIZE);
 				m_empty_blocks.push_back(i);
 			}
@@ -222,11 +251,11 @@ namespace Channel9
 
 	public:
 		Markcompact()
-		 : m_cur_block(NULL), m_gc_phase(Running), m_alloced(0), m_used(0), m_data_blocks(0), m_next_gc(0.9*(1<<CHUNK_SIZE))
+		 : m_gc_phase(Running), m_alloced(0), m_used(0), m_data_blocks(0), m_next_gc(0.9*(1<<CHUNK_SIZE))
 		{
 			alloc_chunk();
 
-			m_cur_block = m_empty_blocks.back();
+			m_cur_small_block = m_cur_medium_block = m_empty_blocks.back();
 			m_empty_blocks.pop_back();
 			m_pinned_block.init(0);
 		}
@@ -247,19 +276,16 @@ namespace Channel9
 
 		template <typename tObj> tObj *alloc_small(size_t extra, uint16_t type)
 		{
-			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type, true));
+			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type, true, true));
 		}
 		template <typename tObj> tObj *alloc_med(size_t extra, uint16_t type)
 		{
-			assert(false && "Markcompact::alloc_med is not implemented");
-			return NULL;
+			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type, true, false));
 		}
 		template <typename tObj> tObj *alloc_big(size_t extra, uint16_t type)
-		{
-			assert(false && "Markcompact::alloc_med is not implemented");
-			return NULL;
+		{ //treat big objects as pinned objects for now. Don't want to move them anyway, and putting them in the block/chunk system means odd block sizes
+			return alloc_pinned<tObj>(extra, type);
 		}
-
 		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type){
 			size_t size = sizeof(tObj) + extra;
 			size += (8 - size % 8) % 8; //8 byte align
