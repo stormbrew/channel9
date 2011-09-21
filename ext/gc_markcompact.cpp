@@ -79,7 +79,7 @@ namespace Channel9
 		if(m_empty_blocks.empty())
 			alloc_chunk();
 
-		m_cur_block = m_empty_blocks.back();
+		m_cur_small_block = m_cur_medium_block = m_empty_blocks.back();
 		m_empty_blocks.pop_back();
 
 		//compact blocks that have < 80% filled

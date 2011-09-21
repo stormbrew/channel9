@@ -73,7 +73,7 @@ namespace Channel9
 	}
 
 	template<typename uint>
-	inline uint clear_bottom_bits(uint n, int num_bits){
+	inline uint floor_power2(uint n, int num_bits){
 		return (n & ~((1 << num_bits)-1));
 	}
 
