@@ -44,6 +44,10 @@ namespace Channel9
 		MESSAGE_TO_FLOAT_PRIMITIVE,
 		MESSAGE_TO_TUPLE_PRIMITIVE,
 		MESSAGE_TO_CHR,
+		MESSAGE_TO_MESSAGE_ID,
+		MESSAGE_TO_PROTOCOL_ID,
+		MESSAGE_TO_MESSAGE_NAME,
+		MESSAGE_TO_PROTOCOL_NAME,
 
 		MESSAGE_HASH,
 
@@ -66,6 +70,12 @@ namespace Channel9
 		MESSAGE_C9_PRIMITIVE_CALL,
 	};
 
+	inline uint64_t make_protocol_id(uint64_t proto, uint64_t msg)
+	{
+		return (proto << PROTOCOL_ID_SHIFT) | msg;
+	}
+	uint64_t make_protocol_id(const std::string &name);
+	uint64_t make_protocol_id(const String *name);
 	uint64_t make_message_id(const std::string &name);
 	uint64_t make_message_id(const String *name);
 
