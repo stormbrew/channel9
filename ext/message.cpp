@@ -19,10 +19,12 @@ namespace Channel9
 
 #			define MAKE_PROTOCOL(name) \
 				protocol_ids[name] = proto_counter++; \
-				protocol_names.push_back(name)
+				protocol_names.push_back(name); \
+				TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Predefined Protocol ID: %s -> %d\n", (name), (int)(proto_counter)-1)
 #			define MAKE_MESSAGE(name) \
 				message_ids[name] = message_counter++; \
-				message_names.push_back(name)
+				message_names.push_back(name); \
+				TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Predefined Message ID: %s -> %d\n", (name), (int)(message_counter)-1)
 
 			MAKE_PROTOCOL("");
 			MAKE_PROTOCOL("c9");
@@ -48,6 +50,11 @@ namespace Channel9
 			MAKE_MESSAGE("to_float_primitive");
 			MAKE_MESSAGE("to_tuple_primitive");
 			MAKE_MESSAGE("to_chr");
+			MAKE_MESSAGE("to_message_id");
+			MAKE_MESSAGE("to_protocol_id");
+			MAKE_MESSAGE("to_message_name");
+			MAKE_MESSAGE("to_protocol_name");
+
 			MAKE_MESSAGE("hash");
 
 			MAKE_MESSAGE("split");
@@ -66,9 +73,26 @@ namespace Channel9
 
 			MAKE_MESSAGE("name");
 
-			MAKE_MESSAGE("__c9_primitive_call__");
+			MAKE_MESSAGE("primitive_call");
 		}	
 	} init_msgs;
+
+	template <typename tIt>
+	uint64_t make_protocol_id(tIt begin, tIt end)
+	{
+		uint64_t protocol = PROTOCOL_DEFAULT;
+		std::string protoname(begin, end);
+		message_id_map::iterator name_finder = protocol_ids.find(protoname);
+
+		if (name_finder != protocol_ids.end()) {
+			protocol = name_finder->second;
+		} else {
+			protocol = protocol_names.size();
+			protocol_names.push_back(protoname);
+			protocol_ids[protoname] = protocol;
+		}
+		return protocol;
+	}
 
 	template <typename tIt>
 	uint64_t make_message_id(tIt begin, tIt end)
@@ -79,14 +103,7 @@ namespace Channel9
 		tIt split = std::find(begin, end, ':');
 		if (split != end)
 		{
-			std::string protoname(begin, split);
-			name_finder = protocol_ids.find(protoname);
-			if (name_finder != protocol_ids.end()) {
-				protocol = name_finder->second;
-			} else {
-				protocol = protocol_names.size();
-				protocol_names.push_back(protoname);
-			}
+			protocol = make_protocol_id(begin, split);
 			begin = split + 1;
 		}
 		assert(protocol < 0xff);
@@ -99,8 +116,19 @@ namespace Channel9
 		} else {
 			message = message_names.size();
 			message_names.push_back(messagename);
+			message_ids[messagename] = message;
 		}
+		TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Message ID: %s -> %llu\n", messagename.c_str(), message);
 		return (protocol << PROTOCOL_ID_SHIFT) | message;
+	}
+
+	uint64_t make_protocol_id(const std::string &name)
+	{
+		return make_protocol_id(name.begin(), name.end());
+	}
+	uint64_t make_protocol_id(const String *name)
+	{
+		return make_protocol_id(name->begin(), name->end());
 	}
 
 	uint64_t make_message_id(const std::string &name)

@@ -111,6 +111,9 @@ module Channel9
       class FalseNode < ConstantNode; end
       class IntegerConstantNode < ConstantNode; end
       class StringConstantNode < ConstantNode; end
+
+      class MessageIdNode < ConstantNode; end
+      class ProtocolIdNode < ConstantNode; end
       
       class ListNode < Node
         attr_accessor :items
@@ -608,6 +611,9 @@ module Channel9
       rule(:string => simple(:s)) { StringConstantNode.new(s, :val => s.to_s) }
       rule(:list => sequence(:items)) { ListNode.new(items[0], :items => items) }
       rule(:list => simple(:item)) { ListNode.new(item, :items => [item]) }
+
+      rule(:message_id => simple(:n), :string => simple(:name)) { MessageIdNode.new(n, :val => Primitive::MessageID.new(name.to_s)) }
+      rule(:protocol_id => simple(:n), :string => simple(:name)) { ProtocolIdNode.new(n, :val => Primitive::ProtocolID.new(name.to_s)) }
 
       rule(:argdef => simple(:arg)) { arg.nil? ? [] : [arg] }
       rule(:argdef => sequence(:args)) { args }

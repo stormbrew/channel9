@@ -15,7 +15,7 @@ namespace Channel9
 			inspect(oself).c_str(), inspect(msg).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
 		Message *orig = ptr<Message>(msg);
 		assert(orig->message_id() != MESSAGE_C9_PRIMITIVE_CALL);
-		Message *fwd = new_message(PROTOCOL_C9_SYSTEM | MESSAGE_C9_PRIMITIVE_CALL, 0, 2);
+		Message *fwd = new_message(make_protocol_id(PROTOCOL_C9_SYSTEM, MESSAGE_C9_PRIMITIVE_CALL), 0, 2);
 
 		Message::iterator out = fwd->args();
 		*out++ = oself;
@@ -71,8 +71,29 @@ namespace Channel9
 			return channel_send(cenv, ctx, value((double)self), Nil);
 		case MESSAGE_NEGATE:
 			return channel_send(cenv, ctx, value(-self), Nil);
+		case MESSAGE_TO_MESSAGE_NAME:
+			{
+				uint64_t proto = (uint64_t)(self >> PROTOCOL_ID_SHIFT);
+				uint64_t message = (uint64_t)(self & MESSAGE_ID_MASK);
+				if (proto < protocol_names.size() && message < message_names.size())
+				{
+					if (proto > 0)
+						return channel_send(cenv, ctx, value(message_names[message]), Nil);
+					else
+						return channel_send(cenv, ctx, value(protocol_names[proto] + ":" + message_names[message]), Nil);
+				}
+			}
+			break;
+		case MESSAGE_TO_PROTOCOL_NAME:
+			{
+				if ((uint64_t)self < protocol_names.size())
+				{
+					return channel_send(cenv, ctx, value(protocol_names[self]), Nil);
+				}
+			}
+			break;
 		case MESSAGE_HASH:
-			return channel_send(cenv, ctx, value((long long)mix_bits(uint64_t(self))), Nil);
+			return channel_send(cenv, ctx, value((long long)(mix_bits(uint64_t(self)) & Value::VALUE_MASK)), Nil);
 		}
 
 		Value def = cenv->special_channel("Channel9::Primitive::Number");
@@ -128,13 +149,14 @@ namespace Channel9
 	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg_val)
 	{
 		Message *msg = ptr<Message>(msg_val);
+		String *self = ptr<String>(oself);
 
 		switch (msg->message_id())
 		{
 		case MESSAGE_PLUS:
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
-				String *other = ptr<String>(msg->args()[0]), *self = ptr<String>(oself);
+				String *other = ptr<String>(msg->args()[0]);
 				String *ret = new_string(self->m_count + other->m_count);
 				std::copy(self->begin(), self->end(), ret->m_data);
 				std::copy(other->begin(), other->end(), ret->m_data + self->m_count);
@@ -143,22 +165,32 @@ namespace Channel9
 			break;
 		case MESSAGE_TO_NUM_PRIMITIVE:
 			{
-				std::stringstream str(ptr<String>(oself)->c_str());
+				std::stringstream str(self->c_str());
 				long long num = 0;
 				str >> num;
 				return channel_send(cenv, ctx, value(num), Nil);
 			}
 		case MESSAGE_TO_CHR:
 			{
-				String *self = ptr<String>(oself);
 				if (self->m_count == 1)
 					return channel_send(cenv, ctx, value((long long)self->m_data[0]), Nil);
+			}
+			break;
+		case MESSAGE_TO_MESSAGE_ID:
+			if (self->size() > 0)
+			{
+				return channel_send(cenv, ctx, value((long long)make_message_id(self)), Nil);
+			}
+			break;
+		case MESSAGE_TO_PROTOCOL_ID:
+			if (self->size() > 0)
+			{
+				return channel_send(cenv, ctx, value((long long)make_protocol_id(self)), Nil);
 			}
 			break;
 		case MESSAGE_SPLIT:
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
-				String *self = ptr<String>(oself);
 				String *by = ptr<String>(msg->args()[0]);
 				return channel_send(cenv, ctx, value(split_string(self, by)), Nil);
 			}
@@ -166,7 +198,6 @@ namespace Channel9
 		case MESSAGE_SUBSTR:
 			if (msg->arg_count() == 2 && is(msg->args()[0], POSITIVE_NUMBER) && is(msg->args()[1], POSITIVE_NUMBER))
 			{
-				String *self = ptr<String>(oself);
 				size_t first = msg->args()[0].machine_num, last = msg->args()[1].machine_num;
 				if (first < self->m_count && last < self->m_count && last >= first)
 					return channel_send(cenv, ctx, value(self->substr(first, last - first + 1)), Nil);
@@ -175,7 +206,7 @@ namespace Channel9
 		case MESSAGE_MATCH:
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
-				String *self = ptr<String>(oself), *other = ptr<String>(msg->args()[0]);
+				String *other = ptr<String>(msg->args()[0]);
 				ptrdiff_t diff;
 				if (self->m_count > other->m_count)
 					diff = std::mismatch(other->begin(), other->end(), self->begin()).first - other->begin();
@@ -186,7 +217,6 @@ namespace Channel9
 			break;
 		case MESSAGE_HASH:
 			{
-				String *self = ptr<String>(oself);
 				// djb2 algorithm
 				unsigned long hash = 5381;
 
@@ -194,16 +224,16 @@ namespace Channel9
 				{
 					hash = ((hash << 5) + hash) ^ *it;
 				}
-				hash &= 0x7fffffffffffffff; // don't want negative hashes.
+				hash &= Value::VALUE_MASK; // don't want negative hashes.
 
 				return channel_send(cenv, ctx, value((long long)hash), Nil);
 			}
 		case MESSAGE_LENGTH:
-			return channel_send(cenv, ctx, value((long long)ptr<String>(oself)->length()), Nil);
+			return channel_send(cenv, ctx, value((long long)self->length()), Nil);
 		case MESSAGE_EQUAL:
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
-				String *other = ptr<String>(msg->args()[0]), *self = ptr<String>(oself);
+				String *other = ptr<String>(msg->args()[0]);
 				return channel_send(cenv, ctx, bvalue(*self == *other), Nil);
 			}
 			break;

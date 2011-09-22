@@ -34,16 +34,15 @@ lexical HashClass = (lexical table_size) {
 		return <- val
 	}
 
-	(&msg) -> return {
-		local name = bytecode(msg) {
-			message_name
-			swap
+	(@msg) -> return {
+		local id = bytecode(msg) {
+			message_split_id
 			pop
 		}
-		switch (name)
-		case ('get') {
+		switch (id)
+		case (@'get') {
 			return <- msg -> get
-		} case ('set') {
+		} case (@'set') {
 			return <- msg -> set
 		}
 	}

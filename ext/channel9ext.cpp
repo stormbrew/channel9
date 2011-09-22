@@ -29,6 +29,8 @@ VALUE rb_cCallableContext;
 VALUE rb_cRunningContext;
 VALUE rb_cRunnableContext;
 VALUE rb_cMessage;
+VALUE rb_cMessageId;
+VALUE rb_cProtocolId;
 VALUE rb_cUndef;
 VALUE rb_Undef;
 
@@ -138,7 +140,14 @@ static GCRef<Value> rb_to_c9(VALUE val)
 	case T_SYMBOL:
 		return value(rb_id2name(SYM2ID(val)));
 	case T_STRING:
-		return value(STR2CSTR(val));
+		if (rb_class_of(val) == rb_cMessageId) 
+		{
+			return value((long long)make_message_id(STR2CSTR(val)));
+		} else if (rb_class_of(val) == rb_cProtocolId) {
+			return value((long long)make_protocol_id(STR2CSTR(val)));
+		} else {
+			return value(STR2CSTR(val));
+		}
 	case T_BIGNUM:
 		return value(int64_t(-1)); // TODO: Make this not stupid.
 	case T_FIXNUM:
@@ -164,14 +173,13 @@ static GCRef<Value> rb_to_c9(VALUE val)
 	case T_MODULE:
 	case T_CLASS:
 	case T_OBJECT:
-		if (rb_respond_to(val, rb_intern("channel_send")))
-		{
+		if (val == rb_Undef) {
+			return Undef;
+		} else if (rb_respond_to(val, rb_intern("channel_send"))) {
 			Value c9val = value(new RubyChannel(val));
 			TRACE_PRINTF(TRACE_GENERAL, TRACE_INFO, "Converting object %s to RubyChannel: %s\n",
 				STR2CSTR(rb_any_to_s(val)), inspect(c9val).c_str());
 			return c9val;
-		} else if (val == rb_Undef) {
-			return Undef;
 		}
 		break;
 	case T_DATA: {
@@ -585,6 +593,12 @@ static void Init_Channel9_Undef()
 	rb_define_const(rb_mPrimitive, "Undef", rb_Undef);
 }
 
+static void Init_Channel9_MessageId()
+{
+	rb_cMessageId = rb_define_class_under(rb_mPrimitive, "MessageID", rb_cString);
+	rb_cProtocolId = rb_define_class_under(rb_mPrimitive, "ProtocolID", rb_cString);
+}
+
 static VALUE Primitive_channel_send(VALUE self, VALUE cenv, VALUE val, VALUE ret) try
 {
 	Environment *c9_cenv;
@@ -618,6 +632,7 @@ extern "C" void Init_channel9ext()
 	Init_Channel9_Stream();
 	Init_Channel9_Message();
 	Init_Channel9_Undef();
+	Init_Channel9_MessageId();
 	Init_Channel9_Context();
 	Init_Channel9_RunningContext();
 	Init_Channel9_CallableContext();

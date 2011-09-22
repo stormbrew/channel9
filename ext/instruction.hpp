@@ -44,6 +44,10 @@ namespace Channel9
 		MESSAGE_SPLAT,
 		MESSAGE_ADD,
 		MESSAGE_COUNT,
+		MESSAGE_IS,
+		MESSAGE_IS_PROTO,
+		MESSAGE_ID,
+		MESSAGE_SPLIT_ID,
 		MESSAGE_CHECK,
 		MESSAGE_FORWARD,
 		MESSAGE_SYS_PREFIX,
@@ -81,6 +85,7 @@ namespace Channel9
 		Value arg1;
 		Value arg2;
 		Value arg3;
+		Value cache;
 	};
 	Instruction instruction(INUM instruction, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil);
 	inline Instruction instruction(const std::string &ins, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil)

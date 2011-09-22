@@ -40,6 +40,10 @@ module Channel9
       rule(:symbol) {
         match('[a-zA-Z_]') >> match('[a-zA-Z0-9_]').repeat
       }
+      rule(:method_name) {
+        (symbol >> str(':') >> symbol) |
+        symbol
+      }
 
       rule(:local_var) {
         symbol.as(:local_var)
@@ -85,8 +89,15 @@ module Channel9
          (str("'") >> str("'").absent?.maybe.as(:string) >> str("'")) |
          (str('"') >> (str('"').absnt? >> any).repeat.as(:string) >> str('"')) |
          (str("'") >> (str("'").absnt? >> any).repeat.as(:string) >> str("'")) |
-         (str(":") >> (ws.absnt? >> any).repeat.as(:string))
+         (str(":") >> symbol.as(:string))
         )
+      }
+
+      rule(:message_id_const) {
+        str('@').as(:message_id) >> string_const
+      }
+      rule(:protocol_id_const) {
+        str('@@').as(:protocol_id) >> string_const
       }
 
       rule(:list_const) {
@@ -98,13 +109,14 @@ module Channel9
       }
 
       rule(:argdef_list) {
-        (str('(') >> iws? >> argdef.as(:args) >> iws? >> str(",") >> iws? >> str('&') >> arg_declare_var.as(:msg_var) >> iws? >> str(')')) |
-        (str('(') >> iws? >> str('&') >> arg_declare_var.as(:msg_var) >> iws? >> str(')')) |
+        (str('(') >> iws? >> argdef.as(:args) >> iws? >> str(",") >> iws? >> str('@') >> arg_declare_var.as(:msg_var) >> iws? >> str(')')) |
+        (str('(') >> iws? >> str('@') >> arg_declare_var.as(:msg_var) >> iws? >> str(')')) |
         (str('(') >> iws? >> argdef.maybe.as(:args) >> iws? >> str(')'))
       }
 
       rule(:const) {
-        nil_const | undef_const | true_const | false_const | integer_const | string_const | list_const
+        nil_const | undef_const | true_const | false_const | integer_const | protocol_id_const |
+        message_id_const | string_const | list_const
       }
 
       rule(:func) {
@@ -150,7 +162,7 @@ module Channel9
       }
 
       rule(:member_invoke) {
-        (lws? >> str('.') >> iws? >> symbol.as(:name) >> lws? >> arglist.maybe).as(:member_invoke)
+        (lws? >> str('.') >> iws? >> method_name.as(:name) >> lws? >> arglist.maybe).as(:member_invoke)
       }
       rule(:array_access) {
         (lws? >> str('[') >> iws? >> expression >> iws? >> str(']')).as(:index_invoke)

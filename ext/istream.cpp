@@ -1,4 +1,6 @@
 #include "istream.hpp"
+#include "message.hpp"
+
 #include <assert.h>
 #include <stdio.h>
 
@@ -20,20 +22,20 @@ namespace Channel9
 			case JMP:
 				{
 					size_t branch_pos = label_pos(ptr<String>(ins.arg1)->str());
-					ins.arg3 = value((long long)branch_pos);
+					ins.cache = value((long long)branch_pos);
 				}
 				break;
 			case JMP_IF:
 			case JMP_IF_NOT:
 				{
 					size_t branch_pos = label_pos(ptr<String>(ins.arg1)->str());
-					ins.arg3 = value((long long)branch_pos);
+					ins.cache = value((long long)branch_pos);
 				}
 				break;
 			case CHANNEL_NEW:
 				{
 					size_t branch_pos = label_pos(ptr<String>(ins.arg1)->str());
-					ins.arg3 = value((long long)branch_pos);
+					ins.cache = value((long long)branch_pos);
 				}
 				break;
 			case LOCAL_SET:
@@ -43,11 +45,11 @@ namespace Channel9
 					name_map::iterator it = locals.find(name);
 					if (it == locals.end())
 					{
-						ins.arg3 = value((long long)locals.size());
+						ins.cache = value((long long)locals.size());
 						locals.insert(make_pair(name, locals.size()));
 						if (m_local_size < locals.size()) m_local_size = locals.size();
 					} else {
-						ins.arg3 = value((long long)it->second);
+						ins.cache = value((long long)it->second);
 					}
 				}
 				break;
@@ -87,20 +89,20 @@ namespace Channel9
 				switch (ins.instruction)
 				{
 				case JMP:
-					pos = (size_t)ins.arg3.machine_num;
+					pos = (size_t)ins.cache.machine_num;
 					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Unconditional branch to pos %d\n", (int)pos);
 					break;
 				case JMP_IF:
 				case JMP_IF_NOT:
 					{
-						size_t branch_pos = (size_t)ins.arg3.machine_num;
+						size_t branch_pos = (size_t)ins.cache.machine_num;
 						TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Conditional branch. Options: %d | %d\n", (int)pos, (int)branch_pos);
 						normalize(stack_size, locals, branch_pos, pos_map);
 					}
 					break;
 				case CHANNEL_NEW:
 					{
-						size_t branch_pos = (size_t)ins.arg3.machine_num;
+						size_t branch_pos = (size_t)ins.cache.machine_num;
 						TRACE_PRINTF(TRACE_VM, TRACE_INFO, "New channel. Options: %d | %d\n", (int)pos, (int)branch_pos);
 						std::map<std::string, size_t> sublocals;
 						normalize(2, sublocals, branch_pos, pos_map);
@@ -137,18 +139,24 @@ namespace Channel9
 
 	void IStream::add(Instruction instruction)
 	{
-		long long lexical_id;
+		long long id;
 		switch (instruction.instruction)
 		{
 		case LEXICAL_SET:
 		case LEXICAL_GET:
-			lexical_id = lexical(ptr<String>(instruction.arg2)->str());
-			instruction.arg3 = value(lexical_id);
+			id = lexical(ptr<String>(instruction.arg2)->str());
+			instruction.cache = value(id);
 			break;
 		case FRAME_GET:
 		case FRAME_SET:
-			lexical_id = frame(ptr<String>(instruction.arg1)->str());
-			instruction.arg3 = value(lexical_id);
+			id = frame(ptr<String>(instruction.arg1)->str());
+			instruction.cache = value(id);
+			break;
+		case MESSAGE_NEW:
+		case MESSAGE_FORWARD:
+		case MESSAGE_IS:
+		case MESSAGE_IS_PROTO:
+			instruction.cache = value((long long)make_message_id(ptr<String>(instruction.arg1)));
 			break;
 		default:
 			break;

@@ -25,9 +25,16 @@ module Channel9
       code = o["code"]
       code.each do |instruction|
         instruction.collect! {|i|
-          if (i.is_a?(Hash))
-            if (i == {'undef'=>'undef'})
+          if (i.is_a?(Hash) && i.length == 1)
+            k = v = nil
+            i.each {|k,v|}
+            case k
+            when 'undef'
               Channel9::Primitive::Undef
+            when 'message_id'
+              Channel9::Primitive::MessageID.new(v)
+            when 'protocol_id'
+              Channel9::Primitive::ProtocolID.new(v)
             else
               raise "Unknown complex type in json bytecode stream: #{i.inspect}"
             end

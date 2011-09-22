@@ -40,6 +40,10 @@ namespace Channel9
 			INUM_DEF(MESSAGE_SPLAT);
 			INUM_DEF(MESSAGE_ADD);
 			INUM_DEF(MESSAGE_COUNT);
+			INUM_DEF(MESSAGE_IS);
+			INUM_DEF(MESSAGE_IS_PROTO);
+			INUM_DEF(MESSAGE_ID);
+			INUM_DEF(MESSAGE_SPLIT_ID);
 			INUM_DEF(MESSAGE_CHECK);
 			INUM_DEF(MESSAGE_FORWARD);
 			INUM_DEF(MESSAGE_SYS_PREFIX);
@@ -95,6 +99,10 @@ namespace Channel9
 			INAME_DEF(MESSAGE_SPLAT);
 			INAME_DEF(MESSAGE_ADD);
 			INAME_DEF(MESSAGE_COUNT);
+			INAME_DEF(MESSAGE_IS);
+			INAME_DEF(MESSAGE_IS_PROTO);
+			INAME_DEF(MESSAGE_ID);
+			INAME_DEF(MESSAGE_SPLIT_ID);
 			INAME_DEF(MESSAGE_CHECK);
 			INAME_DEF(MESSAGE_FORWARD);
 			INAME_DEF(MESSAGE_SYS_PREFIX);
@@ -161,6 +169,10 @@ namespace Channel9
 			1, false 
 			);
 		IINFO(MESSAGE_COUNT, 1, 2, 0, false);
+		IINFO(MESSAGE_IS, 1, 2, 1, false);
+		IINFO(MESSAGE_IS_PROTO, 1, 2, 1, false);
+		IINFO(MESSAGE_ID, 1, 2, 0, false);
+		IINFO(MESSAGE_SPLIT_ID, 1, 3, 0, false);
 		IINFO(MESSAGE_CHECK, 1, 1, 0, false);
 		IINFO(MESSAGE_FORWARD, 1, 1, 1, false);
 		IINFO(MESSAGE_SYS_PREFIX, 1 + ins.arg1.machine_num, 1, 1, false);
@@ -220,6 +232,8 @@ namespace Channel9
 		case LOCAL_SET:
 		case FRAME_GET:
 		case FRAME_SET:
+		case MESSAGE_IS:
+		case MESSAGE_IS_PROTO:
 			str << ", c:" << inspect(ins.arg3);
 		default: break;
 		}

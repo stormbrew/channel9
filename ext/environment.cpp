@@ -185,7 +185,7 @@ namespace Channel9
 
 					value_pool.safe_point();
 
-					m_context->jump(ins.arg3.machine_num);
+					m_context->jump(ins.cache.machine_num);
 					break;
 				case JMP_IF:
 					CHECK_STACK(1, 0);
@@ -193,7 +193,7 @@ namespace Channel9
 					value_pool.safe_point();
 
 					if (is_truthy(m_context->top()))
-						m_context->jump(ins.arg3.machine_num);
+						m_context->jump(ins.cache.machine_num);
 					m_context->pop();
 					break;
 				case JMP_IF_NOT:
@@ -202,7 +202,7 @@ namespace Channel9
 					value_pool.safe_point();
 
 					if (!is_truthy(m_context->top()))
-						m_context->jump(ins.arg3.machine_num);
+						m_context->jump(ins.cache.machine_num);
 					m_context->pop();
 					break;
 
@@ -221,14 +221,14 @@ namespace Channel9
 					break;
 				case FRAME_GET: {
 					CHECK_STACK(0, 1);
-					size_t frameid = (size_t)ins.arg3.machine_num;
+					size_t frameid = (size_t)ins.cache.machine_num;
 					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Getting frame var %s (%d)\n", ptr<String>(ins.arg1)->c_str(), (int)frameid);
 					m_context->push(m_context->get_framevar(frameid));
 					}
 					break;
 				case FRAME_SET: {
 					CHECK_STACK(1, 0);
-					size_t frameid = (size_t)ins.arg3.machine_num;
+					size_t frameid = (size_t)ins.cache.machine_num;
 					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Setting frame var %s (%d) to: %s\n", ptr<String>(ins.arg1)->c_str(), (int)frameid, inspect(m_context->top()).c_str());
 					m_context->set_framevar(frameid, m_context->top());
 					m_context->pop();
@@ -236,14 +236,14 @@ namespace Channel9
 					break;
 				case LOCAL_GET: {
 					CHECK_STACK(0, 1);
-					size_t localid = (size_t)ins.arg3.machine_num;
+					size_t localid = (size_t)ins.cache.machine_num;
 					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Getting local var %s (%d)\n", ptr<String>(ins.arg1)->c_str(), (int)localid);
 					m_context->push(m_context->get_localvar(localid));
 					}
 					break;
 				case LOCAL_SET: {
 					CHECK_STACK(1, 0);
-					size_t localid = (size_t)ins.arg3.machine_num;
+					size_t localid = (size_t)ins.cache.machine_num;
 					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Setting local var %s (%d) to: %s\n", ptr<String>(ins.arg1)->c_str(), (int)localid, inspect(m_context->top()).c_str());
 					m_context->set_localvar(localid, m_context->top());
 					m_context->pop();
@@ -252,7 +252,7 @@ namespace Channel9
 				case LEXICAL_GET: {
 					CHECK_STACK(0, 1);
 					size_t depth = ins.arg1.machine_num;
-					size_t localid = (size_t)ins.arg3.machine_num;
+					size_t localid = (size_t)ins.cache.machine_num;
 					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "lexical_get %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->get_lexicalvar(localid, depth)));
 					if (depth == 0)
 						m_context->push(m_context->get_lexicalvar(localid));
@@ -263,7 +263,7 @@ namespace Channel9
 				case LEXICAL_SET: {
 					CHECK_STACK(1, 0);
 					size_t depth = ins.arg1.machine_num;
-					size_t localid = (size_t)ins.arg3.machine_num;
+					size_t localid = (size_t)ins.cache.machine_num;
 					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "lexical_set %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
 					if (depth == 0)
 						m_context->set_lexicalvar(localid, m_context->top());
@@ -277,7 +277,7 @@ namespace Channel9
 					CHECK_STACK(0, 1);
 					const Value &octx = vstore(value(m_context));
 					RunnableContext *nctx = new_context(octx);
-					nctx->jump(ins.arg3.machine_num);
+					nctx->jump(ins.cache.machine_num);
 					m_context->push(value(nctx));
 					clear_vstore();
 					}
@@ -323,12 +323,12 @@ namespace Channel9
 					break;
 
 				case MESSAGE_NEW: {
-					const Value &name = ins.arg1;
+					long long id = ins.cache.machine_num;
 					long long sysarg_count = ins.arg2.machine_num, sysarg_counter = sysarg_count - 1;
 					long long arg_count = ins.arg3.machine_num, arg_counter = arg_count - 1;
 					CHECK_STACK(sysarg_count + arg_count, 1);
 
-					Message *msg = new_message(name, sysarg_count, arg_count);
+					Message *msg = new_message(id, sysarg_count, arg_count);
 
 					while (arg_count > 0 && arg_counter >= 0)
 					{
@@ -383,6 +383,29 @@ namespace Channel9
 					CHECK_STACK(1, 2);
 					m_context->push(value((long long)ptr<Message>(m_context->top())->arg_count()));
 					break;
+				case MESSAGE_IS:
+					CHECK_STACK(1, 2);
+					m_context->push(bvalue(ptr<Message>(m_context->top())->m_id == (uint64_t)ins.cache.machine_num));
+					break;
+				case MESSAGE_IS_PROTO:
+					CHECK_STACK(1, 2);
+					m_context->push(bvalue(ptr<Message>(m_context->top())->protocol_id() == (uint64_t)ins.cache.machine_num));
+					break;
+				case MESSAGE_ID:
+					{
+					CHECK_STACK(1, 2);
+					Message *msg = ptr<Message>(m_context->top());
+					m_context->push(value((long long)msg->m_id));
+					}
+					break;
+				case MESSAGE_SPLIT_ID:
+					{
+					CHECK_STACK(1, 3);
+					Message *msg = ptr<Message>(m_context->top());
+					m_context->push(value((long long)msg->message_id()));
+					m_context->push(value((long long)msg->protocol_id()));
+					}
+					break;
 				case MESSAGE_CHECK:
 					CHECK_STACK(1, 1);
 					if (!is(m_context->top(), MESSAGE))
@@ -395,8 +418,9 @@ namespace Channel9
 				case MESSAGE_FORWARD: {
 					CHECK_STACK(1, 1);
 
+					long long id = ins.cache.machine_num;
 					const Message &msg = *ptr<Message>(m_context->top());
-					Message *nmsg = new_message(ins.arg1, msg.sysarg_count(), msg.arg_count() + 1);
+					Message *nmsg = new_message(id, msg.sysarg_count(), msg.arg_count() + 1);
 					std::copy(msg.sysargs(), msg.sysargs_end(), nmsg->sysargs());
 					nmsg->args()[0] = value(new_string(msg.name()));
 					std::copy(msg.args(), msg.args_end(), nmsg->args() + 1);
