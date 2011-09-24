@@ -3,7 +3,7 @@ class Module
     __c9_include__(o)
   end
   def alias_method(new, old)
-    __c9_alias_method__(new, old)
+    __c9_alias_method__(new.to_message_id, old.to_message_id)
   end
 
   def name
