@@ -4,23 +4,18 @@ lexical RubyModule = (lexical name) {
 	lexical included = []
 	lexical inner_obj = $RubyObject($Module)
 
-	lexical self = (&msg) -> return {
-		local msg_name
-		local is_c9
+	lexical self = (@msg) -> return {
+		local msg_id
+		local msg_type
 		bytecode(msg) {
-			message_name
-			dup_top
-			local_set "msg_name"
-			push "__c9_"
-			message_new "match" 0 1
-			channel_call
-			pop
-			is 5
-			local_set "is_c9"
+			message_split_id
+			local_set "msg_type"
+			local_set "msg_id"
 		}
-		if (is_c9) {
-			switch (msg_name)
-			case ('__c9_lookup__') {
+
+		if (msg_type == @@'ruby_sys') {
+			switch (msg_id)
+			case (@'lookup') {
 				local meth_name = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
@@ -33,9 +28,9 @@ lexical RubyModule = (lexical name) {
 				} else {
 					return <- undef
 				}
-			} case ('__c9_name__') {
+			} case (@'name') {
 				return <- name
-			} case ('__c9_add_constant__') {
+			} case (@'add_constant') {
 				local const_name
 				local const_val
 				bytecode(msg) {
@@ -44,14 +39,14 @@ lexical RubyModule = (lexical name) {
 					local_set "const_val"
 				}
 				return <- constants.set(const_name, const_val)
-			} case ('__c9_get_constant__') {
+			} case (@'get_constant') {
 				local const_name = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
 					pop
 				}
 				return <- constants.get(const_name)
-			} case ('__c9_get_constant_scoped__') {
+			} case (@'get_constant_scoped') {
 				local const_name
 				local next
 				local next_mod
@@ -72,10 +67,10 @@ lexical RubyModule = (lexical name) {
 				if (const) {
 					return <- const
 				} else if (next) {
-					return <- next_mod.__c9_get_constant_scoped__(const_name, next_scope)
+					return <- next_mod.ruby_sys:get_constant_scoped(const_name, next_scope)
 				}
 				return <- nil
-			} case ('__c9_add_method__') {
+			} case (@'add_method') {
 				local meth_name
 				local meth
 				bytecode(msg) {
@@ -84,7 +79,7 @@ lexical RubyModule = (lexical name) {
 					local_set "meth"
 				}
 				return <- instance_methods.set(meth_name, meth)
-			} case ('__c9_alias_method__') {
+			} case (@'alias_method') {
 				local new_name
 				local old_name
 				bytecode(msg) {
@@ -92,13 +87,13 @@ lexical RubyModule = (lexical name) {
 					local_set "new_name"
 					local_set "old_name"
 				}
-				local old_meth = self.__c9_lookup__(old_name)
+				local old_meth = self.ruby_sys:lookup(old_name)
 				if (old_meth) {
 					return <- instance_methods.set(new_name, old_meth)
 				} else {
 					return <- nil
 				}
-			} case ("__c9_scope_name__") {
+			} case (@"scope_name") {
 				if (self == $Object) {
 					return <- ""
 				} else {
@@ -108,9 +103,9 @@ lexical RubyModule = (lexical name) {
 		}
 		return <- msg -> inner_obj
 	}
-	inner_obj.__c9_wrap__(self)
+	inner_obj.ruby_sys:wrap(self)
 	self
 }
 
-$Class.__c9_rebind_super__($Module)
+$Class.ruby_sys:rebind_super($Module)
 $set_special_channel('RubyModule', RubyModule)

@@ -1,7 +1,7 @@
 lexical id_seq = 2148425000
 lexical method_missing_lookup_msg = bytecode() {
-	push "method_missing"
-	message_new "__c9_lookup__" 0 1
+	push @"method_missing"
+	message_new "ruby_sys:lookup" 0 1
 }
 
 lexical RubyObject = (lexical klass, lexical ivars) {
@@ -14,30 +14,24 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 	}
 	lexical id = nil
 
-	lexical self = (&msg) -> return {
-		local name
-		local is_c9
+	lexical self = (@msg) -> return {
+		local msg_id
+		local msg_type
 		bytecode(msg) {
-			message_name
-			dup_top
-			local_set "name"
-			push "__c9_"
-			message_new "match" 0 1
-			channel_call
-			pop
-			is 5
-			local_set "is_c9"
+			message_split_id
+			local_set "msg_type"
+			local_set "msg_id"
 		}
-		if (is_c9) {
-			switch (name)
-			case ("__c9_ivar_get__") {
+		if (msg_type == @@'ruby_sys') {
+			switch (msg_id)
+			case (@'ivar_get') {
 				local ivar_name = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
 					pop
 				}
 				return <- ivars.get(ivar_name)
-			} case ("__c9_ivar_set__") {
+			} case (@'ivar_set') {
 				local ivar_name
 				local ivar_val
 				bytecode(msg) {
@@ -46,41 +40,41 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 					local_set "ivar_val"
 				}
 				return <- ivars.set(ivar_name, ivar_val)
-			} case ("__c9_object_id__") {
+			} case (@'object_id') {
 				if (id) {
 					return <- id
 				} else {
 					return <- id = (id_seq += 2) // even numbers are for objects
 				}
-			} case ("__c9_class__") {
+			} case (@'class') {
 				return <- klass
-			} case ("__c9_wrap__") {
+			} case (@'wrap') {
 				// re-identify self as being the wrapping object.
 				bytecode(msg) {
 					message_unpack 1 0 0
 					lexical_set 0 "self"
 				}
 				return <- self
-			} case ("__c9_singleton__") {
+			} case (@'singleton') {
 				if (singleton == klass) {
 					return <- nil
 				} else {
 					return <- singleton
 				}
-			} case ("__c9_make_singleton__") {
+			} case (@'make_singleton') {
 				if (singleton == klass) {
 					return <- (singleton = $RubyClass(self.to_s, klass))
 				} else {
 					return <- singleton
 				}
-			} case ("__c9_set_singleton__") {
+			} case (@'set_singleton') {
 				singleton = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
 					pop
 				}
 				return <- singleton
-			} case ("__c9_instance_eval__") {
+			} case (@'instance_eval') {
 				bytecode(msg) {
 					message_sys_unpack 1
 					swap
@@ -90,13 +84,13 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 					message_new "call" 1 0
 					channel_send
 				}
-			} case ("__c9_dup__") {
+			} case (@'dup') {
 				return <- RubyObject(klass, ivars.dup)
 			}
 		}
 
-		local lookup_msg = bytecode(name) {
-			message_new "__c9_lookup__" 0 1
+		local lookup_msg = bytecode(msg_id) {
+			message_new 'ruby_sys:lookup' 0 1
 		}
 
 		local meth = lookup_msg -> singleton : local lookup_cont
@@ -113,7 +107,7 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 				channel_send
 			}
 		} else {
-			$unwinder.no_message_handler(klass.__c9_name__, name)
+			$unwinder.no_message_handler(klass.ruby_sys:name, msg.name)
 		}
 	}
 }

@@ -630,7 +630,7 @@ module Channel9
         end
       end
 
-      def need_return_unwind(code)
+      def need_return_unwind(name, code)
         # to determine if the function body
         # requires a return unwind handler, we
         # compile the body just to find out if
@@ -643,7 +643,7 @@ module Channel9
         compiler = Compiler.new(builder)
         need_info = [false]
         compiler.with_state(@state) do
-          compiler.with_state(:need_long_return => need_info) do
+          compiler.with_state(:need_long_return => need_info, :name => name) do
             compiler.transform(code)
             return need_info[0]
           end
@@ -675,7 +675,7 @@ module Channel9
         builder.dup_top
         builder.frame_set("message")
         
-        if (nru = need_return_unwind(code))
+        if (nru = need_return_unwind(name, code))
           builder.channel_special(:unwinder)
           builder.channel_new(method_lret_label)
           builder.channel_call
@@ -711,8 +711,8 @@ module Channel9
           # this method. Otherwise, just move on to the next
           # unwind handler.
           builder.pop # -> unwind_message
-          builder.message_name # -> name -> um
-          builder.is(:long_return) # -> is -> um
+          builder.message_id # -> name -> um
+          builder.is(Primitive::MessageID.new("long_return")) # -> is -> um
           builder.jmp_if_not(method_lret_pass) # -> um
           builder.dup # -> um -> um
           builder.message_unpack(1, 0, 0) # -> return_chan -> um
@@ -735,13 +735,13 @@ module Channel9
           transform(on)
         end
         if (on)
-          builder.message_new(:"__c9_make_singleton__", 0, 0)
+          builder.message_new(:"ruby_sys:make_singleton", 0, 0)
           builder.channel_call
           builder.pop
         end
-        builder.push(name)
+        builder.push(Primitive::MessageID.new(name))
         builder.channel_new(method_label)
-        builder.message_new(:__c9_add_method__, 0, 2)
+        builder.message_new(:"ruby_sys:add_method", 0, 2)
         builder.channel_call
         builder.pop
       end
@@ -785,7 +785,7 @@ module Channel9
       end
 
       def transform_zsuper
-        label = builder.make_label("super")
+        label = builder.make_label("zsuper")
         fail_label = label + ".fail"
         done_label = label + ".done"
 
@@ -929,7 +929,7 @@ module Channel9
         done_label = builder.make_label(label_prefix + ".done")
 
         transform(obj)
-        builder.message_new(:__c9_make_singleton__, 0, 0)
+        builder.message_new(:"ruby_sys:make_singleton", 0, 0)
         builder.channel_call
         builder.pop
         builder.jmp(done_label)
@@ -960,7 +960,7 @@ module Channel9
         builder.set_label(done_label)
 
         builder.channel_new(body_label)
-        builder.message_new(:__c9_instance_eval__, 1, 0)
+        builder.message_new(:"ruby_sys:instance_eval", 1, 0)
         builder.channel_call
         builder.pop
       end
@@ -976,7 +976,7 @@ module Channel9
         builder.dup_top
         builder.frame_set("new-const-self")
         builder.push(bare_name)
-        builder.message_new(:__c9_get_constant__, 0, 1)
+        builder.message_new(:"ruby_sys:get_constant", 0, 1)
         builder.channel_call
         builder.pop
 
@@ -987,7 +987,7 @@ module Channel9
         builder.dup_top
         builder.channel_special(:Class)
         builder.swap
-        builder.message_new(:__c9_class__, 0, 0)
+        builder.message_new(:"ruby_sys:class", 0, 0)
         builder.channel_call
         builder.pop
         builder.is_eq
@@ -1012,7 +1012,7 @@ module Channel9
         end
 
         builder.frame_get("new-const-self")
-        builder.message_new(:__c9_scope_name__, 0, 0)
+        builder.message_new(:"ruby_sys:scope_name", 0, 0)
         builder.channel_call
         builder.pop
         builder.push(bare_name)
@@ -1021,11 +1021,11 @@ module Channel9
         builder.pop
 
         builder.swap
-        builder.message_new(:__c9_allocate__, 0, 2)
+        builder.message_new(:"ruby_sys:allocate", 0, 2)
         builder.channel_call
         builder.pop
 
-        builder.message_new(:__c9_add_constant__, 0, 2)
+        builder.message_new(:"ruby_sys:add_constant", 0, 2)
         builder.channel_call
         builder.pop
 
@@ -1059,12 +1059,12 @@ module Channel9
         builder.frame_set("new-const-self")
 
         builder.dup_top
-        builder.message_new(:"__c9_make_singleton__", 0, 0)
+        builder.message_new(:"ruby_sys:make_singleton", 0, 0)
         builder.channel_call
         builder.pop
-        builder.push(:__body__)
+        builder.push(Primitive::MessageID.new("__body__"))
         builder.channel_new(body_label)
-        builder.message_new(:__c9_add_method__, 0, 2)
+        builder.message_new(:"ruby_sys:add_method", 0, 2)
         builder.channel_call
         builder.pop
         builder.pop
@@ -1083,7 +1083,7 @@ module Channel9
         # See if it's already there
         bare_name = const_self(name)
         builder.push(bare_name)
-        builder.message_new(:__c9_get_constant__, 0, 1)
+        builder.message_new(:"ruby_sys:get_constant", 0, 1)
         builder.channel_call
         builder.pop
         
@@ -1093,7 +1093,7 @@ module Channel9
         builder.dup_top
         builder.channel_special(:Module)
         builder.swap
-        builder.message_new(:__c9_class__, 0, 0)
+        builder.message_new(:"ruby_sys:class", 0, 0)
         builder.channel_call
         builder.pop
         builder.is_eq
@@ -1112,7 +1112,7 @@ module Channel9
         builder.push(bare_name)
 
         builder.swap
-        builder.message_new(:__c9_scope_name__, 0, 0)
+        builder.message_new(:"ruby_sys:scope_name", 0, 0)
         builder.channel_call
         builder.pop
         builder.push(bare_name)
@@ -1123,11 +1123,11 @@ module Channel9
         builder.channel_special(:Module)
         builder.swap
 
-        builder.message_new(:__c9_allocate__, 0, 1)
+        builder.message_new(:"ruby_sys:allocate", 0, 1)
         builder.channel_call
         builder.pop
 
-        builder.message_new(:__c9_add_constant__, 0, 2)
+        builder.message_new(:"ruby_sys:add_constant", 0, 2)
         builder.channel_call
         builder.pop
         builder.jmp(done_label)
@@ -1158,12 +1158,12 @@ module Channel9
         builder.set_label(done_label)
 
         builder.dup_top
-        builder.message_new(:"__c9_make_singleton__", 0, 0)
+        builder.message_new(:"ruby_sys:make_singleton", 0, 0)
         builder.channel_call
         builder.pop
-        builder.push(:__body__)
+        builder.push(Primitive::MessageID.new('__body__'))
         builder.channel_new(body_label)
-        builder.message_new(:__c9_add_method__, 0, 2)
+        builder.message_new(:"ruby_sys:add_method", 0, 2)
         builder.channel_call
         builder.pop
         builder.pop
@@ -1177,7 +1177,7 @@ module Channel9
         builder.frame_get("self")
         transform(first)
         transform(second)
-        builder.message_new(:__c9_alias_method__, 0, 2)
+        builder.message_new(:"ruby_sys:alias_method", 0, 2)
         builder.channel_call
         builder.pop
       end
@@ -1191,7 +1191,7 @@ module Channel9
         end
         builder.push(bare_name)
         builder.swap # contortion necessary to deal with pulling up value from stack.
-        builder.message_new(:__c9_add_constant__, 0, 2)
+        builder.message_new(:"ruby_sys:add_constant", 0, 2)
         builder.channel_call
         builder.pop
       end
@@ -1201,7 +1201,7 @@ module Channel9
         builder.swap
         builder.push(name)
         builder.swap
-        builder.message_new(:__c9_get_constant_scoped__, 0, 2)
+        builder.message_new(:"ruby_sys:get_constant_scoped", 0, 2)
         builder.channel_call
         builder.pop
         builder.swap
@@ -1211,7 +1211,7 @@ module Channel9
       def transform_colon3(name)
         builder.channel_special(:Object)
         builder.push(name)
-        builder.message_new(:__c9_get_constant__, 0, 1)
+        builder.message_new(:"ruby_sys:get_constant", 0, 1)
         builder.channel_call
         builder.pop
       end
@@ -1219,7 +1219,7 @@ module Channel9
       def transform_colon2(lhs, name)
         transform(lhs)
         builder.push(name)
-        builder.message_new(:__c9_get_constant__, 0, 1)
+        builder.message_new(:"ruby_sys:get_constant", 0, 1)
         builder.channel_call
         builder.pop
       end
@@ -1339,14 +1339,14 @@ module Channel9
           builder.push(name)
           transform(val)
         end
-        builder.message_new(:__c9_ivar_set__, 0, 2)
+        builder.message_new(:"ruby_sys:ivar_set", 0, 2)
         builder.channel_call
         builder.pop
       end
       def transform_ivar(name)
         builder.frame_get("self")
         builder.push(name)
-        builder.message_new(:__c9_ivar_get__, 0, 1)
+        builder.message_new(:"ruby_sys:ivar_get", 0, 1)
         builder.channel_call
         builder.pop
       end
@@ -1421,6 +1421,9 @@ module Channel9
         elsif (target.nil? && method == :undefined)
           builder.push(Primitive::Undef)
           return
+        end
+        if (match = method.to_s.match(/^__c9_(.+)__$/))
+          method = :"ruby_sys:#{match[1]}"
         end
 
         if (target.nil?)
@@ -1673,8 +1676,8 @@ module Channel9
 
           builder.set_label(breaker_unwind)
           builder.pop
-          builder.message_name
-          builder.is(:iter_break)
+          builder.message_id
+          builder.is(Primitive::MessageID.new("iter_break"))
           builder.jmp_if(breaker_unwind_ret)
           builder.channel_special(:unwinder)
           builder.swap
@@ -1788,8 +1791,8 @@ module Channel9
           builder.dup_top
           builder.frame_set("unwind-message")
 
-          builder.message_name
-          builder.is(:raise)
+          builder.message_id
+          builder.is(Primitive::MessageID.new("raise"))
           builder.jmp_if_not(not_raise_label)
 
           builder.message_unpack(1,0,0)

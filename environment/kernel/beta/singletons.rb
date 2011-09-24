@@ -1,5 +1,6 @@
 class NilClass
   def nil?
+    super
     true
   end
   def to_s

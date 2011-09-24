@@ -53,18 +53,17 @@ lexical Hash = (lexical table_size_seq, lexical table, lexical table_size, lexic
 		return <- Hash(table_size_seq, table, table_size, next)
 	}
 
-	(&msg) -> return {
-		local name = bytecode(msg) {
-			message_name
-			swap
+	(@msg) -> return {
+		local id = bytecode(msg) {
+			message_split_id
 			pop
 		}
-		switch (name)
-		case ('get') {
+		switch (id)
+		case (@'get') {
 			return <- msg -> get
-		} case ('set') {
+		} case (@'set') {
 			return <- msg -> set
-		} case ('dup') {
+		} case (@'dup') {
 			return <- msg -> dup
 		}
 	}

@@ -1,20 +1,20 @@
-$set_special_channel('Kernel', $Module.__c9_allocate__("Kernel"))
-$set_special_channel('Channel9', $Module.__c9_allocate__("Channel9"))
+$set_special_channel('Kernel', $Module.ruby_sys:allocate("Kernel"))
+$set_special_channel('Channel9', $Module.ruby_sys:allocate("Channel9"))
 
-$Object.__c9_include__($Kernel)
+$Object.ruby_sys:include($Kernel)
 
-$Object.__c9_add_constant__("Object", $Object)
-$Object.__c9_add_constant__("Class", $Class)
-$Object.__c9_add_constant__("Module", $Module)
-$Object.__c9_add_constant__("Kernel", $Kernel)
-$Object.__c9_add_constant__("Channel9", $Channel9)
+$Object.ruby_sys:add_constant("Object", $Object)
+$Object.ruby_sys:add_constant("Class", $Class)
+$Object.ruby_sys:add_constant("Module", $Module)
+$Object.ruby_sys:add_constant("Kernel", $Kernel)
+$Object.ruby_sys:add_constant("Channel9", $Channel9)
 
 $set_special_channel("Kernel", $Kernel)
 $set_special_channel("Channel9", $Channel9)
 
 lexical make_basic_class = (cname) {
-	local class = $Class.__c9_allocate__(cname, $Object)
-	$Object.__c9_add_constant__(cname, class)
+	local class = $Class.ruby_sys:allocate(cname, $Object)
+	$Object.ruby_sys:add_constant(cname, class)
 	$set_special_channel(cname, class)
 	class
 }
@@ -40,16 +40,16 @@ make_primitive_class("FalseClass", "FalseC")
 make_primitive_class("NilClass", "NilC")
 make_primitive_class("UndefClass", "UndefC")
 
-$Kernel.__c9_add_method__("to_s", (&msg) {
+$Kernel.ruby_sys:add_method(@"to_s", (@msg) {
 	local self = bytecode(msg) {
 		message_sys_unpack 1
 		swap
 		pop
 	}
-	"<" + self.__c9_object_id__.to_string_primitive + ":" + self.__c9_class__.__c9_name__ + ">"
+	"<" + self.ruby_sys:object_id.to_string_primitive + ":" + self.ruby_sys:class.ruby_sys:name + ">"
 })
-$Kernel.__c9_add_method__("initialize", () {nil})
-$Kernel.__c9_add_method__("==", (&msg) {
+$Kernel.ruby_sys:add_method(@"initialize", () {nil})
+$Kernel.ruby_sys:add_method(@"==", (@msg) {
 	bytecode(msg) {
 		message_sys_unpack 1
 		swap
@@ -59,18 +59,18 @@ $Kernel.__c9_add_method__("==", (&msg) {
 		is_eq
 	}
 })
-$Kernel.__c9_alias_method__("equal?", "==")
-$Kernel.__c9_alias_method__("eql?", "==")
+$Kernel.ruby_sys:alias_method(@"equal?", @"==")
+$Kernel.ruby_sys:alias_method(@"eql?", @"==")
 
-$Class.__c9_add_method__("allocate", (&msg) {
+$Class.ruby_sys:add_method(@"allocate", (@msg) {
 	local self = bytecode(msg) {
 		message_sys_unpack 1
 		swap
 		pop
 	}
-	self.__c9_allocate__()
+	self.ruby_sys:allocate()
 })
-$Class.__c9_add_method__("new", (&msg) {
+$Class.ruby_sys:add_method(@"new", (@msg) {
 	local self
 	local nmsg = bytecode(msg) {
 		message_unpack 0 1 0 # tuple -> msg
@@ -89,7 +89,7 @@ $Class.__c9_add_method__("new", (&msg) {
 	obj
 })
 
-$Object.__c9_make_singleton__()
+$Object.ruby_sys:make_singleton()
 
-$set_special_channel("global_self", $Object.__c9_allocate__())
+$set_special_channel("global_self", $Object.ruby_sys:allocate())
 $set_special_channel("globals", $BasicHash($prime_gen))

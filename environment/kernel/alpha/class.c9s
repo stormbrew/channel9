@@ -2,7 +2,7 @@ lexical prim_id_seq = 0
 lexical prim_map = $BasicHash($prime_gen)
 lexical method_missing_lookup_msg = bytecode() {
 	push "method_missing"
-	message_new "__c9_lookup__" 0 1
+	message_new "ruby_sys:lookup" 0 1
 }
 
 lexical RubyClass = (lexical name, lexical super) {
@@ -11,23 +11,18 @@ lexical RubyClass = (lexical name, lexical super) {
 	lexical included = []
 	lexical inner_obj = nil
 	
-	lexical self = (&msg) -> return {
-		local msg_name
-		local is_c9
+	lexical self = (@msg) -> return {
+		local msg_id
+		local msg_type
 		bytecode(msg) {
-			message_name
-			dup_top
-			local_set "msg_name"
-			push "__c9_"
-			message_new "match" 0 1
-			channel_call
-			pop
-			is 5
-			local_set "is_c9"
+			message_split_id
+			local_set "msg_type"
+			local_set "msg_id"
 		}
-		if (is_c9) {
-			switch (msg_name)
-			case ('__c9_lookup__') {
+		switch (msg_type)
+		case (@@'ruby_sys') {
+			switch (msg_id)
+			case (@'lookup') {
 				local meth_name = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
@@ -44,7 +39,7 @@ lexical RubyClass = (lexical name, lexical super) {
 					local i = 0
 					local total = included.length
 					while (i < total) {
-						local res = included.at(i).__c9_lookup__(meth_name)
+						local res = included.at(i).ruby_sys:lookup(meth_name)
 						if (res) { res -> return : return }
 						i += 1
 					}
@@ -58,66 +53,21 @@ lexical RubyClass = (lexical name, lexical super) {
 				}
 
 				return <- undef
-			} case ('__c9_primitive_call__') {
-				local instance
-				local imsg_name
-				local imsg
-				bytecode(msg) {
-					message_unpack 2 0 0
-					local_set "instance"
-					message_name
-					local_set "imsg_name"
-					local_set "imsg"
-				}
-
-				switch (imsg_name)
-				case ('__c9_class__') {
-					return <- self
-				} case ('__c9_primitive_id__') {
-					local id = prim_map.get(instance)
-					if (id) {
-						return <- id
-					} else {
-						prim_id_seq += 2
-						prim_map.set(instance, prim_id_seq)
-						return <- prim_id_seq
-					}
-				}
-				// At some point, need to implement ivars for primitive objects. Ugh.
-
-				local lookup_msg = bytecode(imsg_name) {
-					message_new "__c9_lookup__" 0 1
-				}
-				local meth = lookup_msg -> self : local lookup_cont
-				if (meth) {
-					bytecode(meth, return, imsg, instance, lookup_cont) {
-						message_sys_prefix 2
-						channel_send
-					}
-				} else if (meth = method_missing_lookup_msg -> self : local lookup_cont) {
-					bytecode(meth, return, msg, self, lookup_cont) {
-						message_sys_prefix 2
-						message_forward "method_missing"
-						channel_send
-					}
-				} else {
-					$unwinder.no_primitive_message_handler(name, imsg_name)
-				}
-			} case ('__c9_make_singleton__') {
-				local singleton = inner_obj.__c9_singleton__
+			} case (@'make_singleton') {
+				local singleton = inner_obj.ruby_sys:singleton()
 				if (singleton) {
 					return <- singleton
 				} else {
 					if (super) {
 						// the superclass of a singleton for a class is its parent class' singleton
-						inner_obj.__c9_set_singleton__($RubyClass("Class:" + name, super.__c9_singleton__))
+						inner_obj.ruby_sys:set_singleton($RubyClass("Class:" + name, super.ruby_sys:singleton))
 					} else {
 						// if the class doesn't have a super, that means it's Object, whose singleton's
 						// parent class is Class.
-						inner_obj.__c9_set_singleton__($RubyClass("Class:" + name, $Class))
+						inner_obj.ruby_sys:set_singleton($RubyClass("Class:" + name, $Class))
 					}
 				}
-			} case ('__c9_allocate__') {
+			} case (@'allocate') {
 				if (self == $Class) {
 					local class_name
 					local superclass
@@ -137,17 +87,17 @@ lexical RubyClass = (lexical name, lexical super) {
 				} else {
 					return <- $RubyObject(self)
 				}
-			} case ('__c9_superclass__') {
+			} case (@'superclass') {
 				return <- super
-			} case ('__c9_name__') {
+			} case (@'name') {
 				return <- name
-			} case ('__c9_rebind_super__') {
+			} case (@'rebind_super') {
 				return <- super = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
 					pop
 				}
-			} case ('__c9_include__') {
+			} case (@'include') {
 				local mod = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
@@ -155,7 +105,7 @@ lexical RubyClass = (lexical name, lexical super) {
 				}
 				included = included.push(mod)
 				return <- mod
-			} case ('__c9_add_method__') {
+			} case (@'add_method') {
 				local meth_name
 				local meth
 				bytecode(msg) {
@@ -164,7 +114,7 @@ lexical RubyClass = (lexical name, lexical super) {
 					local_set "meth"
 				}
 				return <- instance_methods.set(meth_name, meth)
-			} case ('__c9_alias_method__') {
+			} case (@'alias_method') {
 				local new_name
 				local old_name
 				bytecode(msg) {
@@ -172,13 +122,13 @@ lexical RubyClass = (lexical name, lexical super) {
 					local_set "new_name"
 					local_set "old_name"
 				}
-				local old_meth = self.__c9_lookup__(old_name)
+				local old_meth = self.ruby_sys:lookup(old_name)
 				if (old_meth) {
 					return <- instance_methods.set(new_name, old_meth)
 				} else {
 					return <- nil
 				}
-			} case ('__c9_add_constant__') {
+			} case (@'add_constant') {
 				local const_name
 				local const_val
 				bytecode(msg) {
@@ -187,14 +137,14 @@ lexical RubyClass = (lexical name, lexical super) {
 					local_set "const_val"
 				}
 				return <- constants.set(const_name, const_val)
-			} case ('__c9_get_constant__') {
+			} case (@'get_constant') {
 				local const_name = bytecode(msg) {
 					message_unpack 1 0 0
 					swap
 					pop
 				}
 				return <- constants.get(const_name)
-			} case ('__c9_get_constant_scoped__') {
+			} case (@'get_constant_scoped') {
 				local const_name
 				local next
 				local next_mod
@@ -215,14 +165,61 @@ lexical RubyClass = (lexical name, lexical super) {
 				if (const) {
 					return <- const
 				} else if (next) {
-					return <- next_mod.__c9_get_constant_scoped__(const_name, next_scope)
+					return <- next_mod.ruby_sys:get_constant_scoped(const_name, next_scope)
 				}
 				return <- nil
-			} case ("__c9_scope_name__") {
+			} case (@"scope_name") {
 				if (self == $Object) {
 					return <- ""
 				} else {
 					return <- name + "::"
+				}
+			}
+		} case (@@'c9') {
+			if (msg_id == @'primitive_call') {
+				local instance
+				local imsg_id
+				local imsg
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "instance"
+					message_id
+					local_set "imsg_id"
+					local_set "imsg"
+				}
+
+				switch (imsg_id)
+				case (@'class') {
+					return <- self
+				} case (@'primitive_id') {
+					local id = prim_map.get(instance)
+					if (id) {
+						return <- id
+					} else {
+						prim_id_seq += 2
+						prim_map.set(instance, prim_id_seq)
+						return <- prim_id_seq
+					}
+				}
+				// At some point, need to implement ivars for primitive objects. Ugh.
+
+				local lookup_msg = bytecode(imsg_id) {
+					message_new "ruby_sys:lookup" 0 1
+				}
+				local meth = lookup_msg -> self : local lookup_cont
+				if (meth) {
+					bytecode(meth, return, imsg, instance, lookup_cont) {
+						message_sys_prefix 2
+						channel_send
+					}
+				} else if (meth = method_missing_lookup_msg -> self : local lookup_cont) {
+					bytecode(meth, return, msg, self, lookup_cont) {
+						message_sys_prefix 2
+						message_forward "method_missing"
+						channel_send
+					}
+				} else {
+					$unwinder.no_primitive_message_handler(name, imsg.name())
 				}
 			}
 		}
@@ -235,7 +232,7 @@ lexical RubyClass = (lexical name, lexical super) {
 	} else {
 		inner_obj = $RubyObject(self)
 	}
-	inner_obj.__c9_wrap__(self)
+	inner_obj.ruby_sys:wrap(self)
 	self
 }
 
