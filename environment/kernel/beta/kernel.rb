@@ -43,6 +43,9 @@ module Kernel
     end
     raise LoadError, "Could not load library #{name}"
   end
+  def load_c9(name)
+    $__c9_loader.load_c9(name.to_s_prim)
+  end
 
   def raise(exc, desc = nil, bt = nil)
     if (!exc)

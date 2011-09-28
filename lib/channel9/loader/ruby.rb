@@ -6,19 +6,25 @@ require 'channel9/ruby'
 module Channel9
   module Loader
     class Ruby
+      attr :debug
       attr :env
       attr :globals
+      attr :root
+      attr :root_environment
 
       def to_c9
         self
       end
 
       def initialize(debug = false)
+        @debug = debug
         @env = Channel9::Environment.new(debug)
 
-        c9rb_root = File.expand_path(File.dirname(__FILE__) + "../../../..")
-        c9rb_env = c9rb_root + "/environment"
+        @root = File.expand_path(File.dirname(__FILE__) + "../../../..")
+        @root_environment = @root + "/environment"
+      end
 
+      def setup_environment(exe, argv)
         env.set_special_channel(:set_special_channel, CallbackChannel.new {|ienv, val, iret|
           ienv.set_special_channel(val.positional[0].to_sym, val.positional[1])
           iret.channel_send(ienv, val.positional[1], InvalidReturnChannel)
@@ -28,7 +34,7 @@ module Channel9
         env.set_special_channel(:unwinder, Channel9::Ruby::Unwinder.new(env))
 
         ["basic_hash", "object", "class", "module", "finish"].each do |file|
-          alpha = Channel9::Stream.from_json(File.read(c9rb_env + "/kernel/alpha/#{file}.c9b"))
+          alpha = Channel9::Stream.from_json(File.read(@root_environment + "/kernel/alpha/#{file}.c9b"))
           alpha_context = Channel9::Context.new(@env, alpha)
           @env.save_context do
             alpha_context.channel_send(@env, nil, CallbackChannel.new {|ienv, val, iret|
@@ -38,14 +44,14 @@ module Channel9
 
         ["singletons", "module", "string", "symbol", "kernel", "enumerable",
          "static_tuple", "tuple", "array", "proc", "exceptions", "class"].each do |file|
-          file = "#{c9rb_env}/kernel/beta/#{file}.rb"
-          load_file(file)
+          file = "#{@root_environment}/kernel/beta/#{file}.c9b"
+          load_c9_file(file)
         end
 
         env.set_special_channel(:initial_load_path, [
-            :"#{c9rb_root}/environment/kernel", 
-            :"#{c9rb_root}/environment/lib",
-            :"#{c9rb_root}/environment/site-lib",
+            :"#{@root}/environment/kernel", 
+            :"#{@root}/environment/lib",
+            :"#{@root}/environment/site-lib",
             :"."
           ])
         env.set_special_channel(:print, CallbackChannel.new {|ienv, val, iret| 
@@ -53,103 +59,8 @@ module Channel9
           iret.channel_send(@env, val, InvalidReturnChannel) 
         })
 
-        load_file("#{c9rb_env}/kernel/delta.rb")
+        load_c9_file("#{@root_environment}/kernel/delta.c9b")
 
-        return
-
-        object_klass = Channel9::Ruby::RubyClass.new(env, "Object", nil)
-        env.set_special_channel(:Object, object_klass)
-
-        module_klass = Channel9::Ruby::RubyClass.new(env, "Module", object_klass)
-        env.set_special_channel(:Module, module_klass)
-
-        class_klass = Channel9::Ruby::RubyClass.new(env, "Class", module_klass)
-        env.set_special_channel(:Class, class_klass)
-        object_klass.rebind(class_klass)
-        module_klass.rebind(class_klass)
-        class_klass.rebind(class_klass)
-
-        Channel9::Ruby::RubyObject.object_klass(object_klass)
-        Channel9::Ruby::RubyModule.module_klass(module_klass)
-        Channel9::Ruby::RubyClass.class_klass(class_klass)
-
-        kernel_mod = Channel9::Ruby::RubyModule.new(env, "Kernel")
-        env.set_special_channel(:Kernel, kernel_mod)
-        Channel9::Ruby::RubyModule.kernel_mod(kernel_mod)
-        object_klass.include(kernel_mod)
-
-        channel9_mod = Channel9::Ruby::RubyModule.new(env, "Channel9")
-        env.set_special_channel(:Channel9, channel9_mod)
-        Channel9::Ruby::RubyModule.channel9_mod(channel9_mod)
-
-        tuple_klass = Channel9::Ruby::RubyClass.new(env, "Channel9::Tuple", object_klass)
-        env.set_special_channel(:Tuple, tuple_klass)
-        Channel9::Ruby::Tuple.tuple_klass(tuple_klass)
-
-        env.set_special_channel(:loader, self)
-        env.set_special_channel(:global_self, Channel9::Ruby::RubyObject.new(env))
-        c9rb_root = File.expand_path(File.dirname(__FILE__) + "../../../..")
-        c9rb_env = c9rb_root + "/environment"
-        @globals = {
-          :"$LOAD_PATH" => [
-            :"#{c9rb_root}/environment/kernel", 
-            :"#{c9rb_root}/environment/lib",
-            :"#{c9rb_root}/environment/site-lib",
-            :"."
-          ]
-        }
-        globals[:"$:"] = globals[:"$LOAD_PATH"]
-        env.set_special_channel(:unwinder, Channel9::Ruby::Unwinder.new(env))
-        
-        object_klass.constant[:Object] = object_klass
-        object_klass.constant[:Module] = module_klass
-        object_klass.constant[:Class] = class_klass
-        object_klass.constant[:Kernel] = kernel_mod
-        object_klass.constant[:Channel9] = channel9_mod
-        channel9_mod.constant[:Tuple] = tuple_klass
-
-        env.set_error_handler do |err, ctx|
-          puts "Unhandled VM Error in #{self}"
-          pp Channel9::Ruby::RubyModule.make_backtrace(ctx).collect {|i| i.real_str }
-          pp ctx.debug_info
-          raise err
-        end
-
-        # Builtin special types:
-        [
-          [:Fixnum, "Number"],
-          [:Float, "Float"],
-          [:Symbol, "String"],
-          [:StaticTuple, "Tuple"],
-          [:Table, "Table"],
-          [:Message, "Message"],
-          [:TrueClass, "TrueC"],
-          [:FalseClass, "FalseC"],
-          [:NilClass, "NilC"],
-          [:UndefClass, "UndefC"]
-        ].each do |ruby_name, c9_name|
-          klass = Channel9::Ruby::RubyClass.new(env, ruby_name, object_klass)
-          env.set_special_channel("Channel9::Primitive::#{c9_name}", klass)
-          object_klass.constant[ruby_name.to_sym] = klass
-        end
-
-        env.no_debug do
-          ["singletons", "string", "kernel", "symbol", "enumerable",
-           "static_tuple", "tuple", "array", "proc", "exceptions"].each do |file|
-            file = :"#{c9rb_env}/kernel/alpha/#{file}.rb"
-            object_klass.channel_send(env,
-              Primitive::Message.new(:raw_load, [], [file]),
-              CallbackChannel.new {}
-            )
-          end
-          object_klass.channel_send(env,
-            Primitive::Message.new(:raw_load, [], [:"#{c9rb_env}/kernel/beta.rb"]),
-            CallbackChannel.new {}
-          )
-        end
-      end
-
-      def setup_environment(exe, argv)
         c9_mod = env.special_channel(:Channel9)
         argv = argv
         env.no_debug do
@@ -186,6 +97,9 @@ module Channel9
           else
             ret.channel_send(env, false, InvalidReturnChannel)
           end
+        when :load_c9
+          path = msg.positional.first
+          ret.channel_send(env, load_c9_file(@root_environment + "/" + path), InvalidReturnChannel)
         when :backtrace
           ctx = env.current_context
           bt = []
@@ -209,6 +123,16 @@ module Channel9
           return true
         else
           return false
+        end
+      end
+
+      def load_c9_file(path)
+        code = Channel9::Stream.from_json(File.read(path))
+        code_context = Channel9::Context.new(@env, code)
+        @env.save_context do
+          code_context.channel_send(@env, nil, CallbackChannel.new {|ienv, val, iret|
+            return val
+          })
         end
       end
 
