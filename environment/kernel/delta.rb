@@ -13,28 +13,28 @@ module Channel9
   end
 end
 
-load 'delta/kernel.rb'
-load 'delta/object.rb'
-load 'delta/class.rb'
-load 'delta/module.rb'
+load_c9 'kernel/delta/kernel.c9b'
+load_c9 'kernel/delta/object.c9b'
+load_c9 'kernel/delta/class.c9b'
+load_c9 'kernel/delta/module.c9b'
 
-load 'delta/comparable.rb'
+load_c9 'kernel/delta/comparable.c9b'
 
-load 'delta/channel9.rb'
+load_c9 'kernel/delta/channel9.c9b'
 
-load 'delta/string.rb'
-load 'delta/fixnum.rb'
-load 'delta/float.rb'
-load 'delta/message.rb'
-load 'delta/table.rb'
-load 'delta/range.rb'
-load 'delta/hash.rb'
+load_c9 'kernel/delta/string.c9b'
+load_c9 'kernel/delta/fixnum.c9b'
+load_c9 'kernel/delta/float.c9b'
+load_c9 'kernel/delta/message.c9b'
+load_c9 'kernel/delta/table.c9b'
+load_c9 'kernel/delta/range.c9b'
+load_c9 'kernel/delta/hash.c9b'
 
-load 'delta/file.rb'
-load 'delta/dir.rb'
-load 'delta/time.rb'
+load_c9 'kernel/delta/file.c9b'
+load_c9 'kernel/delta/dir.c9b'
+load_c9 'kernel/delta/time.c9b'
 
-load 'delta/regexp.rb'
+load_c9 'kernel/delta/regexp.c9b'
 
-load 'delta/signal.rb'
-load 'delta/thread.rb'
+load_c9 'kernel/delta/signal.c9b'
+load_c9 'kernel/delta/thread.c9b'
