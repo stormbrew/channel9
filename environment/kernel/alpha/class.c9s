@@ -1,7 +1,7 @@
 lexical prim_id_seq = 0
 lexical prim_map = $BasicHash($prime_gen)
 lexical method_missing_lookup_msg = bytecode() {
-	push "method_missing"
+	push @"method_missing"
 	message_new "ruby_sys:lookup" 0 1
 }
 
