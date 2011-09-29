@@ -210,7 +210,7 @@ module Channel9
         end
         builder.tuple_new(items.length)
         transform(splat) if splat
-        builder.message_new(:new, 0, 1)
+        builder.message_new(:new_from_tuple, 0, 1)
         builder.channel_call
         builder.pop
       end

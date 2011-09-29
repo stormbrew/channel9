@@ -73,7 +73,7 @@ class Hash
 
   alias_method :length, :size
 
-  Entries = ::Channel9::Tuple
+  Entries = Array
 
   # Initial size of Hash. MUST be a power of 2.
   MIN_SIZE = 16
@@ -329,6 +329,7 @@ class Hash
 
     while idx < cap
       entry = entries[idx]
+
       while entry
         yield [entry.key, entry.value]
         entry = entry.next

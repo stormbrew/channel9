@@ -1,8 +1,23 @@
 class Array
   include Enumerable
 
+  def self.new_from_tuple(tuple)
+    ary = allocate
+    ary.__setup__(tuple, tuple.length)
+    ary
+  end
+
+  def __setup__(tuple, len)
+    @tuple = tuple
+    @count = len
+  end
+
   def initialize(ary)
-    @tuple = ary.to_tuple_prim
+    if (ary.kind_of?(Fixnum))
+      __setup__([].to_tuple_prim, ary)
+    else
+      __setup__(ary.to_tuple_prim, ary.length)
+    end
   end
 
   def to_tuple_prim
