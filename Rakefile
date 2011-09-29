@@ -27,7 +27,6 @@ namespace "build" do
     "environment/kernel/beta/class.c9b",
     "environment/kernel/beta/enumerable.c9b",
     "environment/kernel/beta/exceptions.c9b",
-    "environment/kernel/beta/hash.c9b",
     "environment/kernel/beta/kernel.c9b",
     "environment/kernel/beta/module.c9b",
     "environment/kernel/beta/proc.c9b",

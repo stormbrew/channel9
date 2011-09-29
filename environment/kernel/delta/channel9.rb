@@ -4,7 +4,7 @@ module Channel9
     # argv comes in as a tuple of symbols.
     Object.const_set(:ARGV, argv.collect {|i| i.to_s }.to_a)
 
-    #Object.const_set(:ENV, {}) # TODO: Make this not a stub.
+    Object.const_set(:ENV, {}) # TODO: Make this not a stub.
 
     $stderr = Object.new
     $stdout = Object.new
