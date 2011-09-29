@@ -206,14 +206,14 @@ lexical RubyClass = (lexical name, lexical super) {
 				local lookup_msg = bytecode(imsg_id) {
 					message_new "ruby_sys:lookup" 0 1
 				}
-				local meth = lookup_msg -> self : local lookup_cont
+				local meth = (lookup_msg -> self : local lookup_cont)
 				if (meth) {
 					bytecode(meth, return, imsg, instance, lookup_cont) {
 						message_sys_prefix 2
 						channel_send
 					}
-				} else if (meth = method_missing_lookup_msg -> self : local lookup_cont) {
-					bytecode(meth, return, msg, self, lookup_cont) {
+				} else if (meth = (method_missing_lookup_msg -> self : local lookup_cont)) {
+					bytecode(meth, return, imsg, self, lookup_cont) {
 						message_sys_prefix 2
 						message_forward "method_missing"
 						channel_send

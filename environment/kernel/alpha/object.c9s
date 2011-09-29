@@ -93,14 +93,14 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 			message_new 'ruby_sys:lookup' 0 1
 		}
 
-		local meth = lookup_msg -> singleton : local lookup_cont
+		local meth = (lookup_msg -> singleton : local lookup_cont)
 		if (meth) {
 			// build a new message
 			bytecode(meth, return, msg, self, lookup_cont) {
 				message_sys_prefix 2
 				channel_send
 			}
-		} else if (meth = method_missing_lookup_msg -> singleton : lookup_cont) {
+		} else if (meth = (method_missing_lookup_msg -> singleton : lookup_cont)) {
 			local fwd_msg = bytecode(meth, return, msg, self, lookup_cont) {
 				message_sys_prefix 2
 				message_forward "method_missing"
