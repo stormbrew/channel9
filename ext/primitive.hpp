@@ -320,6 +320,16 @@ namespace Channel9
 		{
 		case MESSAGE_NAME:
 			return channel_send(cenv, ctx, value(self.name()), Nil);
+		case MESSAGE_UNFORWARD:
+			if (self.arg_count() > 0 && is(self.args()[0], STRING))
+			{
+				String *name = ptr<String>(self.args()[0]);
+				Message *nmsg = new_message(make_message_id(name), self.sysarg_count(), self.arg_count() - 1);
+				std::copy(self.sysargs(), self.sysargs_end(), nmsg->sysargs());
+				std::copy(self.args() + 1, self.args_end(), nmsg->args());
+				return channel_send(cenv, ctx, value(nmsg), Nil);
+			}
+			break;
 		}
 
 		Value def = cenv->special_channel("Channel9::Primitive::Message");

@@ -72,6 +72,7 @@ namespace Channel9
 			MAKE_MESSAGE("last");
 
 			MAKE_MESSAGE("name");
+			MAKE_MESSAGE("unforward");
 
 			MAKE_MESSAGE("primitive_call");
 		}	
