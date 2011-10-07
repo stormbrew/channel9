@@ -76,6 +76,7 @@ namespace Channel9
 		const Instruction *next() { return m_pos++; }
 		const Instruction *peek() const { return m_pos; }
 		const Instruction *end() const { return &*m_instructions->end(); }
+		void invalidate() { m_pos = NULL; }
 
 		void jump(const std::string &label);
 		void jump(size_t pos)

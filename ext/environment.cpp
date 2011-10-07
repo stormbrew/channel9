@@ -300,6 +300,10 @@ namespace Channel9
 					const Value &ret = vstore(m_context->top()); m_context->pop();
 					const Value &channel = vstore(m_context->top()); m_context->pop();
 
+					// A context that's been channel_sended from should never be returned to,
+					// so invalidate it.
+					m_context->invalidate();
+					m_context = NULL;
 					channel_send(this, channel, val, ret);
 					clear_vstore();
 					}
@@ -313,6 +317,7 @@ namespace Channel9
 					const Value &channel = vstore(m_context->top()); m_context->pop();
 					const Value &ret = vstore(value(m_context));
 
+					m_context = NULL;
 					channel_send(this, channel, val, ret);
 					clear_vstore();
 					}
@@ -322,6 +327,10 @@ namespace Channel9
 					const Value &val = vstore(m_context->top()); m_context->pop();
 					const Value &channel = vstore(m_context->top()); m_context->pop();
 
+					// A context that's been channel_reted from should never be returned to,
+					// so invalidate it.
+					m_context->invalidate();
+					m_context = NULL;
 					channel_send(this, channel, val, value(&no_return_ctx));
 					clear_vstore();
 					}
@@ -667,7 +676,8 @@ namespace Channel9
 						assert(m_context->stack_count() == expected);
 				}
 
-				ipos = m_context->next();
+				if (m_context)
+					ipos = m_context->next();
 			}
 			TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Exiting running state with context %p\n", m_context);
 			m_running = false;
