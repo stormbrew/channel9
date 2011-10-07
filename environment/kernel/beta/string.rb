@@ -82,10 +82,6 @@ class String
     @str == other.to_s_prim
   end
   def <=>(other)
-    if (other.kind_of?(String) || other.kind_of?(Symbol))
-      @str.spaceship(other.to_s_prim)
-    else
-      nil
-    end
+    @str.compare(other.to_s_prim)
   end
 end

@@ -16,4 +16,18 @@ class Module
   def const_get(const)
     __c9_get_constant__(const.to_s_prim)
   end
+  def const_defined?(const)
+    __c9_get_constant__(const.to_s_prim) != undefined
+  end
+
+  def method_defined?(name)
+    __c9_lookup__(name.to_s_prim.to_message_id) != undefined
+  end
+
+  def remove_method(name)
+    __c9_add_method__(name.to_s_prim.to_message_id, undefined)
+  end
+  def undef_method(name)
+    __c9_add_method__(name.to_s_prim.to_message_id, nil)
+  end
 end

@@ -30,16 +30,22 @@ module Kernel
   end
 
   def load(name)
-    lp = $LOAD_PATH
-    i = lp.length - 1
-    name = name.to_s_prim
-    "loading: #{name}"
-    while (i >= 0)
-      path = lp[i].to_s_prim
-      if ($__c9_loader.load(path + "/" + name))
+    if (name.to_s[0] == :'/'.to_chr)
+      if ($__c9_loader.load(name))
         return true
       end
-      i -= 1
+    else
+      lp = $LOAD_PATH
+      i = lp.length - 1
+      name = name.to_s_prim
+      "loading: #{name}"
+      while (i >= 0)
+        path = lp[i].to_s_prim
+        if ($__c9_loader.load(path + "/" + name))
+          return true
+        end
+        i -= 1
+      end
     end
     raise LoadError, "Could not load library #{name}"
   end
@@ -146,5 +152,9 @@ module Kernel
   end
   def object_id
     __c9_object_id__
+  end
+
+  def respond_to?(name)
+    __c9_class__.__c9_lookup__(name.to_s_prim.to_message_id) != undefined
   end
 end
