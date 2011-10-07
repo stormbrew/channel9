@@ -23,6 +23,15 @@ namespace Channel9
 		size_t line_num;
 		size_t column;
 		std::string annotation;
+
+		bool operator==(const SourcePos &o)
+		{
+			return line_num == o.line_num && column == o.column && file == o.file;
+		}
+		bool operator!=(const SourcePos &o)
+		{
+			return !operator==(o);
+		}
 	};
 
 	class IStream
@@ -57,8 +66,8 @@ namespace Channel9
 		void add(Instruction instruction);
 		void set_label(const std::string &label);
 		void set_source_pos(const SourcePos &sp);
-		SourcePos source_pos(size_t ipos);
-		SourcePos source_pos(const Instruction *ipos) { return source_pos(ipos - &*m_instructions.begin()); }
+		SourcePos &source_pos(size_t ipos);
+		SourcePos &source_pos(const Instruction *ipos) { return source_pos(ipos - &*m_instructions.begin()); }
 
 		size_t label_pos(const std::string &label) const { return m_labels.find(label)->second; }
 

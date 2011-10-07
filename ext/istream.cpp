@@ -61,7 +61,7 @@ namespace Channel9
 				break;
 			}
 
-			TRACE_OUT(TRACE_VM, TRACE_INFO) {
+			TRACE_OUT(TRACE_VM, TRACE_DEBUG) {
 				SourcePos spos = source_pos(pos-1);
 				tprintf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], stack_max: %d, local_max: %d\n  Line Info: %s:%d\n",
 					(int)pos-1, inspect(ins).c_str(),
@@ -77,7 +77,7 @@ namespace Channel9
 			{
 				// make sure that the stack size is the same
 				// as it was on the previous visit to this node.
-				TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Visited position %d before. Stack was %d, is now %d\n", (int)pos, (int)info.second, (int)stack_size);
+				TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Visited position %d before. Stack was %d, is now %d\n", (int)pos, (int)info.second, (int)stack_size);
 				assert(info.second == stack_size);
 				done = true;
 			} else {
@@ -90,20 +90,20 @@ namespace Channel9
 				{
 				case JMP:
 					pos = (size_t)ins.cache.machine_num;
-					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Unconditional branch to pos %d\n", (int)pos);
+					TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Unconditional branch to pos %d\n", (int)pos);
 					break;
 				case JMP_IF:
 				case JMP_IF_NOT:
 					{
 						size_t branch_pos = (size_t)ins.cache.machine_num;
-						TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Conditional branch. Options: %d | %d\n", (int)pos, (int)branch_pos);
+						TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Conditional branch. Options: %d | %d\n", (int)pos, (int)branch_pos);
 						normalize(stack_size, locals, branch_pos, pos_map);
 					}
 					break;
 				case CHANNEL_NEW:
 					{
 						size_t branch_pos = (size_t)ins.cache.machine_num;
-						TRACE_PRINTF(TRACE_VM, TRACE_INFO, "New channel. Options: %d | %d\n", (int)pos, (int)branch_pos);
+						TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "New channel. Options: %d | %d\n", (int)pos, (int)branch_pos);
 						std::map<std::string, size_t> sublocals;
 						normalize(2, sublocals, branch_pos, pos_map);
 					}
@@ -133,7 +133,7 @@ namespace Channel9
 		m_stack_offset = frame_count() + m_local_size;
 		m_local_offset = frame_count();
 		m_frame_size = m_stack_size + m_stack_offset;
-		TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Found max stack of stream to be %d\n", (int)m_stack_size);
+		TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Found max stack of stream to be %d\n", (int)m_stack_size);
 		return m_stack_size;
 	}
 
@@ -173,12 +173,13 @@ namespace Channel9
 		m_source_info.push_back(sp);
 		m_cur_source_pos = m_source_info.size() - 1;
 	}
-	SourcePos IStream::source_pos(size_t ipos)
+	SourcePos &IStream::source_pos(size_t ipos)
 	{
+		static SourcePos empty;
 		if (ipos < m_source_positions.size())
 			return m_source_info[m_source_positions[ipos]];
 		else
-			return SourcePos();
+			return empty;
 	}
 
 	size_t IStream::lexical(const std::string &name)

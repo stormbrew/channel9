@@ -85,11 +85,12 @@ namespace Channel9
 			TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Entering running state with %p\n", context);
 			m_running = true;
 			const Instruction *ipos = m_context->next();
+			SourcePos *last_pos = NULL; // used for debug output below.
 			while (m_context && ipos != m_context->end())
 			{
 				size_t output = -1;
 				size_t expected = -1;
-#				define CHECK_STACK(in, out) TRACE_OUT(TRACE_VM, TRACE_INFO) {\
+#				define CHECK_STACK(in, out) TRACE_OUT(TRACE_VM, TRACE_DEBUG) {\
 					assert(m_context->stack_count() >= (size_t)(in)); \
 					if ((out) != -1) { assert((long)(expected = m_context->stack_count() - (size_t)(in) + (size_t)(out)) >= 0); } \
 					tprintf("Stack info: before(%d), in(%d), out(%d), expected(%d)\n", (int)m_context->stack_count(), (int)(in), (int)(out), (int)expected); \
@@ -98,13 +99,17 @@ namespace Channel9
 
 				m_ipos = *ipos;
 
-				TRACE_OUT(TRACE_VM, TRACE_INFO) {
+				TRACE_DO(TRACE_VM, TRACE_INFO) {
+					SourcePos &pos = m_context->m_instructions->source_pos(ipos);
+					if (!last_pos || *last_pos != pos)
+						tprintf("Source Position: %s:%d:%d (%s)\n", pos.file.c_str(), (int)pos.line_num, (int)pos.column, pos.annotation.c_str());
+					last_pos = &pos;
+				}
+				TRACE_OUT(TRACE_VM, TRACE_DEBUG) {
 					tprintf("Instruction: %s@%d\n",
 						inspect(ins).c_str(),
 						(int)(ipos - &*m_context->instructions().begin())
 						);
-					SourcePos pos = m_context->m_instructions->source_pos(ipos);
-					tprintf("Source Position: %s:%d:%d (%s)\n", pos.file.c_str(), (int)pos.line_num, (int)pos.column, pos.annotation.c_str());
 					tprintf("Stack: %d deep", (int)m_context->stack_count());
 
 					const Value *it;
@@ -222,14 +227,14 @@ namespace Channel9
 				case FRAME_GET: {
 					CHECK_STACK(0, 1);
 					size_t frameid = (size_t)ins.cache.machine_num;
-					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Getting frame var %s (%d)\n", ptr<String>(ins.arg1)->c_str(), (int)frameid);
+					TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Getting frame var %s (%d)\n", ptr<String>(ins.arg1)->c_str(), (int)frameid);
 					m_context->push(m_context->get_framevar(frameid));
 					}
 					break;
 				case FRAME_SET: {
 					CHECK_STACK(1, 0);
 					size_t frameid = (size_t)ins.cache.machine_num;
-					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Setting frame var %s (%d) to: %s\n", ptr<String>(ins.arg1)->c_str(), (int)frameid, inspect(m_context->top()).c_str());
+					TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Setting frame var %s (%d) to: %s\n", ptr<String>(ins.arg1)->c_str(), (int)frameid, inspect(m_context->top()).c_str());
 					m_context->set_framevar(frameid, m_context->top());
 					m_context->pop();
 					}
@@ -237,14 +242,14 @@ namespace Channel9
 				case LOCAL_GET: {
 					CHECK_STACK(0, 1);
 					size_t localid = (size_t)ins.cache.machine_num;
-					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Getting local var %s (%d)\n", ptr<String>(ins.arg1)->c_str(), (int)localid);
+					TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Getting local var %s (%d)\n", ptr<String>(ins.arg1)->c_str(), (int)localid);
 					m_context->push(m_context->get_localvar(localid));
 					}
 					break;
 				case LOCAL_SET: {
 					CHECK_STACK(1, 0);
 					size_t localid = (size_t)ins.cache.machine_num;
-					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Setting local var %s (%d) to: %s\n", ptr<String>(ins.arg1)->c_str(), (int)localid, inspect(m_context->top()).c_str());
+					TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Setting local var %s (%d) to: %s\n", ptr<String>(ins.arg1)->c_str(), (int)localid, inspect(m_context->top()).c_str());
 					m_context->set_localvar(localid, m_context->top());
 					m_context->pop();
 					}
@@ -253,7 +258,7 @@ namespace Channel9
 					CHECK_STACK(0, 1);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.cache.machine_num;
-					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "lexical_get %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->get_lexicalvar(localid, depth)));
+					TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "lexical_get %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->get_lexicalvar(localid, depth)));
 					if (depth == 0)
 						m_context->push(m_context->get_lexicalvar(localid));
 					else
@@ -264,7 +269,7 @@ namespace Channel9
 					CHECK_STACK(1, 0);
 					size_t depth = ins.arg1.machine_num;
 					size_t localid = (size_t)ins.cache.machine_num;
-					TRACE_PRINTF(TRACE_VM, TRACE_INFO, "lexical_set %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
+					TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "lexical_set %u@%u: %i\n", (unsigned)localid, (unsigned)depth, type(m_context->top()));
 					if (depth == 0)
 						m_context->set_lexicalvar(localid, m_context->top());
 					else
@@ -643,7 +648,7 @@ namespace Channel9
 					exit(1);
 				}
 
-				TRACE_OUT(TRACE_VM, TRACE_INFO) {
+				TRACE_OUT(TRACE_VM, TRACE_DEBUG) {
 					tprintf("Output: %d", (int)output);
 					if ((long)output > 0)
 					{
