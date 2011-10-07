@@ -79,6 +79,14 @@ lexical RubyModule = (lexical name) {
 					local_set "meth"
 				}
 				return <- instance_methods.set(meth_name, meth)
+			} case (@'include') {
+				local mod = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				included = included.push(mod)
+				return <- mod
 			} case (@'alias_method') {
 				local new_name
 				local old_name

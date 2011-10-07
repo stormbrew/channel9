@@ -61,6 +61,8 @@ module Channel9
 
         load_c9_file("#{@root_environment}/kernel/delta.c9b")
 
+        setup_channel9_mod
+
         c9_mod = env.special_channel(:Channel9)
         argv = argv
         env.no_debug do
@@ -86,7 +88,7 @@ module Channel9
             ret.channel_send(env, nil, InvalidReturnChannel)
           end
         when :load
-          path = msg.positional.first
+          path = msg.positional.first; puts path
           stream = Channel9::Loader::Ruby.compile(path)
           if (stream)
             context = Channel9::Context.new(env, stream)
@@ -165,6 +167,86 @@ module Channel9
           end
         rescue Errno::ENOENT, Errno::EISDIR
           return nil
+        end
+      end
+
+      def add_method_to_mod(mod, name, &methblock)
+        @env.save_context do
+          msgid = Primitive::MessageID.new(name.to_s)
+          meth = CallbackChannel.new(&methblock)
+          mod.channel_send(env, Primitive::Message.new(:"ruby_sys:make_singleton", [],[]), CallbackChannel.new {|_, singleton, _|
+            singleton.channel_send(env, Primitive::Message.new(:"ruby_sys:add_method", [], [msgid, meth]), CallbackChannel.new {
+              return
+            })            
+          })
+        end
+      end
+
+      def setup_channel9_mod
+        mod = env.special_channel(:Channel9)
+        add_method_to_mod(mod, :prim_dir_glob) do |cenv, msg, ret|
+          glob = msg.positional.first
+          res = Dir.glob(glob).to_a
+          ret.channel_send(cenv, res, InvalidReturnChannel)
+        end
+
+        add_method_to_mod(mod, :prim_sprintf) do |cenv, msg, ret|
+          format, *args = msg.positional
+          ret.channel_send(cenv, sprintf(format.to_s, *args), ret)
+        end
+
+        add_method_to_mod(mod, :prim_time_now) do |cenv, msg, ret|
+          ret.channel_send(cenv, Time.now.to_f, InvalidReturnChannel)
+        end
+
+        add_method_to_mod(mod, :prim_stat) do |cenv, msg, ret|
+          elf = msg.system.first
+          name = msg.positional.first
+          begin
+            info = File.stat(name)
+            info_arr = [
+              info.atime.to_i,
+              info.blksize,
+              info.blockdev?,
+              info.blocks,
+              info.chardev?,
+              info.ctime.to_i,
+              info.dev,
+              info.dev_major,
+              info.dev_minor,
+              info.directory?,
+              info.executable?,
+              info.executable_real?,
+              info.file?,
+              info.ftype.to_sym,
+              info.gid,
+              info.grpowned?,
+              info.ino,
+              info.mode,
+              info.mtime.to_i,
+              info.nlink,
+              info.owned?,
+              info.pipe?,
+              info.rdev,
+              info.rdev_major,
+              info.rdev_minor,
+              info.readable?,
+              info.readable_real?,
+              info.setgid?,
+              info.setuid?,
+              info.size,
+              info.socket?,
+              info.sticky?,
+              info.symlink?,
+              info.uid,
+              info.writable?,
+              info.writable_real?,
+              info.zero?
+            ].collect {|i| i }
+            ret.channel_send(cenv, info_arr, InvalidReturnChannel)
+          rescue Errno::ENOENT
+            ret.channel_send(cenv, nil, InvalidReturnChannel)
+          end
         end
       end
     end

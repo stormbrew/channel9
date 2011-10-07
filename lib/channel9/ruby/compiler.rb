@@ -598,7 +598,7 @@ module Channel9
           if (splatarg)
             builder.channel_special(:Array)
             builder.swap
-            builder.message_new(:new, 0, 1)
+            builder.message_new(:new_from_tuple, 0, 1)
             builder.channel_call
             builder.pop
             builder.lexical_set(find_lexical_depth(splatarg, true), splatarg)
@@ -1175,8 +1175,8 @@ module Channel9
 
       def transform_alias(first, second)
         builder.frame_get("self")
-        transform(first)
-        transform(second)
+        builder.push(Primitive::MessageID.new(first[1]))
+        builder.push(Primitive::MessageID.new(second[1]))
         builder.message_new(:"ruby_sys:alias_method", 0, 2)
         builder.channel_call
         builder.pop

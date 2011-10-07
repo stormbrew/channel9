@@ -48,6 +48,9 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 				}
 			} case (@'class') {
 				return <- klass
+			} case (@'send') {
+				return <- msg.unforward() -> self
+
 			} case (@'wrap') {
 				// re-identify self as being the wrapping object.
 				bytecode(msg) {

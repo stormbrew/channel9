@@ -83,7 +83,7 @@ module Kernel
   end
 
   def send(name, *args, &block)
-    send_prim(name.to_s_prim, *args, &block)
+    __c9_send__(name.to_s_prim, *args, &block)
   end
   alias_method :__send__, :send
 end
