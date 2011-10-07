@@ -1423,7 +1423,14 @@ module Channel9
           return
         end
         if (match = method.to_s.match(/^__c9_(.+)__$/))
-          method = :"ruby_sys:#{match[1]}"
+          if (match[1] == 'debugger')
+            pp arglist[1][1]
+            builder.debugger(arglist[1][1])
+            builder.push nil
+            return
+          else
+            method = :"ruby_sys:#{match[1]}"
+          end
         end
 
         if (target.nil?)

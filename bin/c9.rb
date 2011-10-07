@@ -19,6 +19,11 @@ compile = ARGV.include?("-c")
 ARGV.delete("-c")
 timing = ARGV.include?("-t")
 ARGV.delete("-t")
+# trace all, start off tracing before the script itself is run.
+Channel9::Environment.trace = ARGV.include?("-TT")
+ARGV.delete("-TT")
+trace = ARGV.include?("-T")
+ARGV.delete("-T")
 if (ARGV.include?("-v"))
   puts("Channel9.rb 0.0.0.0.1")
   ARGV.delete("-v")
@@ -41,6 +46,7 @@ else
   exe = $0
   filename = ARGV.shift
   loader.setup_environment(exe, ARGV)
+  Channel9::Environment.trace = true if trace
   global_self = loader.env.special_channel(:global_self)
   loader_time = Time.now
   begin
