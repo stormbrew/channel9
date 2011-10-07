@@ -17,6 +17,9 @@ module Channel9
         @type = type
       end
 
+      def arguments
+        [@type]
+      end
       def run(env)
         env.do_debug_handler(@type)
       end
