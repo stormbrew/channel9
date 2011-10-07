@@ -59,7 +59,7 @@ namespace Channel9
 
 			MAKE_MESSAGE("split");
 			MAKE_MESSAGE("substr");
-			MAKE_MESSAGE("match");
+			MAKE_MESSAGE("compare");
 			MAKE_MESSAGE("length");
 
 			MAKE_MESSAGE("at");
@@ -68,6 +68,7 @@ namespace Channel9
 			MAKE_MESSAGE("front_push");
 			MAKE_MESSAGE("front_pop");
 			MAKE_MESSAGE("replace");
+			MAKE_MESSAGE("delete");
 			MAKE_MESSAGE("first");
 			MAKE_MESSAGE("last");
 

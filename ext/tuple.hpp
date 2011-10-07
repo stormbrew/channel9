@@ -145,16 +145,24 @@ namespace Channel9
 		ret->m_data[pos] = val;
 		return ret;
 	}
+	inline Tuple *remove_tuple(const Tuple *t, size_t pos)
+	{
+		Tuple *ret = new_tuple(t->m_count - 1);
+		std::copy(t->begin(), t->begin() + pos, ret->m_data);
+		std::copy(t->begin() + pos + 1, t->end(), ret->m_data + pos);
+		return ret;
+	}
 
 	inline Tuple *split_string(const String *s, const String *by)
 	{
 		std::vector<Value> strings;
 		String::const_iterator first = s->begin(), next;
-		do {
+		while (first < s->end())
+		{
 			next = std::search(first, s->end(), by->begin(), by->end());
 			strings.push_back(value(new_string(first, next)));
 			first = next + by->m_count;
-		} while (next != s->end());
+		}
 		return new_tuple(strings.begin(), strings.end());
 	}
 
