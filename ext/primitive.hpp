@@ -203,16 +203,12 @@ namespace Channel9
 					return channel_send(cenv, ctx, value(self->substr(first, last - first + 1)), Nil);
 			}
 			break;
-		case MESSAGE_MATCH:
+		case MESSAGE_COMPARE:
 			if (msg->arg_count() == 1 && is(msg->args()[0], STRING))
 			{
 				String *other = ptr<String>(msg->args()[0]);
-				ptrdiff_t diff;
-				if (self->m_count > other->m_count)
-					diff = std::mismatch(other->begin(), other->end(), self->begin()).first - other->begin();
-				else
-					diff = std::mismatch(self->begin(), self->end(), other->begin()).first - self->begin();
-				return channel_send(cenv, ctx, value(int64_t(diff)), Nil);
+				return channel_send(cenv, ctx, value(int64_t(strncmp(self->c_str(), other->c_str(), 
+					std::min(self->m_count, other->m_count)))), Nil);
 			}
 			break;
 		case MESSAGE_HASH:
@@ -289,6 +285,14 @@ namespace Channel9
 				Value val = msg.args()[1];
 				if (idx >= 0)
 					return channel_send(cenv, ctx, value(replace_tuple(tuple, (size_t)idx, val)), Nil);
+			}
+			break;
+		case MESSAGE_DELETE:
+			{
+				Tuple *tuple = ptr<Tuple>(oself);
+				long long idx = msg.args()[0].machine_num;
+				if (idx >= 0 && size_t(idx) < tuple->m_count)
+					return channel_send(cenv, ctx, value(remove_tuple(tuple, (size_t)idx)), Nil);
 			}
 			break;
 		case MESSAGE_FIRST:
