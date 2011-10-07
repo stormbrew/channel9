@@ -329,10 +329,22 @@ static VALUE Environment_set_current_context(VALUE self, VALUE rb_ctx) try
 	return Qnil;
 } catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
 
+static VALUE Environment_set_trace(VALUE self, VALUE enable) try
+{
+	trace_mute = !RTEST(enable);
+	return enable;
+} catch (const RubyUnwind &unwind) { unwind.ruby_jump(); return Qnil; }
+static VALUE Environment_trace(VALUE self)
+{
+	return trace_mute ? Qfalse : Qtrue;
+}
+
 static void Init_Channel9_Environment()
 {
 	rb_cEnvironment = rb_define_class_under(rb_mChannel9, "Environment", rb_cObject);
 	rb_define_singleton_method(rb_cEnvironment, "new", ruby_method(Environment_new), 1);
+	rb_define_singleton_method(rb_cEnvironment, "trace=", ruby_method(Environment_set_trace), 1);
+	rb_define_singleton_method(rb_cEnvironment, "trace", ruby_method(Environment_trace), 0);
 	rb_define_method(rb_cEnvironment, "special_channel", ruby_method(Environment_special_channel), 1);
 	rb_define_method(rb_cEnvironment, "set_special_channel", ruby_method(Environment_set_special_channel), 2);
 	rb_define_method(rb_cEnvironment, "current_context", ruby_method(Environment_current_context), 0);

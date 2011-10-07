@@ -29,6 +29,8 @@
 #define tprintf(...) fprintf(stderr, __VA_ARGS__)
 #define ctrace std::cerr
 
+extern bool trace_mute;
+
 inline void trace_out_header(int facility, int level, const char * file, int line){
 	static const char
 //		*black     = "\033[30m",
@@ -75,7 +77,7 @@ inline void trace_out_header(int facility, int level, const char * file, int lin
 }
 
 #define TRACE_DO(facility, level) \
-	if(((TRACE_SUB) & (facility)) && (TRACE_LEVEL) <= (level))
+	if(((TRACE_SUB) & (facility)) && (TRACE_LEVEL) <= (level) && !trace_mute)
 
 #define TRACE_OUT(facility, level) \
 	TRACE_DO(facility, level) \

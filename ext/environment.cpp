@@ -7,6 +7,8 @@
 
 #include <assert.h>
 
+bool trace_mute = false;
+
 namespace Channel9
 {
 	class NoReturnContext : public CallableContext
@@ -127,7 +129,17 @@ namespace Channel9
 					break;
 				case DEBUGGER:
 					CHECK_STACK(0, 0);
-					DO_DEBUG __asm__("int3");
+					{
+						String *action = ptr<String>(ins.arg1);
+						if (*action == "interrupt")
+						{
+							DO_DEBUG __asm__("int3");
+						} else if (*action == "trace_enable") {
+							trace_mute = false;
+						} else if (*action == "trace_disable") {
+							trace_mute = true;
+						}
+					}
 					break;
 
 				case POP:
