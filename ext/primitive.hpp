@@ -252,7 +252,7 @@ namespace Channel9
 				{
 					return channel_send(cenv, ctx, self[idx], Nil);
 				} else if (idx < 0 && (ssize_t)self.size() >= -idx) {
-					return channel_send(cenv, ctx, self[self.size() - idx], Nil);
+					return channel_send(cenv, ctx, self[self.size() + idx], Nil);
 				}
 			}
 			break;
