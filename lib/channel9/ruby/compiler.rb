@@ -643,7 +643,7 @@ module Channel9
         compiler = Compiler.new(builder)
         need_info = [false]
         compiler.with_state(@state) do
-          compiler.with_state(:need_long_return => need_info, :name => name) do
+          compiler.with_state(:need_long_return => need_info, :name => name, :unwinders => 0) do
             compiler.transform(code)
             return need_info[0]
           end
@@ -690,7 +690,7 @@ module Channel9
           builder.frame_set("yield")
           transform(args)
 
-          with_state(:has_long_return => nru, :name => name) do
+          with_state(:has_long_return => nru, :name => name, :unwinders => 0) do
             if (code.nil?)
               transform_nil
             else
@@ -905,7 +905,7 @@ module Channel9
       end
 
       def transform_return(*vals)
-        if (@state[:ensure] || @state[:block])
+        if (@state[:block] || (@state[:unwinders] && @state[:unwinders] > 0))
           @state[:need_long_return][0] = true if @state[:need_long_return]
           builder.channel_special(:unwinder)
           builder.frame_get("return")
@@ -1770,7 +1770,10 @@ module Channel9
         # do the work
         builder.set_label(retry_label)
 
-        transform(try)
+        unwinders = @state[:unwinders] || 0
+        with_state(:unwinders => unwinders + 1) do
+          transform(try)
+        end
 
         with_state(:rescue_retry=>retry_label) do
           # if we get here, unset the unwinder and jump to the end.
@@ -1834,7 +1837,8 @@ module Channel9
         builder.pop
         builder.pop
 
-        with_state(:ensure => ens_label) do
+        unwinders = @state[:unwinders] || 0
+        with_state(:ensure => ens_label, :unwinders => unwinders + 1) do
           transform(body)
         end
         # if the body executes correctly, we push
