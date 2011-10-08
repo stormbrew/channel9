@@ -86,9 +86,9 @@ namespace Channel9
 			clear_vstore();
 			TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Entering running state with %p\n", context);
 			m_running = true;
-			const Instruction *ipos = m_context->next();
 			SourcePos *last_pos = NULL; // used for debug output below.
-			while (m_context && ipos != m_context->end())
+			const Instruction *ipos;
+			while (m_context && (ipos = m_context->next()))
 			{
 				size_t output = -1;
 				size_t expected = -1;
@@ -315,7 +315,6 @@ namespace Channel9
 					// A context that's been channel_sended from should never be returned to,
 					// so invalidate it.
 					m_context->invalidate();
-					m_context = NULL;
 					channel_send(this, channel, val, ret);
 					clear_vstore();
 					}
@@ -329,7 +328,6 @@ namespace Channel9
 					const Value &channel = vstore(m_context->top()); m_context->pop();
 					const Value &ret = vstore(value(m_context));
 
-					m_context = NULL;
 					channel_send(this, channel, val, ret);
 					clear_vstore();
 					}
@@ -342,7 +340,6 @@ namespace Channel9
 					// A context that's been channel_reted from should never be returned to,
 					// so invalidate it.
 					m_context->invalidate();
-					m_context = NULL;
 					channel_send(this, channel, val, value(&no_return_ctx));
 					clear_vstore();
 					}
@@ -687,9 +684,6 @@ namespace Channel9
 					if ((long)output != -1)
 						assert(m_context->stack_count() == expected);
 				}
-
-				if (m_context)
-					ipos = m_context->next();
 			}
 			TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Exiting running state with context %p\n", m_context);
 			m_running = false;
