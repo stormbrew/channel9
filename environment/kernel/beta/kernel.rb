@@ -79,6 +79,10 @@ module Kernel
     $__c9_unwinder.raise($!)
   end
 
+  def caller
+    $__c9_loader.backtrace.to_a
+  end
+
   def method_missing(name, *args)
     raise NoMethodError, "undefined method `" + name.to_s + "' for " + to_s + ":" + self.class.to_s
   end
