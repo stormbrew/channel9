@@ -256,6 +256,18 @@ namespace Channel9
 				}
 			}
 			break;
+		case MESSAGE_SUBARY:
+			if (msg.arg_count() == 2 && is_number(msg.args()[0]) && is_number(msg.args()[1]))
+			{
+				const Tuple *self = ptr<Tuple>(oself);
+				size_t first = (size_t)msg.args()[0].machine_num,
+					last = (size_t)msg.args()[1].machine_num;
+				if (first >= 0 && last >= 0 && first <= last && first < self->size() && last < self->size())
+				{
+					return channel_send(cenv, ctx, value(sub_tuple(self, first, last - first)), Nil);
+				}
+			}
+			break;
 		case MESSAGE_LENGTH:
 			return channel_send(cenv, ctx, value((long long)ptr<Tuple>(oself)->size()), Nil);
 		case MESSAGE_PLUS:

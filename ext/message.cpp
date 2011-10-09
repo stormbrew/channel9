@@ -63,6 +63,7 @@ namespace Channel9
 			MAKE_MESSAGE("length");
 
 			MAKE_MESSAGE("at");
+			MAKE_MESSAGE("subary");
 			MAKE_MESSAGE("push");
 			MAKE_MESSAGE("pop");
 			MAKE_MESSAGE("front_push");
