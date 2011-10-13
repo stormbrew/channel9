@@ -93,3 +93,29 @@ $Object.ruby_sys:make_singleton()
 
 $set_special_channel("global_self", $Object.ruby_sys:allocate())
 $set_special_channel("globals", $BasicHash($prime_gen))
+
+lexical unwinders = [$terminal_unwinder,nil]
+$set_special_channel("unwinder", (@msg) -> return {
+	if (msg) {
+		local real_msg = bytecode(msg) { 
+			message_check
+		}
+		if (real_msg) {
+			bytecode(unwinders) {
+				tuple_unpack 2 0 0
+				swap
+				lexical_set 0 "unwinders"
+				local_get "real_msg"
+				channel_ret
+			}
+		} else {
+			local old = unwinders.at(0)
+			unwinders = [msg,unwinders]
+			return <- old
+		}
+	} else {
+		local old = unwinders.at(0)
+		unwinders = unwinders.at(1)
+		return <- old
+	}
+})
