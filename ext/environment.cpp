@@ -436,7 +436,6 @@ namespace Channel9
 						m_context->pop();
 						m_context->push(False);
 					}
-					m_context->push(value(ptr<Message>(m_context->top())->name()));
 					break;
 				case MESSAGE_FORWARD: {
 					CHECK_STACK(1, 1);
