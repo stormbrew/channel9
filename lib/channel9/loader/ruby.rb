@@ -31,7 +31,7 @@ module Channel9
         })
 
         env.set_special_channel(:loader, self)
-        env.set_special_channel(:unwinder, Channel9::Ruby::Unwinder.new(env))
+        env.set_special_channel(:terminal_unwinder, Channel9::Ruby::TerminalUnwinder)
 
         ["basic_hash", "object", "class", "module", "finish"].each do |file|
           alpha = Channel9::Stream.from_json(File.read(@root_environment + "/kernel/alpha/#{file}.c9b"))
