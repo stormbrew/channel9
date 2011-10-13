@@ -1,4 +1,5 @@
 #include "istream.hpp"
+#include "context.hpp"
 #include "message.hpp"
 
 #include <assert.h>
@@ -234,5 +235,11 @@ namespace Channel9
 	{
 		return m_frames.size();
 	}
+
+	void IStream::send(Environment *env, const Value &val, const Value &ret)
+	{
+		channel_send(env, ret, Nil, Nil);
+	}
+
 }
 

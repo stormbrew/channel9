@@ -6,6 +6,7 @@
 
 #include "channel9.hpp"
 #include "instruction.hpp"
+#include "callable_context.hpp"
 #include "value.hpp"
 
 namespace Channel9
@@ -34,7 +35,7 @@ namespace Channel9
 		}
 	};
 
-	class IStream
+	class IStream : public CallableContext
 	{
 	private:
 		std::map<std::string, size_t> m_labels;
@@ -97,16 +98,17 @@ namespace Channel9
 		iterator end() { return m_instructions.end(); }
 		const_iterator begin() const { return m_instructions.begin(); }
 		const_iterator end() const { return m_instructions.end(); }
-	};
 
-	inline void gc_scan(IStream *stream)
-	{
-		for (IStream::iterator it = stream->begin(); it != stream->end(); it++)
+		void scan()
 		{
-			gc_scan(&*it);
+			for (IStream::iterator it = begin(); it != end(); it++)
+			{
+				gc_scan(&*it);
+			}
+			CallableContext::scan();
 		}
-	}
-
+		void send(Environment *env, const Value &val, const Value &ret);
+	};
 	// Specialize GCRef's scanner to only do a gc_scan of it.
 	template <>
 	inline void GCRef<IStream*>::scan()
