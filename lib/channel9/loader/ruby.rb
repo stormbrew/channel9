@@ -88,7 +88,7 @@ module Channel9
             ret.channel_send(env, nil, InvalidReturnChannel)
           end
         when :load
-          path = msg.positional.first; puts path
+          path = msg.positional.first#; puts path
           stream = Channel9::Loader::Ruby.compile(path)
           if (stream)
             context = Channel9::Context.new(env, stream)
