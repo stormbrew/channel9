@@ -115,6 +115,7 @@ template <typename tVal>
 struct stupid_shim_for_old_gcc {
 	static void free_gc_ref(GCRef<tVal> *obj)
 	{
+		TRACE_PRINTF(TRACE_GENERAL, TRACE_DEBUG, "Deleting gcref %p\n", obj);
 		delete obj;
 	}
 };
@@ -636,8 +637,21 @@ static void Init_Channel9_Primitives()
 	rb_define_method(rb_cSymbol, "channel_send", ruby_method(Primitive_channel_send), 3);
 }
 
+class RubyCollector : GCRoot
+{
+public:
+	RubyCollector() : GCRoot(value_pool) {}
+
+	void scan()
+	{
+		rb_gc_start();
+	}	
+};
+
 extern "C" void Init_channel9ext()
 {
+	static RubyCollector collector;
+
 	rb_mChannel9 = rb_define_module("Channel9");
 	rb_mPrimitive = rb_define_module_under(rb_mChannel9, "Primitive");
 	Init_Channel9_Environment();
