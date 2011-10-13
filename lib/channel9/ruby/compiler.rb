@@ -1424,7 +1424,6 @@ module Channel9
         end
         if (match = method.to_s.match(/^__c9_(.+)__$/))
           if (match[1] == 'debugger')
-            pp arglist[1][1]
             builder.debugger(arglist[1][1])
             builder.push nil
             return
