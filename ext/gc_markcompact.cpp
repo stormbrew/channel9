@@ -34,7 +34,7 @@ namespace Channel9
 		m_data_blocks = 0;
 
 		DO_DEBUG {
-			for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
+			for(std::deque<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
 				for(Block * b = c->begin(); b != c->end(); b = b->next()){
 					assert(!b->m_mark);
 					for(Data * d = b->begin(); d != b->end(); d = d->next())
@@ -61,7 +61,7 @@ namespace Channel9
 
 		//reclaim empty blocks right off the start
 		m_empty_blocks.clear();
-		for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
+		for(std::deque<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
 			for(Block * b = c->begin(); b != c->end(); b = b->next()){
 				if(!b->m_mark){
 					DO_DEBUG
@@ -87,10 +87,11 @@ namespace Channel9
 		uint64_t moved_bytes = 0;
 		uint64_t moved_blocks = 0;
 		uint64_t skipped = 0;
-		for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++)
+		for(std::deque<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++)
 		{
 			for(Block * b = c->begin(); b != c->end(); b = b->next())
 			{
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Checking block %p:%p\n", &*c, b);
 				if(b->m_mark)
 				{
 					if(b->m_in_use < b->m_capacity*FRAG_LIMIT)
@@ -104,6 +105,7 @@ namespace Channel9
 								forward.set(d->m_data, n);
 								moved_bytes += d->m_count + sizeof(Data);
 								moved_blocks++;
+								TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Moved %p -> %p\n", d->m_data, n);
 
 								//set the mark bit so it gets traversed
 								Data::ptr_for(n)->m_mark = true;
@@ -112,9 +114,6 @@ namespace Channel9
 
 						b->m_next_alloc = 0;
 						b->m_in_use = 0;
-						DO_DEBUG
-							b->deadbeef();
-						m_empty_blocks.push_back(b);
 					}else{
 						skipped++;
 						fragmented += b->m_capacity - b->m_in_use;
@@ -158,7 +157,7 @@ namespace Channel9
 		assert(m_dfs_marked == m_dfs_unmarked);
 
 		DO_DEBUG {
-			for(std::vector<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
+			for(std::deque<Chunk>::iterator c = m_chunks.begin(); c != m_chunks.end(); c++){
 				for(Block * b = c->begin(); b != c->end(); b = b->next()){
 					assert(!b->m_mark);
 					for(Data * d = b->begin(); d != b->end(); d = d->next())
@@ -172,6 +171,10 @@ namespace Channel9
 		forward.clear();
 
 		m_next_gc = std::max((1<<CHUNK_SIZE)*0.9, m_used * GC_GROWTH_LIMIT);
+
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Sweeping CallableContext objects\n");
+
+		CallableContext::sweep();
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %llu bytes used in %llu data blocks\n", m_used, m_data_blocks);
 

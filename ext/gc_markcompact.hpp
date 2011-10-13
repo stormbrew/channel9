@@ -2,6 +2,7 @@
 
 #include <set>
 #include <vector>
+#include <deque>
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
@@ -135,11 +136,10 @@ namespace Channel9
 
 
 
-		std::vector<Chunk>   m_chunks;       // list of all chunks
-		std::vector<Block *> m_empty_blocks;  // list of empty blocks
+		std::deque<Chunk>   m_chunks;       // list of all chunks
+		std::deque<Block *> m_empty_blocks;  // list of empty blocks
 		Block * m_cur_medium_block;//block to allocate medium objects out of, moved to small once if it fails to allocate a medium object
 		Block * m_cur_small_block; //block to allocate small objects out of, may point to the same as medium
-
 
 		ForwardTable forward;
 
@@ -228,6 +228,7 @@ namespace Channel9
 			munmap(ae, pe - ae);  //unmap the memory after the chunk ends
 
 			Block * b = (Block *)a;
+			assert(b != NULL);
 
 			TRACE_PRINTF(TRACE_ALLOC, TRACE_INFO, "alloc chunk %p, %i zeros\n", b, (int)count_bottom_zeros4((uintptr_t)b));
 
@@ -319,7 +320,7 @@ namespace Channel9
 			{
 			case Marking: {
 
-				TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Marking %p -> %i\n", *from, d->m_mark);
+				TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Marking %p -> %i %s\n", *from, d->m_mark, d->m_mark ? "no-follow" : "follow");
 
 				if(d->m_mark)
 					return false;
@@ -358,7 +359,7 @@ namespace Channel9
 					d = Data::ptr_for(*from);
 				}
 
-				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_SPAM, ", d->m_mark = %i\n", d->m_mark);
+				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_SPAM, ", d->m_mark = %i %s\n", d->m_mark, d->m_mark ? "follow" : "no-follow");
 
 				if(d->m_mark)
 				{
