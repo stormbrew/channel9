@@ -1589,8 +1589,9 @@ module Channel9
 
         with_linked_vtable do
           builder.lexical_linked_scope if (new_scope)
-          if (args.nil?)
+          if (args.nil? || args == 0)
             # no args, pop the message off the stack.
+            # TODO: Deal with {|| ... }, if lambda raises for arg count mismatch.
             builder.pop
           else
             if (args[0] == :lasgn || args[0] == :gasgn || args[0] == :attrasgn)
