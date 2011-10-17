@@ -55,7 +55,7 @@ namespace Channel9
 				m_next = NULL;
 				m_capacity = capacity;
 				m_used = 0;
-				DO_DEBUG VALGRIND_CREATE_MEMPOOL(m_data, 0, false);
+				VALGRIND_CREATE_MEMPOOL(m_data, 0, false);
 			}
 
 			Data * alloc(size_t size)
@@ -64,7 +64,7 @@ namespace Channel9
 				{
 					Data * ret = (Data*)(m_data + m_used);
 					m_used += size;
-					DO_DEBUG VALGRIND_MEMPOOL_ALLOC(m_data, ret, size);
+					VALGRIND_MEMPOOL_ALLOC(m_data, ret, size);
 					return ret;
 				}
 				return NULL;
@@ -80,7 +80,7 @@ namespace Channel9
 			}
 		};
 
-		static const double   GC_GROWTH_LIMIT = 2.0;
+		static const double   GC_GROWTH_LIMIT = 1.5;
 		static const uint64_t CHUNK_SIZE = (2<<20) - sizeof(Chunk) - 8; // 2mb (-8 for the malloc header)
 
 		Chunk * m_pools[2]; //two sets of pools, each garbage collection swaps between them, active is stored in m_cur_pool
@@ -143,12 +143,37 @@ namespace Channel9
 
 		Chunk * new_chunk(size_t alloc_size = 0)
 		{
+			Chunk *c;
 			if(alloc_size < CHUNK_SIZE)
 				alloc_size = CHUNK_SIZE;
 
-			Chunk * c = (Chunk *)malloc(alloc_size + sizeof(Chunk));
+			// try to steal a chunk from the other list first
+			if (!m_in_gc && (c = m_pools[!m_cur_pool]))
+			{
+				// if the first one is big enough, use it.
+				if (c->m_capacity >= alloc_size)
+				{
+					m_pools[!m_cur_pool] = c->m_next;
+					c->m_next = NULL;
+					return c;
+				} else {
+					// otherwise try to find one that is.
+					Chunk *prev = c;
+					while (prev = c, c = c->m_next)
+					{
+						if (c->m_capacity >= alloc_size)
+						{
+							prev->m_next = c->m_next;
+							c->m_next = NULL;
+							return c;
+						}
+					}
+				}
+			}
+
+			c = (Chunk *)malloc(alloc_size + sizeof(Chunk));
 			c->init(alloc_size);
-			DO_DEBUG VALGRIND_MAKE_MEM_NOACCESS(c->m_data, alloc_size);
+			VALGRIND_MAKE_MEM_NOACCESS(c->m_data, alloc_size);
 			m_alloced += alloc_size;
 			return c;
 		}

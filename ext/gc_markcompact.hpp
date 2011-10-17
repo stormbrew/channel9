@@ -89,7 +89,7 @@ namespace Channel9
 				m_skipped = 0;
 				m_block_size = block_size;
 				m_mark = false;
-				DO_DEBUG VALGRIND_CREATE_MEMPOOL(m_data, 0, false);
+				VALGRIND_CREATE_MEMPOOL(m_data, 0, false);
 			}
 
 			Data * alloc(size_t size, uint16_t type)
@@ -100,7 +100,7 @@ namespace Channel9
 					Data * ret = (Data*)(m_data + m_next_alloc);
 					ret->init(size, type, m_block_size, false);
 					m_next_alloc += alloc_size;
-					DO_DEBUG VALGRIND_MEMPOOL_ALLOC(m_data, ret, size);
+					VALGRIND_MEMPOOL_ALLOC(m_data, ret, size);
 					return ret;
 				}
 				return NULL;
