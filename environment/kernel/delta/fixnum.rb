@@ -74,6 +74,10 @@ class Fixnum < Numeric
     end
   end
 
+  def succ
+    self + 1
+  end
+
   # These are called if the primitive
   # errors for some reason in its default handling
   # of these operators.
