@@ -1265,15 +1265,19 @@ module Channel9
           builder.pop
         end
         if splat
-          builder.message_new(:to_a, 0, 0)
-          builder.channel_call
-          builder.pop
-          if (splat[1])
-            transform(splat[1])
-          else
+          if (splat.length > 1)
+            builder.message_new(:to_a, 0, 0)
+            builder.channel_call
             builder.pop
+            if (splat[1])
+              transform(splat[1])
+            else
+              builder.pop
+            end
+            builder.pop # don't want the result of the individual assignments.
+          else
+            builder.pop # don't want anything, splat to the void!
           end
-          builder.pop # don't want the result of the individual assignments.
         end
         builder.pop # tuple from the tuple_unpack is still there.
       end
