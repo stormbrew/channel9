@@ -87,6 +87,8 @@ namespace Channel9
 			DO_DEBUG {
 				c->deadbeef();
 				VALGRIND_DESTROY_MEMPOOL(c->m_data);
+			} else {
+				VALGRIND_MEMPOOL_TRIM(c->m_data, 0, 0);
 			}
 
 			c->m_used = 0;
@@ -110,7 +112,38 @@ namespace Channel9
 
 		CallableContext::sweep();
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
+		TRACE_OUT(TRACE_GC, TRACE_INFO) {
+			tprintf("Area stats:\n");
+			unsigned long area_size = 0;
+			unsigned long area_used = 0;
+			int count = 0;
+			for (Chunk *c = m_pools[!m_cur_pool]; c; c = c->m_next)
+			{
+				count++;
+				area_size += c->m_capacity;
+			}
+			tprintf("Old pool: 0/%lu in %i\n", area_size, count);
+			area_size = 0;
+			count = 0;
+			for (Chunk *c = m_pools[m_cur_pool]; c; c = c->m_next)
+			{
+				area_size += c->m_capacity;
+				area_used += c->m_used;
+				count++;
+			}
+			tprintf("New pool: %lu/%lu in %i\n", area_used, area_size, count);
+			area_used = 0;
+			count = 0;
+			std::vector<Data*> new_pinned_objs;
+			for(std::vector<Data*>::iterator i = m_pinned_objs.begin(); i != m_pinned_objs.end(); ++i)
+			{
+				area_used += (*i)->m_count;
+				count++;
+			}
+			tprintf("Pinned: %lu in %i\n", area_used, count);
+		}
+
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %llu used in %llu data blocks, next collection at %llu\n", m_used, m_data_blocks, m_next_gc);
 
 		m_in_gc = false;
 	}
