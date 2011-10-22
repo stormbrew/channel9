@@ -21,6 +21,38 @@ namespace Channel9
 		m_roots.erase(root);
 	}
 
+	uint8_t *GC::Semispace::next_slow(size_t size, size_t alloc_size, uint16_t type)
+	{
+		Chunk * chunk = m_cur_chunk;
+
+		while(1){
+			if (chunk->has_space(alloc_size))
+			{
+				Data * data = chunk->alloc(alloc_size)->init(size, type, m_cur_pool, false);
+
+				if(!m_in_gc)
+					TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "slow alloc return %p\n", data->m_data);
+
+				return data->m_data;
+			}
+
+			if(chunk->m_next)
+			{ //advance to allocate out of the next chunk
+				chunk = chunk->m_next;
+			} else {
+				//allocate a new chunk
+				Chunk * c = new_chunk(alloc_size);
+
+				chunk->m_next = c;
+				chunk = c;
+			}
+
+			// only advance if there wasn't enough room for a small object, otherwise put medium and big objects
+			// in the next chunk while continuing to put small ones in the current chunk
+			if(alloc_size < SMALL)
+				m_cur_chunk = chunk;
+		}
+	}
 	void GC::Semispace::collect()
 	{
 		m_in_gc = true;
@@ -98,7 +130,7 @@ namespace Channel9
 		std::vector<Data*> new_pinned_objs;
 		for(std::vector<Data*>::iterator i = m_pinned_objs.begin(); i != m_pinned_objs.end(); ++i)
 		{
-			if((*i)->m_pool == m_cur_pool)
+			if((*i)->pool() == m_cur_pool)
 				new_pinned_objs.push_back(*i);
 			else
 				free(*i);
