@@ -85,7 +85,7 @@ namespace Channel9
 			for(Data * d = c->begin(); d != c->end(); d = d->next())
 			{
 				// must not be forwarding pointers in the new heap.
-				assert((d->m_forward) == 0);
+				assert((d->forward()) == 0);
 				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
 				switch(d->m_type)
 				{
