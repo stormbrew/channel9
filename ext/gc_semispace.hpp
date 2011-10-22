@@ -213,41 +213,7 @@ namespace Channel9
 		}
 
 		template <typename tObj>
-		bool mark(tObj **from_ptr)
-		{
-			tObj *from = *from_ptr;
-			Data * old = (Data*)(from) - 1;
-
-			if(old->pool() == m_cur_pool){
-				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
-				return false;
-			}
-
-			if(old->pinned()){
-				old->set_pool(m_cur_pool);
-				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X pinned, update pool, recursing\n", from, old->m_type);
-				gc_scan(from);
-				return false;
-			}
-
-			if(old->forward()){
-				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
-				*from_ptr = *(tObj**)from;
-				return true;
-			}
-
-			tObj * n = (tObj*)next(old->m_count, old->m_type);
-			memcpy(n, from, old->m_count);
-
-			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X <= %p\n", from, old->m_type, n);
-
-			old->set_forward();
-			// put the new location in the old object's space
-			*(tObj**)from = n;
-			// change the marked pointer
-			*from_ptr = n;
-			return true;
-		}
+		bool mark(tObj **from_ptr);
 
 		// make sure this object is ready to be read from
 		template <typename tObj>
@@ -266,5 +232,42 @@ namespace Channel9
 		void register_root(GCRoot *root);
 		void unregister_root(GCRoot *root);
 	};
+
+	template <typename tObj>
+	bool GC::Semispace::mark(tObj **from_ptr)
+	{
+		tObj *from = *from_ptr;
+		Data * old = (Data*)(from) - 1;
+
+		if(old->pool() == m_cur_pool){
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
+			return false;
+		}
+
+		if(old->pinned()){
+			old->set_pool(m_cur_pool);
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X pinned, update pool, recursing\n", from, old->m_type);
+			gc_scan(from);
+			return false;
+		}
+
+		if(old->forward()){
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
+			*from_ptr = *(tObj**)from;
+			return true;
+		}
+
+		tObj * n = (tObj*)next(old->m_count, old->m_type);
+		memcpy(n, from, old->m_count);
+
+		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X <= %p\n", from, old->m_type, n);
+
+		old->set_forward();
+		// put the new location in the old object's space
+		*(tObj**)from = n;
+		// change the marked pointer
+		*from_ptr = n;
+		return true;
+	}
 }
 
