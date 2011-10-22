@@ -1,4 +1,5 @@
 #include "message.hpp"
+#include "context.hpp"
 
 #include <algorithm>
 
@@ -12,73 +13,75 @@ namespace Channel9
 	static class InitializeMessages
 	{
 	public:
-		InitializeMessages()
-		{
-			uint64_t proto_counter = PROTOCOL_DEFAULT;
-			uint64_t message_counter = MESSAGE_NOP;
+		InitializeMessages();
+	} init_msgs;
+
+	InitializeMessages::InitializeMessages()
+	{
+		uint64_t proto_counter = PROTOCOL_DEFAULT;
+		uint64_t message_counter = MESSAGE_NOP;
 
 #			define MAKE_PROTOCOL(name) \
-				protocol_ids[name] = proto_counter++; \
-				protocol_names.push_back(name); \
-				TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Predefined Protocol ID: %s -> %d\n", (name), (int)(proto_counter)-1)
+			protocol_ids[name] = proto_counter++; \
+			protocol_names.push_back(name); \
+			TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Predefined Protocol ID: %s -> %d\n", (name), (int)(proto_counter)-1)
 #			define MAKE_MESSAGE(name) \
-				message_ids[name] = message_counter++; \
-				message_names.push_back(name); \
-				TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Predefined Message ID: %s -> %d\n", (name), (int)(message_counter)-1)
+			message_ids[name] = message_counter++; \
+			message_names.push_back(name); \
+			TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Predefined Message ID: %s -> %d\n", (name), (int)(message_counter)-1)
 
-			MAKE_PROTOCOL("");
-			MAKE_PROTOCOL("c9");
+		MAKE_PROTOCOL("");
+		MAKE_PROTOCOL("c9");
 
-			MAKE_MESSAGE("nop");
-			MAKE_MESSAGE("+");
-			MAKE_MESSAGE("-");
-			MAKE_MESSAGE("*");
-			MAKE_MESSAGE("/");
-			MAKE_MESSAGE("&");
-			MAKE_MESSAGE("|");
-			MAKE_MESSAGE("%");
-			MAKE_MESSAGE("<");
-			MAKE_MESSAGE(">");
-			MAKE_MESSAGE("==");
-			MAKE_MESSAGE("<=");
-			MAKE_MESSAGE(">=");
-			MAKE_MESSAGE("**");
-			MAKE_MESSAGE("negate");
+		MAKE_MESSAGE("nop");
+		MAKE_MESSAGE("+");
+		MAKE_MESSAGE("-");
+		MAKE_MESSAGE("*");
+		MAKE_MESSAGE("/");
+		MAKE_MESSAGE("&");
+		MAKE_MESSAGE("|");
+		MAKE_MESSAGE("%");
+		MAKE_MESSAGE("<");
+		MAKE_MESSAGE(">");
+		MAKE_MESSAGE("==");
+		MAKE_MESSAGE("<=");
+		MAKE_MESSAGE(">=");
+		MAKE_MESSAGE("**");
+		MAKE_MESSAGE("negate");
 
-			MAKE_MESSAGE("to_string_primitive");
-			MAKE_MESSAGE("to_num_primitive");
-			MAKE_MESSAGE("to_float_primitive");
-			MAKE_MESSAGE("to_tuple_primitive");
-			MAKE_MESSAGE("to_chr");
-			MAKE_MESSAGE("to_message_id");
-			MAKE_MESSAGE("to_protocol_id");
-			MAKE_MESSAGE("to_message_name");
-			MAKE_MESSAGE("to_protocol_name");
+		MAKE_MESSAGE("to_string_primitive");
+		MAKE_MESSAGE("to_num_primitive");
+		MAKE_MESSAGE("to_float_primitive");
+		MAKE_MESSAGE("to_tuple_primitive");
+		MAKE_MESSAGE("to_chr");
+		MAKE_MESSAGE("to_message_id");
+		MAKE_MESSAGE("to_protocol_id");
+		MAKE_MESSAGE("to_message_name");
+		MAKE_MESSAGE("to_protocol_name");
 
-			MAKE_MESSAGE("hash");
+		MAKE_MESSAGE("hash");
 
-			MAKE_MESSAGE("split");
-			MAKE_MESSAGE("substr");
-			MAKE_MESSAGE("compare");
-			MAKE_MESSAGE("length");
+		MAKE_MESSAGE("split");
+		MAKE_MESSAGE("substr");
+		MAKE_MESSAGE("compare");
+		MAKE_MESSAGE("length");
 
-			MAKE_MESSAGE("at");
-			MAKE_MESSAGE("subary");
-			MAKE_MESSAGE("push");
-			MAKE_MESSAGE("pop");
-			MAKE_MESSAGE("front_push");
-			MAKE_MESSAGE("front_pop");
-			MAKE_MESSAGE("replace");
-			MAKE_MESSAGE("delete");
-			MAKE_MESSAGE("first");
-			MAKE_MESSAGE("last");
+		MAKE_MESSAGE("at");
+		MAKE_MESSAGE("subary");
+		MAKE_MESSAGE("push");
+		MAKE_MESSAGE("pop");
+		MAKE_MESSAGE("front_push");
+		MAKE_MESSAGE("front_pop");
+		MAKE_MESSAGE("replace");
+		MAKE_MESSAGE("delete");
+		MAKE_MESSAGE("first");
+		MAKE_MESSAGE("last");
 
-			MAKE_MESSAGE("name");
-			MAKE_MESSAGE("unforward");
+		MAKE_MESSAGE("name");
+		MAKE_MESSAGE("unforward");
 
-			MAKE_MESSAGE("primitive_call");
-		}	
-	} init_msgs;
+		MAKE_MESSAGE("primitive_call");
+	}	
 
 	template <typename tIt>
 	uint64_t make_protocol_id(tIt begin, tIt end)
@@ -162,4 +165,30 @@ namespace Channel9
 		else
 			return simple_name();
 	}
+
+	void message_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg_val)
+	{
+		Message &msg = *ptr<Message>(msg_val);
+		Message &self = *ptr<Message>(oself);
+
+		switch (msg.message_id())
+		{
+		case MESSAGE_NAME:
+			return channel_send(cenv, ctx, value(self.name()), Nil);
+		case MESSAGE_UNFORWARD:
+			if (self.arg_count() > 0 && is(self.args()[0], STRING))
+			{
+				String *name = ptr<String>(self.args()[0]);
+				Message *nmsg = new_message(make_message_id(name), self.sysarg_count(), self.arg_count() - 1);
+				std::copy(self.sysargs(), self.sysargs_end(), nmsg->sysargs());
+				std::copy(self.args() + 1, self.args_end(), nmsg->args());
+				return channel_send(cenv, ctx, value(nmsg), Nil);
+			}
+			break;
+		}
+
+		Value def = cenv->special_channel("Channel9::Primitive::Message");
+		forward_primitive_call(cenv, def, ctx, oself, msg_val);
+	}
+	INIT_SEND_FUNC(MESSAGE, &message_channel_simple);
 }

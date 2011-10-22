@@ -6,6 +6,7 @@
 #include "istream.hpp"
 #include "memory_pool.hpp"
 #include "variable_frame.hpp"
+#include "message.hpp"
 
 #include <assert.h>
 #include <stdio.h>
@@ -144,71 +145,29 @@ namespace Channel9
 		}
 	}
 
-	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Value &msg);
-	inline void number_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
-	inline void float_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
-	inline void string_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
-	inline void tuple_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
-	inline void message_channel_simple(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
+	typedef void (send_func)(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
+	extern send_func *send_types[0xff];
+
+#	define INIT_SEND_FUNC(type, func) \
+		static send_func *_send_func_##type = send_types[type] = func;
+
 	inline void channel_send(Environment *env, const Value &channel, const Value &val, const Value &ret)
 	{
-		switch (type(channel))
-		{
-		case RUNNING_CONTEXT: {
-			RunningContext *ctx = ptr<RunningContext>(channel);
+		return send_types[type(channel)](env, ret, channel, val);
+	}
+	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Value &msg)
+	{
+		TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Forwarding primitive call: %s.%s from:%s to class:%s\n",
+			inspect(oself).c_str(), inspect(msg).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
+		Message *orig = ptr<Message>(msg);
+		assert(orig->message_id() != MESSAGE_C9_PRIMITIVE_CALL);
+		Message *fwd = new_message(make_protocol_id(PROTOCOL_C9_SYSTEM, MESSAGE_C9_PRIMITIVE_CALL), 0, 2);
 
-			ctx->push(val);
-			ctx->push(ret);
-			env->run(ctx);
-			}
-			break;
-		case RUNNABLE_CONTEXT: {
-			RunningContext *ctx = activate_context(env->context(), channel);
+		Message::iterator out = fwd->args();
+		*out++ = oself;
+		*out++ = value(orig);
 
-			ctx->push(val);
-			ctx->push(ret);
-			env->run(ctx);
-			}
-			break;
-		case CALLABLE_CONTEXT:
-			ptr<CallableContext>(channel)->send(env, val, ret);
-			break;
-		case NIL: {
-			const Value &def = env->special_channel("Channel9::Primitive::NilC");
-			return forward_primitive_call(env, def, ret, channel, val);
-			}
-		case UNDEF: {
-			const Value &def = env->special_channel("Channel9::Primitive::UndefC");
-			return forward_primitive_call(env, def, ret, channel, val);
-			}
-		case BFALSE: {
-			const Value &def = env->special_channel("Channel9::Primitive::FalseC");
-			return forward_primitive_call(env, def, ret, channel, val);
-			}
-		case BTRUE: {
-			const Value &def = env->special_channel("Channel9::Primitive::TrueC");
-			return forward_primitive_call(env, def, ret, channel, val);
-			}
-		case MESSAGE:
-			message_channel_simple(env, ret, channel, val);
-			break;
-		case POSITIVE_NUMBER:
-		case NEGATIVE_NUMBER:
-			number_channel_simple(env, ret, channel, val);
-			break;
-		case FLOAT_NUM:
-			float_channel_simple(env, ret, channel, val);
-			break;
-		case STRING:
-			string_channel_simple(env, ret, channel, val);
-			break;
-		case TUPLE:
-			tuple_channel_simple(env, ret, channel, val);
-			break;
-		default:
-			printf("Built-in Channel for %i not yet implemented.\n", type(channel));
-			exit(1);
-		}
+		channel_send(cenv, prim_class, value(fwd), ctx);
 	}
 }
 
