@@ -7,8 +7,6 @@
 
 #include <assert.h>
 
-bool trace_mute = false;
-
 namespace Channel9
 {
 	class NoReturnContext : public CallableContext
