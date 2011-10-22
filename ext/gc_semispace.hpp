@@ -17,27 +17,32 @@ namespace Channel9
 	class GC::Semispace : protected GC
 	{
 	public:
-		typedef unsigned char uchar;
-
 		struct Data
 		{
 			uint32_t m_count; //number of bytes of memory in this allocation
 			uint16_t m_type;
-			unsigned m_forward : 1; //forwarding pointer?
-			unsigned m_pool    : 1; //which pool
-			unsigned m_pinned  : 1; //is this pinned?
-			unsigned m_padding : 13; //align to 8 bytes
-			uchar    m_data[0]; //the actual data, 8 byte aligned
+			uint16_t m_flags;
 
-			void init(uint32_t count, uint16_t type, bool pool, bool pin){
+			enum {
+				PINNED = 0x1000,
+				FORWARD = 0x2000,
+				POOL_MASK = 0x0001,
+			};
+			uint8_t  m_data[0]; //the actual data, 8 byte aligned
+
+			inline Data *init(uint32_t count, uint16_t type, bool pool, bool pin){
 				m_count = count;
 				m_type = type;
-				m_forward = false;
-				m_pool = pool;
-				m_pinned = pin;
+				m_flags = (uint64_t)pool | ((uint16_t)pin << 12);
+				return this;
 			}
+			bool pool() { return m_flags & POOL_MASK; }
+			bool pinned() { return m_flags & PINNED; }
+			bool forward() { return m_flags & FORWARD; }
+			void set_forward() { m_flags |= FORWARD; }
+			void set_pool(bool pool) { m_flags = pool | ((m_flags ^ POOL_MASK) & m_flags); }
 
-			Data *next() const { return (Data*)((uchar*)(this + 1) + m_count); }
+			Data *next() const { return (Data*)((uint8_t*)(this + 1) + m_count); }
 			static Data *ptr_for(const void *ptr) { return (Data*)ptr - 1; }
 		};
 
@@ -48,7 +53,7 @@ namespace Channel9
 			Chunk *  m_next; //linked list of chunks
 			uint32_t m_capacity; //in bytes
 			uint32_t m_used;     //in bytes
-			uchar    m_data[0];  //actual memory
+			uint8_t  m_data[0];  //actual memory
 
 			void init(uint32_t capacity)
 			{
@@ -58,16 +63,17 @@ namespace Channel9
 				VALGRIND_CREATE_MEMPOOL(m_data, 0, false);
 			}
 
-			Data * alloc(size_t size)
+			bool has_space(size_t size)
 			{
-				if(m_used + size <= m_capacity)
-				{
-					Data * ret = (Data*)(m_data + m_used);
-					m_used += size;
-					VALGRIND_MEMPOOL_ALLOC(m_data, ret, size);
-					return ret;
-				}
-				return NULL;
+				return m_used + size <= m_capacity;
+			}
+			inline Data * alloc(size_t size)
+			{
+				assert(has_space(size));
+				Data * ret = (Data*)(m_data + m_used);
+				m_used += size;
+				VALGRIND_MEMPOOL_ALLOC(m_data, ret, size);
+				return ret;
 			}
 			Data * begin() const { return (Data *) m_data; }
 			Data * end()   const { return (Data *) (m_data + m_used); }
@@ -97,7 +103,8 @@ namespace Channel9
 
 		void collect();
 
-		uchar *next(size_t size, uint16_t type)
+		uint8_t *next_slow(size_t size, size_t alloc_size, uint16_t type);
+		inline uint8_t *next(size_t size, uint16_t type)// __attribute__((always_inline))
 		{
 			if(!m_in_gc)
 				TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
@@ -108,37 +115,17 @@ namespace Channel9
 			m_used += alloc_size;
 			m_data_blocks++;
 
-			Chunk * chunk = m_cur_chunk;
+			if (m_cur_chunk->has_space(alloc_size))
+			{
+				Data * data = m_cur_chunk->alloc(alloc_size)->init(size, type, m_cur_pool, false);
 
-			while(1){
-				Data * data = chunk->alloc(alloc_size);
+				if(!m_in_gc)
+					TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "fast alloc return %p\n", data->m_data);
 
-				if(data){
-					data->init(size, type, m_cur_pool, false);
-
-					if(!m_in_gc)
-						TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
-
-					return data->m_data;
-				}
-
-				if(chunk->m_next)
-				{ //advance to allocate out of the next chunk
-					chunk = chunk->m_next;
-				} else {
-					//allocate a new chunk
-					Chunk * c = new_chunk(alloc_size);
-
-					chunk->m_next = c;
-					chunk = c;
-				}
-
-				// only advance if there wasn't enough room for a small object, otherwise put medium and big objects
-				// in the next chunk while continuing to put small ones in the current chunk
-				if(alloc_size < SMALL)
-					m_cur_chunk = chunk;
+				return data->m_data;
+			} else {
+				return next_slow(size, alloc_size, type);
 			}
-			return NULL;
 		}
 
 		Chunk * new_chunk(size_t alloc_size = 0)
@@ -220,7 +207,7 @@ namespace Channel9
 			if(m_in_gc)
 				return true;
 			else
-				return (Data::ptr_for(from)->m_pool == m_cur_pool);
+				return (Data::ptr_for(from)->pool() == m_cur_pool);
 		}
 
 		template <typename tObj>
@@ -229,19 +216,19 @@ namespace Channel9
 			tObj *from = *from_ptr;
 			Data * old = (Data*)(from) - 1;
 
-			if(old->m_pool == m_cur_pool){
+			if(old->pool() == m_cur_pool){
 				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
 				return false;
 			}
 
-			if(old->m_pinned){
-				old->m_pool = m_cur_pool;
+			if(old->pinned()){
+				old->set_pool(m_cur_pool);
 				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X pinned, update pool, recursing\n", from, old->m_type);
 				gc_scan(from);
 				return false;
 			}
 
-			if(old->m_forward){
+			if(old->forward()){
 				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X => %p\n", from, old->m_type, (*(tObj**)from));
 				*from_ptr = *(tObj**)from;
 				return true;
@@ -252,7 +239,7 @@ namespace Channel9
 
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X <= %p\n", from, old->m_type, n);
 
-			old->m_forward = 1;
+			old->set_forward();
 			// put the new location in the old object's space
 			*(tObj**)from = n;
 			// change the marked pointer
