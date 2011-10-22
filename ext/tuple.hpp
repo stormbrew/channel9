@@ -1,6 +1,7 @@
 #pragma once
 
 #include "memory_pool.hpp"
+#include "value.hpp"
 
 #include <vector>
 #include <algorithm>

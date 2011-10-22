@@ -1,4 +1,5 @@
 #include "callable_context.hpp"
+#include "context.hpp"
 #include "environment.hpp"
 
 #include <time.h>
@@ -7,6 +8,14 @@ namespace Channel9
 {
 	std::vector<CallableContext*> CallableContext::contexts;
 	bool CallableContext::sweep_flag = false;
+
+	static void callable_context_send(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
+	INIT_SEND_FUNC(CALLABLE_CONTEXT, &callable_context_send);
+
+	void callable_context_send(Environment *env, const Value &ret, const Value &oself, const Value &msg)
+	{
+		ptr<CallableContext>(oself)->send(env, msg, ret);
+	}
 
 	void CallableContext::scan()
 	{
