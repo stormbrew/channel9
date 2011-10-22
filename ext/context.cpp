@@ -22,7 +22,13 @@ namespace Channel9
 	}
 	void runnable_context_send(Environment *env, const Value &ret, const Value &oself, const Value &msg)
 	{
-		RunningContext *ctx = activate_context(env->context(), oself);
+		RunningContext *caller;
+		if (is(ret, RUNNING_CONTEXT))
+			caller = ptr<RunningContext>(ret);
+		else
+			caller = env->context();
+			
+		RunningContext *ctx = activate_context(caller, oself);
 
 		ctx->push(msg);
 		ctx->push(ret);
