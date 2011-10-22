@@ -38,6 +38,9 @@ if enable_config("debug")
 else
   $CFLAGS << " -DNDEBUG -O4 -g" # --param inline-unit-growth=100000 --param large-function-growth=100000 --param max-inline-insns-single=100000"
 end
+if !enable_config("valgrind")
+  $CFLAGS << " -DNVALGRIND"
+end
 
 dir_config(channel9ext)
 create_makefile(channel9ext)
