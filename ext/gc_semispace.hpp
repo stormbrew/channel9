@@ -160,14 +160,16 @@ namespace Channel9
 
 			c = (Chunk *)malloc(alloc_size + sizeof(Chunk));
 			c->init(alloc_size);
+#if !defined(NVALGRIND) // this shouldn't be necessary, but it causes a warning otherwise.
 			VALGRIND_MAKE_MEM_NOACCESS(c->m_data, alloc_size);
+#endif
 			m_alloced += alloc_size;
 			return c;
 		}
 
 	public:
 		Semispace()
-		 : m_cur_pool(0), m_in_gc(false), m_alloced(0), m_used(0), m_data_blocks(0), m_next_gc(1<<20)
+		 : m_cur_pool(0), m_in_gc(false), m_alloced(0), m_used(0), m_data_blocks(0), m_next_gc(1<<23)
 		{
 			m_pools[0] = new_chunk();
 			m_pools[1] = NULL;
