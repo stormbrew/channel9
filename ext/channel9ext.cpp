@@ -87,6 +87,10 @@ public:
 		if (error)
 			throw RubyUnwind(error);
 	}
+	std::string inspect() const
+	{
+		return STR2CSTR(rb_funcall(m_val, rb_intern("inspect"), 0));
+	}
 };
 
 

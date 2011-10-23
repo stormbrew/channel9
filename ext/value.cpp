@@ -149,16 +149,16 @@ namespace Channel9
 			break;
 		}
 		case CALLABLE_CONTEXT:
-			res << "call_ctx:" << ptr<CallableContext>(val);
+			res << "call_ctx:" << ptr<CallableContext>(val) << ":" << ptr<CallableContext>(val)->inspect();
 			break;
 		case VARIABLE_FRAME:
 			res << "variable_frame:" << ptr<VariableFrame>(val);
 			break;
 		case RUNNING_CONTEXT:
-			res << "running_ctx:" << ptr<RunningContext>(val);
+			res << "running_ctx:" << ptr<RunningContext>(val) << ":" << ptr<RunningContext>(val)->inspect();
 			break;
 		case RUNNABLE_CONTEXT:
-			res << "runnable_ctx:" << ptr<RunnableContext>(val);
+			res << "runnable_ctx:" << ptr<RunnableContext>(val) << ":" << ptr<RunnableContext>(val)->inspect();
 			break;
 		default:
 			assert(!type(val));

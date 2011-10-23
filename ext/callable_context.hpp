@@ -26,6 +26,7 @@ namespace Channel9
 
 		virtual void send(Environment *env, const Value &val, const Value &ret) = 0;
 		virtual void scan(); // Make SURE to call down to this.
+		virtual std::string inspect() const = 0;
 		virtual ~CallableContext() {};
 	};
 

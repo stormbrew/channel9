@@ -65,7 +65,7 @@ namespace Channel9
 			TRACE_OUT(TRACE_VM, TRACE_DEBUG) {
 				SourcePos spos = source_pos(pos-1);
 				tprintf("Analyzing bytecode pos %d: %s[%d-%d+%d=%d], stack_max: %d, local_max: %d\n  Line Info: %s:%d\n",
-					(int)pos-1, inspect(ins).c_str(),
+					(int)pos-1, Channel9::inspect(ins).c_str(),
 					(int)stack_size, (int)insinfo.in, (int)insinfo.out, (int)(stack_size - insinfo.in + insinfo.out),
 					(int)m_stack_size, (int)m_local_size, spos.file.c_str(), (int)spos.line_num);
 			}

@@ -41,9 +41,10 @@ namespace Channel9
 			if (obj->m_sweep != sweep_flag)
 			{
 				TRACE_DO(TRACE_GC, TRACE_INFO) ++swept;
-				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Deleting CallableContext %p\n", obj);
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Deleting CallableContext %p (%s)\n", obj, obj->inspect().c_str());
 				delete obj;
 			} else {
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Keeping CallableContext %p (%s)\n", obj, obj->inspect().c_str());
 				fresh_contexts.push_back(obj);
 			}
 		}

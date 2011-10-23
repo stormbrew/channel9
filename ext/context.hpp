@@ -29,6 +29,11 @@ namespace Channel9
 			m_pos = &*m_instructions->begin() + pos;
 		}
 
+		std::string inspect() const
+		{
+			return m_instructions->source_pos(m_pos).inspect();
+		}
+
 		void new_scope(VariableFrame *scope) { m_lexicalvars = scope; }
 	};
 
@@ -41,6 +46,11 @@ namespace Channel9
 		RunningContext *m_caller;
 
 		Value m_data[0];
+
+		std::string inspect() const
+		{
+			return m_instructions->source_pos(m_pos).inspect();
+		}
 
 		const IStream &instructions() { return *m_instructions; }
 		const Instruction *next() { return m_pos++; }
@@ -155,20 +165,7 @@ namespace Channel9
 	{
 		return send_types[type(channel)](env, ret, channel, val);
 	}
-	inline void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Value &msg)
-	{
-		TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Forwarding primitive call: %s.%s from:%s to class:%s\n",
-			inspect(oself).c_str(), inspect(msg).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
-		Message *orig = ptr<Message>(msg);
-		assert(orig->message_id() != MESSAGE_C9_PRIMITIVE_CALL);
-		Message *fwd = new_message(make_protocol_id(PROTOCOL_C9_SYSTEM, MESSAGE_C9_PRIMITIVE_CALL), 0, 2);
-
-		Message::iterator out = fwd->args();
-		*out++ = oself;
-		*out++ = value(orig);
-
-		channel_send(cenv, prim_class, value(fwd), ctx);
-	}
+	void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Value &msg);
 }
 
 #include "primitive.hpp"

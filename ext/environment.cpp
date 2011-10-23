@@ -18,6 +18,7 @@ namespace Channel9
 			printf("Trap: Tried to return to unreturnable context.");
 			exit(1);
 		}
+		virtual std::string inspect() const { return "No Return Context"; }
 		virtual ~NoReturnContext() {}
 	};
 
