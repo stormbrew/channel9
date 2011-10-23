@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <sstream>
 
 #include "channel9.hpp"
 #include "instruction.hpp"
@@ -24,6 +25,15 @@ namespace Channel9
 		size_t line_num;
 		size_t column;
 		std::string annotation;
+
+		std::string inspect() const
+		{
+			std::stringstream str;
+			str << file << "@" << line_num << "+" << column;
+			if (annotation.size() > 0)
+				str << " (" << annotation << ")";
+			return str.str();
+		}
 
 		bool operator==(const SourcePos &o)
 		{
@@ -108,6 +118,11 @@ namespace Channel9
 			CallableContext::scan();
 		}
 		void send(Environment *env, const Value &val, const Value &ret);
+
+		std::string inspect() const
+		{
+			return "IStream";
+		}
 	};
 	// Specialize GCRef's scanner to only do a gc_scan of it.
 	template <>

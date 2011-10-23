@@ -106,9 +106,6 @@ namespace Channel9
 		uint8_t *next_slow(size_t size, size_t alloc_size, uint16_t type);
 		inline uint8_t *next(size_t size, uint16_t type)// __attribute__((always_inline))
 		{
-			if(!m_in_gc)
-				TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... \n", (unsigned)size, type);
-
 			size = ceil_power2(size, 3); //8 byte align
 			size_t alloc_size = size + sizeof(Data);
 
@@ -120,7 +117,7 @@ namespace Channel9
 				Data * data = m_cur_chunk->alloc(alloc_size)->init(size, type, m_cur_pool, false);
 
 				if(!m_in_gc)
-					TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "fast alloc return %p\n", data->m_data);
+					TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "fast alloc %u type %x return %p\n", (unsigned)size, type, data->m_data);
 
 				return data->m_data;
 			} else {

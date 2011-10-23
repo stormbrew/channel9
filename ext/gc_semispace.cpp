@@ -31,7 +31,7 @@ namespace Channel9
 				Data * data = chunk->alloc(alloc_size)->init(size, type, m_cur_pool, false);
 
 				if(!m_in_gc)
-					TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "slow alloc return %p\n", data->m_data);
+					TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "slow alloc %u type %x return %p\n", (unsigned)size, type, data->m_data);
 
 				return data->m_data;
 			}
