@@ -480,6 +480,13 @@ module Channel9
         next_label = builder.make_label("when.next")
         done_label = @state[:case_done]
 
+        if (comparisons.first == :array && comparisons[1].first == :when)
+          # for some reason, a single splat as the argument to when puts
+          # an embedded when as the when. This untangles that mess. Not sure why
+          # it's like that, though.
+          comparisons = comparisons.dup
+          comparisons[1] = comparisons[1][1]
+        end
         if (comparisons.first == :array)
           comparisons = comparisons.dup
           comparisons.shift
