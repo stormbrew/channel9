@@ -13,6 +13,54 @@
 
 namespace Channel9
 {
+	GC::Markcompact::Markcompact()
+	 : m_gc_phase(Running), m_alloced(0), m_used(0), m_data_blocks(0), m_next_gc(0.9*(1<<CHUNK_SIZE))
+	{
+		alloc_chunk();
+
+		m_cur_small_block = m_cur_medium_block = m_empty_blocks.back();
+		m_empty_blocks.pop_back();
+		m_pinned_block.init(0);
+	}
+	uint8_t *GC::Markcompact::next_slow(size_t alloc_size, size_t size, uint16_t type, bool new_alloc, bool small)
+	{
+		TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ...", (unsigned)size, type);
+
+		Block * block = (small ? m_cur_small_block : m_cur_medium_block);
+		while(1){
+			Data * data = block->alloc(size, type);
+
+			TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "from block %p, got %p ... ", block, data);
+
+			if(data){
+				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
+
+				return data->m_data;
+			}
+
+			if(small && block != m_cur_medium_block){
+				//promote small to the medium block
+				block = m_cur_small_block = m_cur_medium_block;
+			}else{
+				if(m_empty_blocks.empty())
+					alloc_chunk();
+
+				block = m_empty_blocks.back();
+				m_empty_blocks.pop_back();
+
+				if(small){
+					m_cur_small_block = m_cur_medium_block = block;
+				}else{
+					//demote the medium block to small, possibly wasting a bit of space in the old small block
+					m_cur_small_block = m_cur_medium_block;
+					m_cur_medium_block = block;
+				}
+			}
+
+			TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "grabbing a new empty block: %p ... ", block);
+		}
+	}
+
 
 	void GC::Markcompact::register_root(GCRoot *root)
 	{
@@ -100,7 +148,7 @@ namespace Channel9
 						{
 							if(d->m_mark)
 							{
-								uchar * n = next(d->m_count, d->m_type, false);
+								uint8_t * n = next(d->m_count, d->m_type, false);
 								memcpy(n, d->m_data, d->m_count);
 								forward.set(d->m_data, n);
 								moved_bytes += d->m_count + sizeof(Data);

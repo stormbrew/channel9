@@ -24,8 +24,6 @@ namespace Channel9
 		struct Chunk;
 
 	public:
-		typedef unsigned char uchar;
-
 		struct Data
 		{
 			uint32_t m_count;   //number of bytes of memory in this allocation
@@ -34,7 +32,7 @@ namespace Channel9
 			unsigned m_mark   : 1; //is this marked
 			unsigned m_pinned : 1; //is this pinned in memory
 			unsigned m_padding : 6;//padding for 8 byte alignment
-			uchar    m_data[0]; //the actual data, 8 byte aligned
+			uint8_t    m_data[0]; //the actual data, 8 byte aligned
 
 			void init(uint32_t count, uint16_t type, uint8_t block_size, bool pinned){
 				m_count  = count;
@@ -44,8 +42,8 @@ namespace Channel9
 				m_pinned = pinned;
 			}
 
-			uchar * begin() { return m_data; }
-			uchar * end()   { return (m_data + m_count); }
+			uint8_t * begin() { return m_data; }
+			uint8_t * end()   { return (m_data + m_count); }
 			void deadbeef()
 			{
 				uint32_t * i = (uint32_t *) begin(),
@@ -54,7 +52,7 @@ namespace Channel9
 					*i = 0xDEADBEEF;
 			}
 
-			Data * next() const { return (Data*)((uchar*)(this + 1) + m_count); }
+			Data * next() const { return (Data*)((uint8_t*)(this + 1) + m_count); }
 			Block * block() const {
 				if(m_pinned) return NULL;
 				return (Block *)(floor_power2((uintptr_t)this, m_block_size));
@@ -79,7 +77,7 @@ namespace Channel9
 			uint8_t  m_block_size; //used to initialize Data::m_block_size
 			bool     m_mark;       //has this anything block been reached yet?
 			uint8_t  padding;
-			uchar    m_data[0];    //actual memory
+			uint8_t    m_data[0];    //actual memory
 
 			void init(uint8_t block_size)
 			{
@@ -107,7 +105,7 @@ namespace Channel9
 			}
 			Data * begin() const { return (Data *) m_data; }
 			Data * end()   const { return (Data *) (m_data + m_next_alloc); }
-			Block * next() const { return (Block*)((uchar*)(this + 1) + m_capacity); }
+			Block * next() const { return (Block*)((uint8_t*)(this + 1) + m_capacity); }
 
 			void deadbeef()
 			{
@@ -122,12 +120,12 @@ namespace Channel9
 		struct Chunk
 		{
 			uint32_t m_capacity; //in bytes
-			uchar *  m_data;     //pointer to actual memory
+			uint8_t *  m_data;     //pointer to actual memory
 
 			void init(uint32_t c, Block * b)
 			{
 				m_capacity = c;
-				m_data = (uchar *) b;
+				m_data = (uint8_t *) b;
 			}
 
 			Block * begin(){ return (Block *) m_data; }
@@ -160,11 +158,10 @@ namespace Channel9
 
 		void collect();
 
-		uchar *next(size_t size, uint16_t type, bool new_alloc){ return next(size, type, new_alloc, (size <= SMALL)); }
-		uchar *next(size_t size, uint16_t type, bool new_alloc, bool small)
+		uint8_t *next_slow(size_t alloc_size, size_t size, uint16_t type, bool new_alloc, bool small);
+		uint8_t *next(size_t size, uint16_t type, bool new_alloc){ return next(size, type, new_alloc, (size <= SMALL)); }
+		uint8_t *next(size_t size, uint16_t type, bool new_alloc, bool small)
 		{
-			TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... ", (unsigned)size, type);
-
 			size = ceil_power2(size, 3); //8 byte align
 			size_t alloc_size = size + sizeof(Data);
 
@@ -175,38 +172,14 @@ namespace Channel9
 			}
 
 			Block * block = (small ? m_cur_small_block : m_cur_medium_block);
+			Data * data = block->alloc(size, type);
 
-			while(1){
-				Data * data = block->alloc(size, type);
+			if(data){
+				TRACE_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "Alloc %u type %x ... from block %p, got %p ... alloc return %p\n", (unsigned)size, type, block, data, data->m_data);
 
-				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "from block %p, got %p ... ", block, data);
-
-				if(data){
-					TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "alloc return %p\n", data->m_data);
-
-					return data->m_data;
-				}
-
-				if(small && block != m_cur_medium_block){
-					//promote small to the medium block
-					block = m_cur_small_block = m_cur_medium_block;
-				}else{
-					if(m_empty_blocks.empty())
-						alloc_chunk();
-
-					block = m_empty_blocks.back();
-					m_empty_blocks.pop_back();
-
-					if(small){
-						m_cur_small_block = m_cur_medium_block = block;
-					}else{
-						//demote the medium block to small, possibly wasting a bit of space in the old small block
-						m_cur_small_block = m_cur_medium_block;
-						m_cur_medium_block = block;
-					}
-				}
-
-				TRACE_QUIET_PRINTF(TRACE_ALLOC, TRACE_DEBUG, "grabbing a new empty block: %p ... ", block);
+				return data->m_data;
+			} else {
+				return next_slow(alloc_size, size, type, new_alloc, small);
 			}
 			return NULL;
 		}
@@ -251,15 +224,7 @@ namespace Channel9
 		}
 
 	public:
-		Markcompact()
-		 : m_gc_phase(Running), m_alloced(0), m_used(0), m_data_blocks(0), m_next_gc(0.9*(1<<CHUNK_SIZE))
-		{
-			alloc_chunk();
-
-			m_cur_small_block = m_cur_medium_block = m_empty_blocks.back();
-			m_empty_blocks.pop_back();
-			m_pinned_block.init(0);
-		}
+		Markcompact();
 
 		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
 		{
@@ -287,21 +252,7 @@ namespace Channel9
 		{ //treat big objects as pinned objects for now. Don't want to move them anyway, and putting them in the block/chunk system means odd block sizes
 			return alloc_pinned<tObj>(extra, type);
 		}
-		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type){
-			size_t size = sizeof(tObj) + extra;
-			size += (8 - size % 8) % 8; //8 byte align
-
-			Data * data = (Data*) malloc(size + sizeof(Data));
-			data->init(size, type, 0, true);
-			m_pinned_objs.push_back(data);
-			m_pinned_block.m_capacity += size + sizeof(Data);
-
-			m_used += size;
-			m_data_blocks++;
-
-			return reinterpret_cast<tObj*>(data->m_data);
-		}
-
+		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type);
 
 		template <typename tObj>
 		bool validate(tObj * from)
@@ -313,70 +264,7 @@ namespace Channel9
 		}
 
 		template <typename tObj>
-		bool mark(tObj ** from)
-		{
-			Data * d = Data::ptr_for(*from);
-			switch(m_gc_phase)
-			{
-			case Marking: {
-
-				TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Marking %p -> %i %s\n", *from, d->m_mark, d->m_mark ? "no-follow" : "follow");
-
-				if(d->m_mark)
-					return false;
-
-				m_dfs_marked++;
-				d->m_mark = true;
-
-				m_data_blocks++;
-				m_used += d->m_count + sizeof(Data);
-
-				Block * b = d->block();
-				if(b == NULL)
-					b = & m_pinned_block;
-
-				if(!b->m_mark)
-				{
-					b->m_mark = true;
-					b->m_in_use = 0;
-				}
-				b->m_in_use += d->m_count + sizeof(Data);
-
-				gc_scan(*from);
-
-				return false;
-			}
-			case Updating: {
-				tObj * to = forward.get(*from);
-
-				TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Updating %p -> %p", *from, to);
-
-				bool changed = (to != NULL);
-				if(changed)
-				{
-					m_dfs_updated++;
-					*from = to;
-					d = Data::ptr_for(*from);
-				}
-
-				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_SPAM, ", d->m_mark = %i %s\n", d->m_mark, d->m_mark ? "follow" : "no-follow");
-
-				if(d->m_mark)
-				{
-					m_dfs_unmarked++;
-					d->m_mark = false;
-					gc_scan(*from);
-				}
-
-				return changed;
-			}
-			case Running:
-			case Compacting:
-			default:
-				assert(false && "Markcompact::mark should only be called when marking or updating");
-				return false;
-			}
-		}
+		bool mark(tObj ** from);
 
 		// make sure this object is ready to be read from
 		template <typename tObj>
@@ -395,5 +283,89 @@ namespace Channel9
 		void register_root(GCRoot *root);
 		void unregister_root(GCRoot *root);
 	};
+
+	template <typename tObj>
+	bool GC::Markcompact::mark(tObj ** from)
+	{
+		Data * d = Data::ptr_for(*from);
+		switch(m_gc_phase)
+		{
+		case Marking: {
+
+			TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Marking %p -> %i %s\n", *from, d->m_mark, d->m_mark ? "no-follow" : "follow");
+
+			if(d->m_mark)
+				return false;
+
+			m_dfs_marked++;
+			d->m_mark = true;
+
+			m_data_blocks++;
+			m_used += d->m_count + sizeof(Data);
+
+			Block * b = d->block();
+			if(b == NULL)
+				b = & m_pinned_block;
+
+			if(!b->m_mark)
+			{
+				b->m_mark = true;
+				b->m_in_use = 0;
+			}
+			b->m_in_use += d->m_count + sizeof(Data);
+
+			gc_scan(*from);
+
+			return false;
+		}
+		case Updating: {
+			tObj * to = forward.get(*from);
+
+			TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Updating %p -> %p", *from, to);
+
+			bool changed = (to != NULL);
+			if(changed)
+			{
+				m_dfs_updated++;
+				*from = to;
+				d = Data::ptr_for(*from);
+			}
+
+			TRACE_QUIET_PRINTF(TRACE_GC, TRACE_SPAM, ", d->m_mark = %i %s\n", d->m_mark, d->m_mark ? "follow" : "no-follow");
+
+			if(d->m_mark)
+			{
+				m_dfs_unmarked++;
+				d->m_mark = false;
+				gc_scan(*from);
+			}
+
+			return changed;
+		}
+		case Running:
+		case Compacting:
+		default:
+			assert(false && "Markcompact::mark should only be called when marking or updating");
+			return false;
+		}
+	}
+
+	template <typename tObj> 
+	tObj *GC::Markcompact::alloc_pinned(size_t extra, uint16_t type)
+	{
+		size_t size = sizeof(tObj) + extra;
+		size += (8 - size % 8) % 8; //8 byte align
+
+		Data * data = (Data*) malloc(size + sizeof(Data));
+		data->init(size, type, 0, true);
+		m_pinned_objs.push_back(data);
+		m_pinned_block.m_capacity += size + sizeof(Data);
+
+		m_used += size;
+		m_data_blocks++;
+
+		return reinterpret_cast<tObj*>(data->m_data);
+	}
+
 }
 
