@@ -147,11 +147,17 @@ namespace Channel9
 		gc_scan(ctx->m_instructions);
 		if (ctx->m_caller)
 			value_pool.mark(&ctx->m_caller);
-		value_pool.mark(&ctx->m_lexicalvars);
-		size_t i;
-		for (i = 0; i < ctx->m_stack_pos; i++)
+		
+		// only scan the stack and lexical variables if the
+		// context is currently active
+		if (ctx->m_pos)
 		{
-			gc_scan(ctx->m_data[i]);
+			value_pool.mark(&ctx->m_lexicalvars);
+			size_t i;
+			for (i = 0; i < ctx->m_stack_pos; i++)
+			{
+				gc_scan(ctx->m_data[i]);
+			}
 		}
 	}
 
