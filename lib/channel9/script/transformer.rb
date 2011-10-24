@@ -139,7 +139,7 @@ module Channel9
           done_label = prefix + "done"
           body_label = prefix + "body"
 
-          output_var = output || LocalDeclareNode.new(nil, :name => 'return', :type => 'frame')
+          output_var = output || LocalDeclareNode.new(nil, :name => 'return', :type => 'local')
 
           stream.jmp(done_label)
           stream.set_label(body_label)
@@ -589,13 +589,12 @@ module Channel9
         attr_accessor :body
 
         def compile(ctx, stream, void)
-          stream.frame_set("script-exit")
+          stream.swap
           stream.pop
+          # leave the return location as the earliest thing on the stack
 
           body.compile_node(ctx, stream, false)
 
-          stream.frame_get("script-exit")
-          stream.swap
           stream.channel_ret
         end
         def compile_node(ctx, stream)
