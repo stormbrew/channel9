@@ -237,6 +237,9 @@ namespace Channel9
 		tObj *from = *from_ptr;
 		Data * old = (Data*)(from) - 1;
 
+		// we should never be marking an object that's in the nursery here.
+		assert(!in_nursery(*from_ptr));
+
 		if(old->pool() == m_cur_pool){
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
 			return false;

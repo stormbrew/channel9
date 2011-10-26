@@ -291,6 +291,9 @@ namespace Channel9
 	template <typename tObj>
 	bool GC::Markcompact::mark(tObj ** from)
 	{
+		// we should never be marking an object that's in the nursery here.
+		assert(!in_nursery(*from_ptr));
+
 		Data * d = Data::ptr_for(*from);
 		switch(m_gc_phase)
 		{
