@@ -12,6 +12,7 @@ namespace Channel9
 	struct Tuple;
 	struct RunningContext;
 	struct RunnableContext;
+	struct VariableFrame;
 	class IStream;
 	class Message;
 

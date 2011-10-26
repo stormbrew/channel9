@@ -15,7 +15,11 @@ namespace Channel9
 		VariableFrame *m_parent_frame;
 		Value m_lexicals[0];
 
-		void link_frame(VariableFrame *parent) { m_parent_frame = parent; }
+		void link_frame(VariableFrame *parent) 
+		{ 
+			value_pool.write_ptr(m_parent_frame, parent);
+			m_parent_frame = parent; 
+		}
 
 		VariableFrame *parent() { return m_parent_frame; }
 		const VariableFrame *parent() const { return m_parent_frame; }
@@ -24,7 +28,10 @@ namespace Channel9
 
 		const Value &lookup(size_t id) const { return m_lexicals[id]; }
 		const Value &lookup(size_t id, size_t depth) const;
-		void set(size_t id, const Value &val) { m_lexicals[id] = val; }
+		void set(size_t id, const Value &val) 
+		{
+			value_pool.write_ptr(m_lexicals[id], val);
+		}
 		void set(size_t id, size_t depth, const Value &val);
 	};
 
