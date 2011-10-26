@@ -271,12 +271,16 @@ namespace Channel9
 		void read_barrier(tObj * obj) { }
 
 		// tell the GC that obj will contain a reference to the object pointed to by ptr
-		template <typename tObj, typename tPtr>
-		void write_barrier(tObj * obj, tPtr * ptr) { }
+		template <typename tRef, typename tVal>
+		void write_ptr(tRef &ref, const tVal &val) { ref = val; }
 
+		bool need_collect() const
+		{
+			return m_next_gc < m_used;
+		}
 		// now is a valid time to stop the world
 		void safe_point() {
-			if(m_next_gc < m_used)
+			if(need_collect())
 				collect();
 		}
 

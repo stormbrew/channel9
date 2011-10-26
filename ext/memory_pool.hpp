@@ -45,7 +45,7 @@ namespace Channel9
 		template <typename tObj> void read_barrier(tObj * obj);
 
 		// tell the GC that obj will contain a reference to the object pointed to by ptr
-		template <typename tObj, typename tPtr> void write_barrier(tObj * obj, tPtr * ptr);
+		template <typename tRef, typename tObj> void write_ptr(tRef &ref, const tObj &obj);
 
 		void safe_point(); // now is a valid time to stop the world
 
@@ -55,22 +55,24 @@ namespace Channel9
 	public:
 		class Semispace;
 		class Markcompact;
+		template <typename tInnerGC>
+		class Nursery;
 	};
 
 	typedef GC::COLLECTOR_CLASS MemoryPool;
 
-	extern MemoryPool value_pool;
+	extern GC::Nursery<MemoryPool> value_pool;
 
 	// Base class for GC root objects. Should inherit privately.
 	class GCRoot
 	{
 	private:
-		MemoryPool &m_pool;
+		GC::Nursery<MemoryPool> &m_pool;
 
 	protected:
-		GCRoot(MemoryPool &pool);
+		GCRoot(GC::Nursery<MemoryPool> &pool);
 
-		MemoryPool &pool() const { return m_pool; }
+		GC::Nursery<MemoryPool> &pool() const { return m_pool; }
 
 	public:
 		virtual void scan() = 0;
@@ -81,6 +83,7 @@ namespace Channel9
 
 #include "gc_semispace.hpp"
 #include "gc_markcompact.hpp"
+#include "gc_nursery.hpp"
 
 #undef COLLECTOR
 #undef COLLECTOR_CLASS

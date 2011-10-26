@@ -125,6 +125,11 @@ namespace Channel9
 
 	void gc_scan(Value &from);
 
+	inline bool in_nursery(const Value &val)
+	{
+		return basic_type(val) == HEAP_TYPE && in_nursery((uint8_t*)(val.raw & Value::POINTER_MASK));
+	}
+
 	std::string inspect(const Value &val);
 
 	template <typename tVal>

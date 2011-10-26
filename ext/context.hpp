@@ -69,7 +69,7 @@ namespace Channel9
 		size_t stack_count() const { return m_stack_pos - m_instructions->stack_offset(); }
 		void push(const Value &val)
 		{
-			m_data[m_stack_pos++] = val;
+			value_pool.write_ptr(m_data[m_stack_pos++], val);
 		}
 		void pop()
 		{
@@ -82,12 +82,21 @@ namespace Channel9
 		const Value &get_lexicalvar(size_t id) const { return m_lexicalvars->lookup(id); }
 		const Value &get_lexicalvar(size_t id, size_t depth) const { return m_lexicalvars->lookup(id, depth); }
 
-		void set_framevar(size_t id, const Value &val) { m_data[id] = val; }
-		void set_localvar(size_t id, const Value &val) { m_data[m_instructions->local_offset() + id] = val; }
+		void set_framevar(size_t id, const Value &val) 
+		{ 
+			value_pool.write_ptr(m_data[id], val);
+		}
+		void set_localvar(size_t id, const Value &val) 
+		{ 
+			value_pool.write_ptr(m_data[m_instructions->local_offset() + id], val);
+		}
 		void set_lexicalvar(size_t id, const Value &val) { m_lexicalvars->set(id, val); }
 		void set_lexicalvar(size_t id, size_t depth, const Value &val) { m_lexicalvars->set(id, depth, val); }
 
-		void new_scope(VariableFrame *scope) { m_lexicalvars = scope; }
+		void new_scope(VariableFrame *scope) 
+		{
+			value_pool.write_ptr(m_lexicalvars, scope);
+		}
 	};
 
 	inline RunnableContext *new_context(IStream *instructions, VariableFrame *lexicalvars = NULL, size_t pos = 0)
