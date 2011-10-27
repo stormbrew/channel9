@@ -780,7 +780,10 @@ module Channel9
         args.each do |arg|
           transform(arg)
         end
-        builder.message_new(@state[:name], 3, args.length)
+        # TODO: the name should be dynamically derived, but for now it doesn't
+        # really matter what name we're sending along. If that ever changes, this needs
+        # to change.
+        builder.message_new(@state[:name] || :super, 3, args.length)
         builder.channel_call
         builder.pop
 
@@ -813,7 +816,8 @@ module Channel9
 
         builder.frame_get("yield")
 
-        builder.message_new(@state[:name], 3, 0)
+        # see super about issues with the name.
+        builder.message_new(@state[:name] || :super, 3, 0)
 
         builder.frame_get("message")
         builder.message_unpack(0, 3, 0)
