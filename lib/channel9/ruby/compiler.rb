@@ -1268,9 +1268,11 @@ module Channel9
         builder.pop
         builder.tuple_unpack(lhs.length, splat.nil? ? 0 : 1, 0)
 
-        lhs.each do |asgn|
-          transform(asgn)
-          builder.pop
+        with_state(:masgn => true) do
+          lhs.each do |asgn|
+            transform(asgn)
+            builder.pop
+          end
         end
         if splat
           if (splat.length > 1)
@@ -1425,7 +1427,7 @@ module Channel9
         return false
       end
 
-      def transform_call(target, method, arglist, has_iter = false)
+      def transform_call(target, method, arglist, has_iter = false, extra = false)
         if (target.nil? && method == :block_given?)
           builder.frame_get("yield")
           builder.is_not(Primitive::Undef)
@@ -1450,10 +1452,12 @@ module Channel9
           transform(target)
         end
 
-        if (has_iter)
+        if (has_iter || extra)
           # If we were called with has_iter == true, an iterator
           # will be sitting on the stack, and we want to swap it in
           # to first sysarg position.
+          # Likewise if there's an extra item on the stack to be appended
+          # to the message, though it will wind up in the normal args.
           builder.swap
         end
 
@@ -1487,13 +1491,19 @@ module Channel9
 
           builder.message_new(method, has_iter ? 1 : 0, arglist.length)
         end
+        if (extra)
+          builder.swap
+          builder.message_add(1)
+        end
         builder.channel_call
         builder.pop
       end
 
       def transform_attrasgn(target, method, arglist = nil)
         if (arglist)
-          transform_call(target, method, arglist)
+          # extra means there's an extra argument on the stack that should
+          # go on the end.
+          transform_call(target, method, arglist, false, @state[:masgn])
         else
           # This is for masgn (including proc args)
           transform(target)
