@@ -15,6 +15,12 @@ namespace Channel9
 	template <typename tInnerGC>
 	class GC::Nursery 
 	{
+		struct Remembered
+		{
+			uintptr_t *location;
+			uintptr_t val;
+		};
+
 		// m_data is a pointer to the base address of the nursery chunk,
 		// m_next_pos is the next position to allocate from,
 		// m_end_pos is the end of the allocation (also the pointer to the first item in the remembered set)
@@ -22,8 +28,8 @@ namespace Channel9
 		// After a nursery collection, the nursery will be evacuated and m_next_pos will == m_data and m_end_pos will == m_data_end
 		uint8_t *m_data;
 		uint8_t *m_next_pos;
-		uint8_t *m_end_pos;
-		uint8_t *m_data_end;
+		Remembered *m_remembered_set;
+		Remembered *m_remembered_end;
 
 		std::set<GCRoot*> m_roots;
 		tInnerGC m_inner_gc;
@@ -33,6 +39,7 @@ namespace Channel9
 			STATE_INNER_COLLECT,
 		} m_state;
 
+		size_t m_size;
 		size_t m_free;
 		size_t m_min_free;
 
@@ -73,11 +80,12 @@ namespace Channel9
 	public:
 		Nursery(size_t size = 2<<22)
 		 : m_state(STATE_NORMAL),
+		   m_size(size),
 		   m_free(size),
 		   m_min_free(size / 20)
 		{
 			m_data = m_next_pos = (uint8_t*)malloc(size);
-			m_end_pos = m_data_end = m_data + size;
+			m_remembered_end = m_remembered_set = (Remembered*)(m_data + size);
 		}
 
 		// extra is how much to allocate, type is one of Channel9::ValueType, return the new location
@@ -142,16 +150,20 @@ namespace Channel9
 		template <typename tRef, typename tVal> 
 		void write_ptr(tRef &ref, const tVal &val)
 		{
+			assert(sizeof(val) == sizeof(uintptr_t));
 			if (!Channel9::in_nursery(&ref) && Channel9::in_nursery(val))
 			{
 				// TODO: What to do when this happens? Maybe it should be a deque anyways.
-				assert(m_end_pos >= m_next_pos);
+				assert(m_free <= m_size);
 
 				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Write barrier, adding: %p(%s) <- %p(%s)\n", &ref, Channel9::in_nursery(&ref)? "yes":"no", *(void**)&val, Channel9::in_nursery(val)? "yes":"no");
 
-				m_end_pos -= sizeof(tRef*);
-				m_free -= sizeof(tRef*);
-				*(tRef**)m_end_pos = &ref;
+				m_free -= sizeof(Remembered);
+				Remembered *r = --m_remembered_set;
+				r->location = (uintptr_t*)&ref;
+				r->val = *(uintptr_t*)&val;
+
+				m_free -= sizeof(tRef*) * 2;
 			}
 			m_inner_gc.write_ptr(ref, val);
 		}
@@ -159,7 +171,7 @@ namespace Channel9
 		template <typename tPtr>
 		bool in_nursery(const tPtr *ptr)
 		{
-			return ((uint8_t*)ptr >= m_data && (uint8_t*)ptr < m_data_end);
+			return ((uint8_t*)ptr >= m_data && (uint8_t*)ptr < m_data + m_size);
 		}
 
 		template <typename tObj>
@@ -244,7 +256,7 @@ namespace Channel9
 	template <typename tInnerGC>
 	void GC::Nursery<tInnerGC>::collect()
 	{
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection begun (free: %llu/%llu)\n", (uint64_t)m_free, uint64_t(m_data_end - m_data));
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection begun (free: %llu/%llu)\n", (uint64_t)m_free, uint64_t(m_size));
 		TRACE_DO(TRACE_GC, TRACE_INFO) m_moved = 0;
 		// first, scan the roots
 		for (std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
@@ -252,45 +264,46 @@ namespace Channel9
 			(*it)->scan();
 		}
 
-		// then update pointers in the remembered set
-		uintptr_t **update = (uintptr_t**)m_end_pos;
+		// we only look through the external pointers in the remembered set,
+		// not the full root set.
+		Remembered *it = m_remembered_set;
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updating %llu pointers in remembered set\n", uint64_t((uintptr_t**)m_data_end - update));
-		while (update != (uintptr_t**)m_data_end)
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updating %llu pointers in remembered set\n", uint64_t(m_remembered_end - m_remembered_set));
+		while (it != m_remembered_end)
 		{
-			uint8_t *raw = (uint8_t*)(**update & POINTER_MASK);
-			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Updating pointer %p (current value %p):", *update, raw);
-			if (in_nursery(raw))
+			uintptr_t raw = (*it->location & POINTER_MASK);
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Updating pointer %p (was set to %p, current value %p):", it->location, (void*)it->val, (void*)*it->location);
+			if (it->val == *it->location)
 			{
-				Data *data = Data::from_ptr(raw);
+				Data *data = Data::from_ptr((char*)raw);
 				uint8_t *nptr = data->forward_addr();
 				if (nptr)
 				{
 					TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " to %p (in forward table)\n", nptr);
-					**update = (**update & ~POINTER_MASK) | ((uintptr_t)nptr & POINTER_MASK);
+					*it->location = (*it->location & ~POINTER_MASK) | ((uintptr_t)nptr & POINTER_MASK);
 				} else {
 					switch(data->m_type)
 					{
-					case STRING:  			update_ptr(data, (String**)  *update); break;
-					case TUPLE:   			update_ptr(data, (Tuple**)   *update); break;
-					case MESSAGE: 			update_ptr(data, (Message**) *update); break;
-					case CALLABLE_CONTEXT: 	update_ptr(data, (CallableContext**) *update); break;
-					case RUNNING_CONTEXT:	update_ptr(data, (RunningContext**)  *update); break;
-					case RUNNABLE_CONTEXT: 	update_ptr(data, (RunnableContext**) *update); break;
-					case VARIABLE_FRAME:   	update_ptr(data, (VariableFrame**)   *update); break;
+					case STRING:  			update_ptr(data, (String**)  it->location); break;
+					case TUPLE:   			update_ptr(data, (Tuple**)   it->location); break;
+					case MESSAGE: 			update_ptr(data, (Message**) it->location); break;
+					case CALLABLE_CONTEXT: 	update_ptr(data, (CallableContext**) it->location); break;
+					case RUNNING_CONTEXT:	update_ptr(data, (RunningContext**)  it->location); break;
+					case RUNNABLE_CONTEXT: 	update_ptr(data, (RunnableContext**) it->location); break;
+					case VARIABLE_FRAME:   	update_ptr(data, (VariableFrame**)   it->location); break;
 					default: assert(false && "Unknown GC type");
 					}
 				}
 			} else {
 				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " did nothing.\n");
 			}
-			update++;
+			it++;
 		}
 	
 		// and then reset the nursery space
 		m_next_pos = m_data;
-		m_end_pos = m_data_end;
-		m_free = m_data_end - m_data;
+		m_remembered_set = m_remembered_end = (Remembered*)(m_data + m_size);
+		m_free = m_size;
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection done, moved %llu bytes to the inner collector\n", uint64_t(m_moved));
 	}
