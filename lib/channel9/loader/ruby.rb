@@ -150,6 +150,8 @@ module Channel9
           rescue SyntaxError => e
             puts "syntax error in #{filename}: #{e}"
             return nil
+          rescue NotImplementedError => e
+            puts "not implemented error in #{filename}: #{e}"
           end
           tree = s(type.to_sym, tree)
           tree.file = filename

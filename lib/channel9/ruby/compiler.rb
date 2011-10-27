@@ -1506,45 +1506,55 @@ module Channel9
 
       def transform_next(val = nil)
         linfo = @state[:loop]
-        case linfo[:type]
-        when :block
-          builder.frame_get(linfo[:ret])
-          if (val)
-            transform(val)
-          else
-            builder.push nil
+        if (linfo)
+          case linfo[:type]
+          when :block
+            builder.frame_get(linfo[:ret])
+            if (val)
+              transform(val)
+            else
+              builder.push nil
+            end
+            builder.channel_ret
+            return
+          when :while
+            builder.jmp(linfo[:beg_label])
+            return
           end
-          builder.channel_ret
-        when :while
-          builder.jmp(linfo[:beg_label])
-        else
-          raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a next: #{linfo[:type]}"
         end
+        raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a next"
       end
 
       def transform_break(val = nil)
         linfo = @state[:loop]
-        case linfo[:type]
-        when :while
-          builder.jmp(linfo[:end_label])
-        when :block
-          @state[:needs_break][0] = true
-          builder.channel_special(:unwinder)
-          if (val.nil?)
-            transform_nil
-          else
-            transform(val)
+        if (linfo)
+          case linfo[:type]
+          when :while
+            builder.jmp(linfo[:end_label])
+            return
+          when :block
+            @state[:needs_break][0] = true
+            builder.channel_special(:unwinder)
+            if (val.nil?)
+              transform_nil
+            else
+              transform(val)
+            end
+            builder.message_new(:iter_break, 0, 1)
+            builder.channel_call
+            builder.pop
+            return
           end
-          builder.message_new(:iter_break, 0, 1)
-          builder.channel_call
-          builder.pop
-        else
-          raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a break"
         end
+        raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a break"
       end
       def transform_redo
         linfo = @state[:loop]
-        builder.jmp(linfo[:redo_label])
+        if (linfo)
+          builder.jmp(linfo[:redo_label])
+        else
+          raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a redo"
+        end          
       end
       def transform_retry
         if (@state[:rescue_retry])
