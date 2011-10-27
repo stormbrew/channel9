@@ -35,10 +35,10 @@ module Kernel
   end
 
   def lambda(&block)
-    block
+    Proc.new_from_prim($__c9_long_return_catcher.send(block.to_proc_prim))
   end
   def proc(&block)
-    block
+    Proc.new_from_prim($__c9_long_return_catcher.send(block.to_proc_prim))
   end
 
   def Array(ary)

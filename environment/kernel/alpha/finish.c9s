@@ -95,7 +95,7 @@ $set_special_channel("global_self", $Object.ruby_sys:allocate())
 $set_special_channel("globals", $BasicHash($prime_gen))
 
 lexical unwinders = [$terminal_unwinder,nil]
-$set_special_channel("unwinder", (@msg) -> return {
+lexical unwinder = (@msg) -> return {
 	if (msg) {
 		local real_msg = bytecode(msg) { 
 			message_check
@@ -117,5 +117,34 @@ $set_special_channel("unwinder", (@msg) -> return {
 		local old = unwinders.at(0)
 		unwinders = unwinders.at(1)
 		return <- old
+	}
+}
+$set_special_channel("unwinder", unwinder)
+
+$set_special_channel("long_return_catcher", (lexical proc) {
+	(@msg) -> return {
+		lexical normal_return = return
+		local handler = (@handler_msg) {
+			local id
+			local val
+			# TODO: Only do the local return if the frame matches.
+			# The expected frame is the one passed in here as the first argument
+			# and then popped.
+			bytecode(handler_msg) {
+				message_id
+				local_set "id"
+				message_unpack 2 0 0
+				pop
+				local_set "val"
+			}
+			if (id == @'long_return') {
+				normal_return <- val
+			}
+			unwinder <- handler_msg
+		}
+		handler -> unwinder
+		local ret = (msg -> proc)
+		nil -> unwinder
+		return <- ret
 	}
 })
