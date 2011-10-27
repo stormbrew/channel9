@@ -1938,7 +1938,7 @@ module Channel9
       end
 
       def transform_eval(body)
-        builder.local_set("script-return")
+        builder.frame_set("return")
         builder.message_sys_unpack(1)
         builder.frame_set("self")
         builder.pop
@@ -1953,7 +1953,7 @@ module Channel9
         else
           transform_nil
         end
-        builder.local_get("script-return")
+        builder.frame_get("return")
         builder.swap
         builder.channel_ret
       end
