@@ -1951,6 +1951,14 @@ module Channel9
         end
       end
 
+      def transform_match(match_str)
+        transform_colon3(:Regexp)
+        transform(match_str)
+        builder.message_new(:new, 0, 1)
+        builder.channel_call
+        builder.pop
+      end
+
       def transform_eval(body)
         builder.frame_set("return")
         builder.message_sys_unpack(1)
