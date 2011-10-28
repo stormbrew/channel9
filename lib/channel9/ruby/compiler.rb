@@ -698,13 +698,22 @@ module Channel9
           builder.frame_set("yield")
           transform(args)
 
-          with_state(:has_long_return => nru, :name => name, :unwinders => 0) do
+          with_state(:has_long_return => nru, :name => name, :unwinders => 0, :loop => nil) do
             if (code.nil?)
               transform_nil
             else
               transform(code)
             end
           end
+        end
+
+        # remove the long return handler if there is one.
+        if (nru)
+          builder.channel_special(:unwinder)
+          builder.push(nil)
+          builder.channel_call
+          builder.pop
+          builder.pop
         end
 
         builder.frame_get("return")
@@ -917,7 +926,7 @@ module Channel9
       end
 
       def transform_return(*vals)
-        if (@state[:block] || (@state[:unwinders] && @state[:unwinders] > 0))
+        if (@state[:unwinders] && @state[:unwinders] > 0)
           @state[:need_long_return][0] = true if @state[:need_long_return]
           builder.channel_special(:unwinder)
           builder.frame_get("return")
