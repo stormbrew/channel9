@@ -161,4 +161,8 @@ module Kernel
   def respond_to?(name)
     __c9_class__.__c9_lookup__(name.to_s_prim.to_message_id) != undefined
   end
+
+  def hash
+    __c9_object_id__.hash
+  end
 end
