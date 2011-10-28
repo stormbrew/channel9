@@ -660,7 +660,8 @@ module Channel9
 
       def transform_undef(name)
         const_self
-        builder.message_new(:undef_method, 0, 0)
+        transform(name)
+        builder.message_new(:undef_method, 0, 1)
         builder.channel_call
         builder.pop
       end
