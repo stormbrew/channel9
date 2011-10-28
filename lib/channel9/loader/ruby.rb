@@ -152,6 +152,10 @@ module Channel9
             return nil
           rescue NotImplementedError => e
             puts "not implemented error in #{filename}: #{e}"
+            return nil
+          rescue RegexpError => e
+            puts "invalid regex error in #{filename}: #{e}"
+            return nil
           end
           tree = s(type.to_sym, tree)
           tree.file = filename
