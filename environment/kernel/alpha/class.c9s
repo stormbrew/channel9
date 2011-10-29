@@ -61,7 +61,7 @@ lexical RubyClass = (lexical name, lexical super) {
 				} else {
 					if (super) {
 						// the superclass of a singleton for a class is its parent class' singleton
-						inner_obj.ruby_sys:set_singleton($RubyClass("Class:" + name, super.ruby_sys:singleton))
+						inner_obj.ruby_sys:set_singleton($RubyClass("Class:" + name, super.ruby_sys:make_singleton))
 					} else {
 						// if the class doesn't have a super, that means it's Object, whose singleton's
 						// parent class is Class.
