@@ -97,6 +97,8 @@ namespace Channel9
 		{
 			value_pool.write_ptr(m_lexicalvars, scope);
 		}
+
+		void debug_print_backtrace(size_t max = -1) const;
 	};
 
 	inline RunnableContext *new_context(IStream *instructions, VariableFrame *lexicalvars = NULL, size_t pos = 0)
