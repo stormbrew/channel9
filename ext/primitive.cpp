@@ -122,6 +122,8 @@ namespace Channel9
 			return channel_send(cenv, ctx, value((int64_t)self), Nil);
 		case MESSAGE_NEGATE:
 			return channel_send(cenv, ctx, value(-self), Nil);
+		case MESSAGE_HASH:
+			return channel_send(cenv, ctx, value((long long)(mix_bits(uint64_t(self)) & Value::VALUE_MASK)), Nil);
 		}
 		Value def = cenv->special_channel("Channel9::Primitive::Float");
 		forward_primitive_call(cenv, def, ctx, oself, msg_val);
