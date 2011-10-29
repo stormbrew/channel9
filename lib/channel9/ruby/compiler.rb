@@ -1631,13 +1631,16 @@ module Channel9
 
         # if we got a self through the sys args, 
         # we've been re-bound to a method so use that instead.
-        builder.message_sys_unpack(1)
+        builder.message_sys_unpack(2)
         builder.dup_top
         builder.is(Primitive::Undef)
         builder.jmp_if(args_label)
         builder.frame_set("self")
+        builder.frame_set("super")
+        builder.push(nil)
         builder.push(nil)
         builder.set_label(args_label)
+        builder.pop
         builder.pop
 
         with_linked_vtable do
