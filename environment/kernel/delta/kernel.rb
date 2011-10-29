@@ -58,9 +58,17 @@ module Kernel
         raise ParseError
       end
     end
-    __c9_instance_eval__(&block)
+    cscope = [__c9_make_singleton__, [
+        self.class, [
+          [::Object, nil].to_tuple_prim
+        ].to_tuple_prim
+      ].to_tuple_prim
+    ].to_tuple_prim
+    __c9_instance_eval__(cscope, &block)
   end
   def eval(s, filename = "__eval__", line = 1)
+    # TODO: This needs to at some point get the const-self from the
+    # caller. Not sure how that'll work just yet, though.
     proc = Channel9.compile_string(:eval, s, filename, line)
     if (proc)
       $__c9_global_self.instance_eval(&proc)

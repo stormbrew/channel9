@@ -1218,16 +1218,20 @@ module Channel9
         builder.pop
       end
       def transform_const(name)
-        builder.frame_get("const-self")
-        builder.tuple_unpack(2, 0, 0)
-        builder.swap
-        builder.push(name)
-        builder.swap
-        builder.message_new(:"ruby_sys:get_constant_scoped", 0, 2)
-        builder.channel_call
-        builder.pop
-        builder.swap
-        builder.pop # get rid of the const-self
+        if (name == 'C9_CONST_SELF')
+          builder.frame_get("const-self")
+        else
+          builder.frame_get("const-self")
+          builder.tuple_unpack(2, 0, 0)
+          builder.swap
+          builder.push(name)
+          builder.swap
+          builder.message_new(:"ruby_sys:get_constant_scoped", 0, 2)
+          builder.channel_call
+          builder.pop
+          builder.swap
+          builder.pop # get rid of the const-self
+        end
       end
 
       def transform_colon3(name)
@@ -1970,19 +1974,31 @@ module Channel9
       end
 
       def transform_eval(body)
+        eval_prefix = builder.make_label("eval")
+        body_label = eval_prefix + ":body"
+
         builder.frame_set("return")
-        builder.message_sys_unpack(1)
-        builder.frame_set("self")
-        builder.pop
         if (!body.nil?)
+          builder.message_sys_unpack(1)
+          builder.frame_set("self")
+          builder.message_unpack(1, 0, 0)
+          builder.dup_top
+          builder.jmp_if(body_label)
+
+          builder.pop
           builder.push(nil)
           builder.channel_special(:Object)
           builder.tuple_new(2)
+
+          builder.set_label(body_label)
           builder.frame_set("const-self")
+          builder.pop
+
           with_new_vtable do
             transform(body)
           end
         else
+          builder.pop
           transform_nil
         end
         builder.frame_get("return")
