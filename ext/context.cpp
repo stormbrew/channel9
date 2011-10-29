@@ -30,6 +30,7 @@ namespace Channel9
 	void running_context_send(Environment *env, const Value &ret, const Value &oself, const Value &msg)
 	{
 		RunningContext *ctx = ptr<RunningContext>(oself);
+		assert(ctx->m_pos);
 
 		ctx->push(msg);
 		ctx->push(ret);
