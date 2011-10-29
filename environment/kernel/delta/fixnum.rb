@@ -44,6 +44,9 @@ class Fixnum < Numeric
     self - o.to_i
   end
   def /(o)
+    if (o == 0 || o == 0.0)
+      raise ZeroDivisionError.new("Divide by Zero")
+    end
     self / o.to_i
   end
   def %(o)
