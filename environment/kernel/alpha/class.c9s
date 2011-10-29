@@ -1,5 +1,6 @@
 lexical prim_id_seq = 0
 lexical prim_map = $BasicHash($prime_gen)
+lexical prim_attr_map = $BasicHash($prime_gen)
 lexical method_missing_lookup_msg = bytecode() {
 	push @"method_missing"
 	message_new "ruby_sys:lookup" 0 1
@@ -193,15 +194,40 @@ lexical RubyClass = (lexical name, lexical super) {
 					return <- self
 				} case (@'ruby_sys:object_id') {
 					local id = prim_map.get(instance)
-					if (id) {
+					if (id != undef) {
 						return <- id
 					} else {
 						prim_id_seq += 2
 						prim_map.set(instance, prim_id_seq)
 						return <- prim_id_seq
 					}
+				} case (@'ruby_sys:ivar_get') {
+					local attr = bytecode(imsg) {
+						message_unpack 1 0 0
+						swap
+						pop
+					}
+					local vars = prim_attr_map.get(instance)
+					if (vars) {
+						return <- vars.get(attr)
+					} else {
+						return <- nil
+					}
+				} case (@'ruby_sys:ivar_set') {
+					local attr
+					local val
+					bytecode(imsg) {
+						message_unpack 2 0 0
+						local_set "attr"
+						local_set "val"
+					}
+					local vars = prim_attr_map.get(instance)
+					if (vars == undef) {
+						vars = $BasicHash($prime_gen)
+						prim_attr_map.set(instance, vars)
+					}
+					return <- vars.set(attr, val)
 				}
-				// At some point, need to implement ivars for primitive objects. Ugh.
 
 				local lookup_msg = bytecode(imsg_id) {
 					message_new "ruby_sys:lookup" 0 1
