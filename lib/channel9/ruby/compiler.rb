@@ -933,7 +933,7 @@ module Channel9
       end
 
       def transform_return(*vals)
-        if (@state[:unwinders] && @state[:unwinders] > 0)
+        if (@state[:block] || (@state[:unwinders] && @state[:unwinders] > 0))
           @state[:need_long_return][0] = true if @state[:need_long_return]
           builder.channel_special(:unwinder)
           builder.frame_get("return")
