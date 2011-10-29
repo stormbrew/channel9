@@ -1319,6 +1319,7 @@ module Channel9
       # If given a nil value, assumes the rhs is
       # already on the stack.
       def transform_lasgn(name, val = nil)
+        raise SyntaxError.new("Assigning to nothing? on line #{current_sexp.file}:#{current_sexp.line}") if !name
         transform(val) if !val.nil?
         builder.dup_top
         builder.lexical_set(find_lexical_depth(name, true), name)
