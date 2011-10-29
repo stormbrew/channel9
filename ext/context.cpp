@@ -55,4 +55,16 @@ namespace Channel9
 	{
 		m_pos = &*m_instructions->begin() + m_instructions->label_pos(label);
 	}
+
+	void RunningContext::debug_print_backtrace(size_t max) const
+	{
+		const RunningContext *ctx = this;
+		while (max > 0 && ctx)
+		{
+			SourcePos pos = ctx->m_instructions->source_pos(ctx->m_pos);
+			printf("%s:%llu:%llu (%s)\n", pos.file.c_str(), (uint64_t)pos.line_num, (uint64_t)pos.column, pos.annotation.c_str());
+			ctx = ctx->m_caller;
+			--max;
+		}
+	}
 }
