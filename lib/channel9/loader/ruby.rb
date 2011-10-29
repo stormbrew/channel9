@@ -152,6 +152,9 @@ module Channel9
           rescue Racc::ParseError => e
             puts "parse error in #{filename}: #{e}"
             return nil
+          rescue ArgumentError => e
+            puts "argument error in #{filename}: #{e}"
+            return nil
           rescue SyntaxError => e
             puts "syntax error in #{filename}: #{e}"
             return nil
