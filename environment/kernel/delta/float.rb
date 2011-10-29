@@ -48,6 +48,9 @@ class Float < Numeric
     self * o.to_f
   end
   def /(o)
+    if (o == 0.0 || o == 0)
+      raise ZeroDivisionError.new("Divide by zero")
+    end
     self / o.to_f
   end
 end
