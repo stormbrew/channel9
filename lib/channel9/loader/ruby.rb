@@ -144,6 +144,11 @@ module Channel9
           parser = RubyParser.new
           begin
             tree = parser.parse(str, filename)
+            tree = s(type.to_sym, tree)
+            tree.file = filename
+            tree.line = line
+            compiler = Channel9::Ruby::Compiler.new(builder)
+            compiler.transform(tree)
           rescue Racc::ParseError => e
             puts "parse error in #{filename}: #{e}"
             return nil
@@ -157,11 +162,6 @@ module Channel9
             puts "invalid regex error in #{filename}: #{e}"
             return nil
           end
-          tree = s(type.to_sym, tree)
-          tree.file = filename
-          tree.line = line
-          compiler = Channel9::Ruby::Compiler.new(builder)
-          compiler.transform(tree)
         end
         return stream
       end
