@@ -48,4 +48,23 @@ class StaticTuple
     end
     h
   end
+
+  def subary(b, e)
+    if (b > e)
+      return subary(e, b)
+    elsif (e > length)
+      return subary(b, length)
+    end
+    changed = false
+    if (b < 0)
+      changed = true
+      b = length - b
+    end
+    if (e < 0)
+      changed = true
+      e = length - e
+    end
+    raise ArgumentError, "Invalid arguments to StaticTuple#subary (length: #{length}, args: (#{b}, #{e}))" if !changed
+    subary(b, e)
+  end
 end
