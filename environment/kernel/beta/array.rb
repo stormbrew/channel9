@@ -234,4 +234,17 @@ class Array
     end
     n
   end
+
+  def ==(o)
+    if (o.is_a?(Array) && o.length == length)
+      l = length
+      i = 0
+      while i != l
+        return false if o.at(i) != at(i)
+        i += 1
+      end
+      return true
+    end
+    return false
+  end
 end
