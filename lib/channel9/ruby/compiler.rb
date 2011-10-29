@@ -165,6 +165,9 @@ module Channel9
         builder.pop
       end
       def transform_dregx(initial, *strings)
+        flags = if (strings.last.is_a? Fixnum)
+          strings.pop
+        end
         builder.channel_special(:Regexp)
         transform_dsym(initial, *strings)
         builder.message_new(:new, 0, 1)
@@ -172,6 +175,9 @@ module Channel9
         builder.pop
       end
       def transform_dregx_once(initial, *strings)
+        flags = if (strings.last.is_a? Fixnum)
+          strings.pop
+        end
         opt = strings.pop
         builder.channel_special(:Regexp)
         transform_dsym(initial, *strings)
