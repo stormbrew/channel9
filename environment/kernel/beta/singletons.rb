@@ -72,6 +72,9 @@ class UndefClass
   def to_s
     ""
   end
+  def to_i
+    0
+  end
   def hash
     3.hash
   end
