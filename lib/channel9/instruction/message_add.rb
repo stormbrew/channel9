@@ -11,7 +11,7 @@ module Channel9
     # Leaves the message on the stack:
     #  SP -> message
     #
-    class MESSAGE_SPLAT < Base
+    class MESSAGE_ADD < Base
       def initialize(stream, count)
         super(stream, 1 + count, 1)
         @count = count
