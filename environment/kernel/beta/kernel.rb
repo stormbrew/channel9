@@ -163,6 +163,6 @@ module Kernel
   end
 
   def hash
-    __c9_object_id__.hash
+    object_id.hash
   end
 end

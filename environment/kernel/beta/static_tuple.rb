@@ -37,4 +37,15 @@ class StaticTuple
       i += 1
     end
   end
+
+  def hash
+    # TODO: This is a terrible hash function. FIXME
+    h = 0xf51afd7ed558ccd
+    i = 0
+    while (i < length)
+      h ^= at(i)
+      i += 1
+    end
+    h
+  end
 end

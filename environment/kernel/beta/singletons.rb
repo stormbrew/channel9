@@ -12,6 +12,9 @@ class NilClass
   def to_proc_prim
     nil
   end
+  def hash
+    0.hash
+  end
 end
 
 class TrueClass
@@ -30,6 +33,9 @@ class TrueClass
   end
   def |(o)
     true
+  end
+  def hash
+    2.hash
   end
 end
 
@@ -54,6 +60,9 @@ class FalseClass
       false
     end
   end
+  def hash
+    1.hash
+  end
 end
 
 class UndefClass
@@ -62,5 +71,8 @@ class UndefClass
   end
   def to_s
     ""
+  end
+  def hash
+    3.hash
   end
 end
