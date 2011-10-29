@@ -29,7 +29,10 @@ class Module
         raise ParseError
       end
     end
-    instance_eval(&block)
+    cscope = [self,
+      [::Object, nil].to_tuple_prim
+    ].to_tuple_prim
+    __c9_instance_eval__(cscope, &block)
   end
   alias_method :module_eval, :class_eval
 

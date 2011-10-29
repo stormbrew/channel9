@@ -84,7 +84,11 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 					pop
 					local_get "return"
 					lexical_get 0 "self"
-					message_new "call" 1 0
+					local_get "msg"
+					message_unpack 1 0 0
+					swap
+					pop
+					message_new "call" 1 1
 					channel_send
 				}
 			} case (@'dup') {
