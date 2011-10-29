@@ -19,7 +19,11 @@ namespace Channel9
 			case MESSAGE_MULTIPLY:
 				return channel_send(cenv, ctx, value(self * other), Nil);
 			case MESSAGE_DIVIDE:
-				return channel_send(cenv, ctx, value(self / other), Nil);
+				if (other != 0)
+				{
+					return channel_send(cenv, ctx, value(self / other), Nil);
+				}
+				break;
 			case MESSAGE_BITWISE_AND:
 				return channel_send(cenv, ctx, value(self & other), Nil);
 			case MESSAGE_BITWISE_OR:
@@ -97,7 +101,11 @@ namespace Channel9
 			case MESSAGE_MULTIPLY:
 				return channel_send(cenv, ctx, value(self * other), Nil);
 			case MESSAGE_DIVIDE:
-				return channel_send(cenv, ctx, value(self / other), Nil);
+				if (other != 0.0)
+				{
+					return channel_send(cenv, ctx, value(self / other), Nil);
+				}
+				break;
 			case MESSAGE_LT:
 				return channel_send(cenv, ctx, bvalue(self < other), Nil);
 			case MESSAGE_GT:
