@@ -148,3 +148,48 @@ $set_special_channel("long_return_catcher", (lexical proc) {
 		return <- ret
 	}
 })
+
+$Kernel.ruby_sys:add_method(@"throw", (tag, val) {
+	tag = bytecode(tag) {
+		string_coerce "to_s_prim"
+		pop
+	}
+	unwinder.ruby_sys:throw(tag, val)
+})
+$Kernel.ruby_sys:add_method(@"catch", (@msg) -> return {
+	local proc
+	lexical catch_tag
+	bytecode(msg) {
+		message_unpack 1 0 0
+		string_coerce "to_s_prim"
+		pop
+		lexical_set 0 "catch_tag"
+		message_sys_unpack 3
+		pop
+		pop
+		local_set "proc"
+	}
+	lexical catch_return = return
+	local handler = (@handler_msg) {
+		local id
+		local tag
+		local val
+		bytecode(handler_msg) {
+			message_id
+			local_set "id"
+			message_unpack 2 0 0
+			local_set "tag"
+			local_set "val"
+		}
+		if (id == @'ruby_sys:throw') {
+			if (tag == catch_tag) {
+				catch_return <- val
+			}
+		}
+		unwinder <- handler_msg
+	}
+	handler -> unwinder
+	local ret = (msg -> proc)
+	nil -> unwinder
+	return <- ret
+})
