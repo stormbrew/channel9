@@ -105,8 +105,9 @@ lexical unwinder = (@msg) -> return {
 				tuple_unpack 2 0 0
 				swap
 				lexical_set 0 "unwinders"
+				local_get "return"
 				local_get "real_msg"
-				channel_ret
+				channel_send
 			}
 		} else {
 			local old = unwinders.at(0)
@@ -140,7 +141,9 @@ $set_special_channel("long_return_catcher", (lexical proc) {
 			if (id == @'long_return') {
 				normal_return <- val
 			}
-			unwinder <- handler_msg
+			bytecode(unwinder, return, handler_msg) {
+				channel_send
+			}
 		}
 		handler -> unwinder
 		local ret = (msg -> proc)
@@ -169,6 +172,10 @@ $Kernel.ruby_sys:add_method(@"catch", (@msg) -> return {
 		pop
 		local_set "proc"
 	}
+	if (proc == undef)
+	{
+		$Object.raise($Object.const_get("LocalJumpError"), "No proc provided to catch.")
+	}
 	lexical catch_return = return
 	local handler = (@handler_msg) {
 		local id
@@ -186,7 +193,9 @@ $Kernel.ruby_sys:add_method(@"catch", (@msg) -> return {
 				catch_return <- val
 			}
 		}
-		unwinder <- handler_msg
+		bytecode(unwinder, return, handler_msg) {
+			channel_send
+		}
 	}
 	handler -> unwinder
 	local ret = (msg -> proc)

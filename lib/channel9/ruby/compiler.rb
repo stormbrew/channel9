@@ -734,7 +734,7 @@ module Channel9
           # our return message. If so, we want to return from
           # this method. Otherwise, just move on to the next
           # unwind handler.
-          builder.pop # -> unwind_message
+          builder.local_set(:unwind_return) # -> unwind_message
           builder.message_id # -> name -> um
           builder.is(Primitive::MessageID.new("long_return")) # -> is -> um
           builder.jmp_if_not(method_lret_pass) # -> um
@@ -750,7 +750,9 @@ module Channel9
           builder.set_label(method_lret_pass) # (from jmps above) -> um
           builder.channel_special(:unwinder) # -> unwinder -> um
           builder.swap # -> um -> unwinder
-          builder.channel_ret
+          builder.local_get(:unwind_return) # -> unwind_return -> um -> unwinder
+          builder.swap # -> um -> unwind_return -> unwinder
+          builder.channel_send
         end
         builder.set_label(method_done_label)
         if (on.nil?)
@@ -1742,13 +1744,15 @@ module Channel9
           builder.channel_ret
 
           builder.set_label(breaker_unwind)
-          builder.pop
+          builder.local_set(:unwind_return)
           builder.message_id
           builder.is(Primitive::MessageID.new("iter_break"))
           builder.jmp_if(breaker_unwind_ret)
           builder.channel_special(:unwinder)
           builder.swap
-          builder.channel_ret
+          builder.local_get(:unwind_return)
+          builder.swap
+          builder.channel_send
 
           builder.set_label(breaker_unwind_ret)
           builder.message_unpack(1,0,0)
@@ -1806,7 +1810,7 @@ module Channel9
       end
 
       def transform_rescue(try, *handlers)
-        prefix = builder.make_label("rescue")
+        prefix = builder.make_label("rescue") + ":"
         try_label = prefix + "try"
         rescue_label = prefix + "rescue"
         retry_label = prefix + "retry"
@@ -1819,6 +1823,16 @@ module Channel9
         if (handlers.last && handlers.last.first != :resbody)
           else_body = handlers.pop
         end
+
+        builder.channel_new(try_label)
+        builder.push(nil)
+        builder.channel_call
+        builder.pop
+        builder.jmp(done_label)
+
+        builder.set_label(try_label)
+        builder.frame_set("rescue-return")
+        builder.pop
 
         # Set the unwinder.
         builder.channel_special(:unwinder)
@@ -1849,17 +1863,17 @@ module Channel9
             builder.pop
           end
 
-          builder.jmp(done_label)
+          builder.jmp(handled_label)
 
           builder.set_label(rescue_label)
 
-          # pop the return handler and check the message to see
+          # save the return handler and check the message to see
           # if this is an error or if we should just call the next
           # unwinder.
-          builder.pop
+          builder.local_set("unwind-return")
           # save the message
           builder.dup_top
-          builder.frame_set("unwind-message")
+          builder.local_set("unwind-message")
 
           builder.message_id
           builder.is(Primitive::MessageID.new("raise"))
@@ -1879,17 +1893,34 @@ module Channel9
         builder.set_label(not_raise_label)
         builder.pop
         builder.channel_special(:unwinder)
-        builder.frame_get("unwind-message")
-        builder.channel_ret
+        builder.local_get("unwind-return")
+        builder.local_get("unwind-message")
+        builder.channel_send
 
         builder.set_label(handled_label)
+        builder.frame_get("rescue-return")
+        builder.swap
+        builder.channel_ret
 
         builder.set_label(done_label)
       end
 
       def transform_ensure(body, ens)
-        ens_label = builder.make_label("ensure")
-        done_label = builder.make_label("ensure.done")
+        label_prefix = builder.make_label("ensure") + ":"
+        begin_label = label_prefix + "begin"
+        ens_label = label_prefix + "ensure"
+        done_label = label_prefix + "done" # done handling the ensure block
+        end_label = label_prefix + "end" # done the whole thing
+
+        builder.channel_new(begin_label)
+        builder.push(nil)
+        builder.channel_call
+        builder.pop
+        builder.jmp(end_label)
+
+        builder.set_label(begin_label)
+        builder.frame_set("ensure-return")
+        builder.pop
 
         builder.channel_special(:unwinder)
         builder.channel_new(ens_label)
@@ -1924,12 +1955,21 @@ module Channel9
         # if we came here via a call (non-nil return path),
         # pass on to the next unwind handler rather than
         # leaving by the done label.
+        builder.dup_top
+        builder.local_set("unwind-return")
         builder.jmp_if_not(done_label)
         builder.channel_special(:unwinder)
         builder.swap
-        builder.channel_ret
+        builder.local_get("unwind-return")
+        builder.swap
+        builder.channel_send
 
         builder.set_label(done_label)
+        builder.frame_get("ensure-return")
+        builder.swap
+        builder.channel_ret
+
+        builder.set_label(end_label)
       end
 
       def transform_defined(val)
