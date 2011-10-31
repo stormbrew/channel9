@@ -50,7 +50,7 @@ end
 
 begin
   begin
-    raise Stuff, "what"
+    raise Stuff, "hah"
   rescue NoMethodError
     puts "no"
   end
