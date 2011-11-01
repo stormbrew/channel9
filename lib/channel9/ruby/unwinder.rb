@@ -8,6 +8,8 @@ module Channel9
           global.channel_send(env, Primitive::Message.new(:uncaught_exception,[],[exc]), CallbackChannel.new {|ienv, bt, iret|
             exit(1)
           })
+        elsif (msg.name == :query)
+          ret.channel_send(env, false, InvalidReturnChannel)
         else
           puts "Error: Uncaught unwind of unknown kind: #{msg}."
           ctx = env.current_context
