@@ -1779,8 +1779,9 @@ module Channel9
         comparisons.shift
 
         err_assign = nil
-        if (comparisons.last && comparisons.last[0] == :lasgn)
-          err_assign = comparisons.pop[1]
+        last = comparisons.last
+        if (last && (last[0] == :lasgn || last[0] == :gasgn || last[0] == :iasgn))
+          err_assign = comparisons.pop
         end          
 
         comparisons.each do |cmp|
@@ -1794,10 +1795,14 @@ module Channel9
           builder.jmp(next_label)
         end
         builder.set_label(found_label)
+        builder.pop
         if (err_assign)
-          builder.lexical_set(find_lexical_depth(err_assign, true), err_assign)
-        else
-          builder.pop
+          transform(err_assign)
+          # if there is no body, but there is an error assign, it
+          # basically is the body.
+          if (!body.nil?)
+            builder.pop
+          end
         end
 
         if (body.nil?)
