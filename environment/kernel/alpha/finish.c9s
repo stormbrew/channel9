@@ -97,25 +97,37 @@ $set_special_channel("globals", $BasicHash($prime_gen))
 lexical unwinders = [$terminal_unwinder,nil]
 lexical unwinder = (@msg) -> return {
 	if (msg) {
-		local real_msg = bytecode(msg) { 
-			message_check
+		local real_msg = bytecode(msg) {
+		message_check
 		}
 		if (real_msg) {
+			local id
 			real_msg = bytecode(real_msg, return) {
 				message_sys_prefix 1
+				message_id
+				local_set "id"
 			}
-			while (unwinders) {
+			local next_unwinder = unwinders
+			while (next_unwinder) {
 				local cur
-				bytecode(unwinders) {
+				bytecode(next_unwinder) {
 					tuple_unpack 2 0 0
 					swap
-					lexical_set 0 "unwinders"
+					local_set "next_unwinder"
 					local_set "cur"
+				}
+				if (id != @'query') {
+					// if this is a real unwind, change the global unwinders.
+					unwinders = next_unwinder
 				}
 				real_msg -> cur
 			}
-			"Abort: Uncaught unwind." -> $stdout
-			$exit <- 1
+			if (id != @'query') {
+				"Abort: Uncaught unwind." -> $stdout
+				$exit <- 1
+			} else {
+				return <- false
+			}
 		} else {
 			local old = unwinders.at(0)
 			unwinders = [msg,unwinders]
@@ -156,13 +168,23 @@ $set_special_channel("long_return_catcher", (lexical proc) {
 		return <- ret
 	}
 })
+frame make_msg = (@msg) { msg }
 
 $Kernel.ruby_sys:add_method(@"throw", (tag, val) {
 	tag = bytecode(tag) {
 		string_coerce "to_s_prim"
 		pop
 	}
-	unwinder.ruby_sys:throw(tag, val)
+
+	// find out if we can even handle this throw by doing a
+	// query unwind.
+	local msg = make_msg.ruby_sys:throw(tag, val)
+	local safe = unwinder.query(msg)
+	if (safe) {
+		unwinder.ruby_sys:throw(tag, val)
+	} else {
+		$Object.raise($Object.const_get("ArgumentError"), "No catch handler for " + tag)
+	}
 })
 $Kernel.ruby_sys:add_method(@"catch", (@msg) -> return {
 	local proc
@@ -186,16 +208,35 @@ $Kernel.ruby_sys:add_method(@"catch", (@msg) -> return {
 		local id
 		local tag
 		local val
+		local source
 		bytecode(handler_msg) {
 			message_id
 			local_set "id"
 			message_unpack 2 0 0
 			local_set "tag"
 			local_set "val"
+			message_sys_unpack 1
+			local_set "source"
 		}
 		if (id == @'ruby_sys:throw') {
 			if (tag == catch_tag) {
 				catch_return <- val
+			}
+		} else if (id == @'query') {
+			// if it's a query, re-extract the relevant info
+			// from the inner message object and return back
+			// to the source if it's the right handler.
+			bytecode(tag) {
+				message_id
+				local_set "id"
+				message_unpack 2 0 0
+				local_set "tag"
+				local_set "val"
+			}
+			if (id == @'ruby_sys:throw') {
+				if (tag == catch_tag) {
+					source <- true
+				}
 			}
 		}
 		handler_return <- false

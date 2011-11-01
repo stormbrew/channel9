@@ -1910,6 +1910,8 @@ module Channel9
       def transform_ensure(body, ens)
         label_prefix = builder.make_label("ensure") + ":"
         begin_label = label_prefix + "begin"
+        unwinder_label = label_prefix + "unwinder"
+        skip_ens_label = label_prefix + "skip-ensure"
         ens_label = label_prefix + "ensure"
         done_label = label_prefix + "done" # done handling the ensure block
         end_label = label_prefix + "end" # done the whole thing
@@ -1925,7 +1927,7 @@ module Channel9
         builder.pop
 
         builder.channel_special(:unwinder)
-        builder.channel_new(ens_label)
+        builder.channel_new(unwinder_label)
         builder.channel_call
         builder.pop
         builder.pop
@@ -1948,12 +1950,26 @@ module Channel9
         builder.pop
         builder.pop
 
-        builder.set_label(ens_label)
+        builder.jmp(ens_label)
+        builder.set_label(unwinder_label)
+
+        # check if the message is :query. If it is, don't
+        # run the unwind.
+        builder.swap
+        builder.message_id
+        builder.is(Primitive::MessageID.new("query"))
+        builder.local_set "skip-ensure"
+        builder.swap
+        builder.local_get "skip-ensure"
+        builder.jmp_if(skip_ens_label)
+
+        builder.set_label(ens_label) 
 
         # run the ensure block
         transform(ens)
         builder.pop
 
+        builder.set_label(skip_ens_label)
         # if we came here via a call (non-nil return path),
         # pass on to the next unwind handler rather than
         # leaving by the done label.
