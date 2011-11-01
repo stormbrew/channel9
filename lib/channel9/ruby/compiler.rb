@@ -748,11 +748,10 @@ module Channel9
           builder.channel_ret
 
           builder.set_label(method_lret_pass) # (from jmps above) -> um
-          builder.channel_special(:unwinder) # -> unwinder -> um
-          builder.swap # -> um -> unwinder
-          builder.local_get(:unwind_return) # -> unwind_return -> um -> unwinder
-          builder.swap # -> um -> unwind_return -> unwinder
-          builder.channel_send
+          builder.pop
+          builder.local_get(:unwind_return)
+          builder.push(false)
+          builder.channel_ret
         end
         builder.set_label(method_done_label)
         if (on.nil?)
@@ -1748,11 +1747,10 @@ module Channel9
           builder.message_id
           builder.is(Primitive::MessageID.new("iter_break"))
           builder.jmp_if(breaker_unwind_ret)
-          builder.channel_special(:unwinder)
-          builder.swap
+          builder.pop
           builder.local_get(:unwind_return)
-          builder.swap
-          builder.channel_send
+          builder.push(false)
+          builder.channel_ret
 
           builder.set_label(breaker_unwind_ret)
           builder.message_unpack(1,0,0)
@@ -1897,10 +1895,9 @@ module Channel9
 
         builder.set_label(not_raise_label)
         builder.pop
-        builder.channel_special(:unwinder)
         builder.local_get("unwind-return")
-        builder.local_get("unwind-message")
-        builder.channel_send
+        builder.push(false)
+        builder.channel_ret
 
         builder.set_label(handled_label)
         builder.frame_get("rescue-return")
@@ -1961,15 +1958,12 @@ module Channel9
         # pass on to the next unwind handler rather than
         # leaving by the done label.
         builder.dup_top
-        builder.local_set("unwind-return")
         builder.jmp_if_not(done_label)
-        builder.channel_special(:unwinder)
-        builder.swap
-        builder.local_get("unwind-return")
-        builder.swap
-        builder.channel_send
+        builder.push(nil)
+        builder.channel_ret
 
         builder.set_label(done_label)
+        builder.pop
         builder.frame_get("ensure-return")
         builder.swap
         builder.channel_ret
