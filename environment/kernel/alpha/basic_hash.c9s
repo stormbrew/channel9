@@ -21,7 +21,7 @@ lexical Hash = (lexical table_size_seq, lexical table, lexical table_size, lexic
 		next = nil
 	}
 
-	lexical get = (index) -> return {
+	lexical get = (index, default) -> return {
 		local hash = index.hash() % table_size
 		if (hash < table.length()) {
 			local item = table.at(hash)
@@ -31,7 +31,7 @@ lexical Hash = (lexical table_size_seq, lexical table, lexical table_size, lexic
 				if (next) { return <- next.get(index) }
 			}
 		}
-		return <- undef
+		return <- default
 	}
 	lexical set = (index, val) -> return {
 		local hash = index.hash() % table_size
