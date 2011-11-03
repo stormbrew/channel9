@@ -1622,6 +1622,7 @@ module Channel9
 
         label_prefix = builder.make_label("Iter:#{call[2]}")
         body_label = label_prefix + ".body"
+        no_const_self_label = label_prefix + ".no_const_self"
         args_label = label_prefix + ".args"
         done_label = label_prefix + ".done"
 
@@ -1632,16 +1633,26 @@ module Channel9
 
         # if we got a self through the sys args, 
         # we've been re-bound to a method so use that instead.
-        builder.message_sys_unpack(2)
+        builder.message_sys_unpack(4)
         builder.dup_top
         builder.is(Primitive::Undef)
         builder.jmp_if(args_label)
         builder.frame_set("self")
         builder.frame_set("super")
+        builder.pop # block
+        builder.dup_top
+        builder.is(Primitive::Undef)
+        builder.jmp_if(no_const_self_label)
+        builder.frame_set("const-self")
+        builder.push(nil)
+        builder.push(nil)
         builder.push(nil)
         builder.push(nil)
         builder.set_label(args_label)
         builder.pop
+        builder.pop
+        builder.pop
+        builder.set_label(no_const_self_label)
         builder.pop
 
         with_linked_vtable do
@@ -2044,9 +2055,10 @@ module Channel9
 
         builder.frame_set("return")
         if (!body.nil?)
-          builder.message_sys_unpack(1)
+          builder.message_sys_unpack(4)
           builder.frame_set("self")
-          builder.message_unpack(1, 0, 0)
+          builder.pop # super
+          builder.pop # block
           builder.dup_top
           builder.jmp_if(body_label)
 

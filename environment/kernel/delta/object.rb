@@ -22,7 +22,7 @@ class Object
   
   def method(name)
     meth = nil
-    if (s = singleton)
+    if (s = __c9_singleton__)
       meth = s.instance_method(name)
     else
       meth = self.class.instance_method(name)

@@ -36,6 +36,14 @@ class Module
   end
   alias_method :module_eval, :class_eval
 
+  def instance_method(name)
+    if (m = __c9_lookup__(name.to_sym.to_message_id))
+      UnboundMethod.new(name.to_sym, m)
+    else
+      nil
+    end
+  end
+
   def module_function(*names)
     # TODO: Implement.
   end

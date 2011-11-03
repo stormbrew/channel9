@@ -227,8 +227,31 @@ lexical RubyClass = (lexical name, lexical super) {
 						prim_attr_map.set(instance, vars)
 					}
 					return <- vars.set(attr, val)
+				} case (@'ruby_sys:singleton') {
+					return <- nil
+				} case (@'ruby_sys:instance_eval') {
+					bytecode(imsg) {
+						message_sys_unpack 1
+						swap
+						pop
+						local_get "return"
+						local_get "instance"
+						push nil
+						push nil
+						local_get "imsg"
+						message_unpack 1 0 0
+						swap
+						pop
+						message_new "call" 4 0
+						local_get "imsg"
+						message_unpack 1 1 0
+						pop
+						swap
+						pop
+						message_splat
+						channel_send
+					}
 				}
-
 				local lookup_msg = bytecode(imsg_id) {
 					message_new "ruby_sys:lookup" 0 1
 				}
@@ -239,7 +262,7 @@ lexical RubyClass = (lexical name, lexical super) {
 						channel_send
 					}
 				} else if (meth = (method_missing_lookup_msg -> self : local lookup_cont)) {
-					bytecode(meth, return, imsg, self, lookup_cont) {
+					bytecode(meth, return, imsg, instance, lookup_cont) {
 						message_sys_prefix 2
 						message_forward "method_missing"
 						channel_send
@@ -251,7 +274,9 @@ lexical RubyClass = (lexical name, lexical super) {
 		}
 		// "Class call to " + name + "." + msg_name + " forwarded to object" -> $stdout
 		// forward to the normal object for this class.
-		return <- msg -> inner_obj
+		bytecode(inner_obj, return, msg) {
+			channel_send
+		}
 	}
 	if ($Class) {
 		inner_obj = $RubyObject($Class)
