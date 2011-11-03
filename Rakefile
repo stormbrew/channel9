@@ -42,6 +42,7 @@ namespace "build" do
     "environment/kernel/delta/class.c9b",
     "environment/kernel/delta/comparable.c9b",
     "environment/kernel/delta/dir.c9b",
+    "environment/kernel/delta/io.c9b",
     "environment/kernel/delta/file.c9b",
     "environment/kernel/delta/fixnum.c9b",
     "environment/kernel/delta/float.c9b",

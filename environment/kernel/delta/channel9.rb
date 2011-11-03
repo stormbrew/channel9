@@ -6,9 +6,9 @@ module Channel9
 
     Object.const_set(:ENV, {}) # TODO: Make this not a stub.
 
-    $stderr = Object.new
-    $stdout = Object.new
-    $stdin = Object.new
+    $stderr = Stderr.new
+    $stdout = $> = Stdout.new
+    $stdin = $< = Stdout.new
   end
 
   def self.compile_string(type, string, filename, line)
