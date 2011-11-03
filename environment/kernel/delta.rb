@@ -30,6 +30,7 @@ load_c9 'kernel/delta/table.c9b'
 load_c9 'kernel/delta/range.c9b'
 load_c9 'kernel/delta/hash.c9b'
 
+load_c9 'kernel/delta/io.c9b'
 load_c9 'kernel/delta/file.c9b'
 load_c9 'kernel/delta/dir.c9b'
 load_c9 'kernel/delta/time.c9b'

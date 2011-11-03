@@ -1,4 +1,4 @@
-class File
+class File < IO
   def self.join(*components)
     components.join('/')
   end
