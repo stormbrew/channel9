@@ -30,7 +30,7 @@ lexical RubyObject = (lexical klass, lexical ivars) {
 					swap
 					pop
 				}
-				return <- ivars.get(ivar_name)
+				return <- ivars.get(ivar_name, nil)
 			} case (@'ivar_set') {
 				local ivar_name
 				local ivar_val

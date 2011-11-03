@@ -92,14 +92,14 @@ class Array
     return if @tuple.nil? #only meaningful in debug output for initialize.
     i = 0
     while (i < @tuple.length)
-      yield @tuple.at(i)
+      yield @tuple.at(i) || nil
       i += 1
     end
   end
   def each_with_index
     i = 0
     while (i < @tuple.length)
-      yield @tuple.at(i), i
+      yield @tuple.at(i) || nil, i
       i += 1
     end
   end    
@@ -147,12 +147,12 @@ class Array
   def pop
     l = @tuple.last
     @tuple = @tuple.pop
-    l
+    l || nil
   end
   def shift
     l = @tuple.first
     @tuple = @tuple.front_pop
-    l
+    l || nil
   end
   def delete(obj)
     i = 0
@@ -177,9 +177,11 @@ class Array
   end
   def delete_at(idx)
     @tuple = @tuple.delete(idx)
+    self
   end
   def clear
     @tuple = [].to_tuple_prim
+    self
   end
   def reject(obj = nil)
     tuple = [].to_tuple_prim
@@ -196,6 +198,7 @@ class Array
   end
   def reject!(obj = nil, &b)
     @tuple = reject(obj, &b).to_tuple_prim
+    self
   end
   def compact
     reject(nil)
@@ -203,22 +206,23 @@ class Array
 
   def at(idx, len = nil)
     if (len.nil?)
-      @tuple.at(idx)
+      @tuple.at(idx) || nil
     else
       @tuple.subary(idx, idx + len).to_a
     end
   end
   def [](idx,len=nil)
-    at(idx,len)
+    at(idx,len) || nil
   end
   def first
-    @tuple.at(0)
+    @tuple.at(0) || nil
   end
   def last
-    @tuple.at(-1)
+    @tuple.at(-1) || nil
   end
   def []=(idx, val)
     @tuple = @tuple.replace(idx, val)
+    val
   end
 
   def +(other)
@@ -226,6 +230,7 @@ class Array
   end
   def concat(other)
     @tuple = @tuple + other.to_tuple_prim
+    self
   end
   def -(other)
     n = []

@@ -193,7 +193,7 @@ lexical RubyClass = (lexical name, lexical super) {
 				case (@'ruby_sys:class') {
 					return <- self
 				} case (@'ruby_sys:object_id') {
-					local id = prim_map.get(instance)
+					local id = prim_map.get(instance, undef)
 					if (id != undef) {
 						return <- id
 					} else {
