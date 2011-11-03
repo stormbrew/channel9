@@ -9,6 +9,9 @@ class Module
   def name
     __c9_name__
   end
+  def to_sym
+    __c9_name__
+  end
 
   def const_set(const, val)
     __c9_add_constant__(const.to_s_prim, val)
