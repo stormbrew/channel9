@@ -109,7 +109,9 @@ lexical RubyModule = (lexical name) {
 				}
 			}
 		}
-		return <- msg -> inner_obj
+		bytecode(inner_obj, return, msg) {
+			channel_send
+		}
 	}
 	inner_obj.ruby_sys:wrap(self)
 	self
