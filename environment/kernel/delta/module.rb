@@ -66,7 +66,4 @@ class Module
   def protected(*names)
     # TODO: Implement.
   end
-  def module_eval(ev)
-    # TODO: Implement (how?).
-  end
 end
