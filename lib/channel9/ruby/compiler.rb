@@ -776,6 +776,8 @@ module Channel9
         fail_label = label + ".fail"
         done_label = label + ".done"
 
+        has_iter = false
+
         # get the new call and the new super
         builder.frame_get("super")
         builder.push(nil)
@@ -790,17 +792,39 @@ module Channel9
         builder.frame_get("self")
         builder.swap
 
-        # TODO: deal with procargs
-        builder.push nil
-
         # add the new arguments
-        args.each do |arg|
-          transform(arg)
+        if (args.last && args.last[0] == :block_pass)
+          block_arg = args.pop.dup
+          has_iter = true
+          transform(block_arg[1])
+          builder.message_new(:to_proc_prim, 0, 0)
+          builder.channel_call
+          builder.pop
+        end
+
+        if (first_splat = has_splat(args))
+          i = 0
+          while (i < first_splat)
+            transform(args.shift)
+            i += 1
+          end
+          builder.message_new(@state[:name] || :super, 2 + (has_iter ? 1 : 0), i)
+          transform(args.shift[1])
+          builder.message_new(:to_tuple_prim, 0, 0)
+          builder.channel_call
+          builder.pop
+          builder.message_splat
+        else
+          args.each do |arg|
+            transform(arg)
+          end
+
+          builder.message_new(@state[:name] || :super, 2 + (has_iter ? 1 : 0), args.length)
         end
         # TODO: the name should be dynamically derived, but for now it doesn't
         # really matter what name we're sending along. If that ever changes, this needs
         # to change.
-        builder.message_new(@state[:name] || :super, 3, args.length)
+
         builder.channel_call
         builder.pop
 
