@@ -14,7 +14,12 @@ class Array
 
   def initialize(ary)
     if (ary.kind_of?(Fixnum))
-      __setup__([].to_tuple_prim, ary)
+      count = ary
+      ary = [].to_tuple_prim
+      count.times do
+        ary = ary.push(nil)
+      end
+      __setup__(ary, count)
     else
       __setup__(ary.to_tuple_prim, ary.length)
     end
@@ -92,14 +97,14 @@ class Array
     return if @tuple.nil? #only meaningful in debug output for initialize.
     i = 0
     while (i < @tuple.length)
-      yield @tuple.at(i) || nil
+      yield @tuple.at(i)
       i += 1
     end
   end
   def each_with_index
     i = 0
     while (i < @tuple.length)
-      yield @tuple.at(i) || nil, i
+      yield @tuple.at(i), i
       i += 1
     end
   end    
@@ -147,12 +152,12 @@ class Array
   def pop
     l = @tuple.last
     @tuple = @tuple.pop
-    l || nil
+    l
   end
   def shift
     l = @tuple.first
     @tuple = @tuple.front_pop
-    l || nil
+    l
   end
   def delete(obj)
     i = 0
@@ -206,19 +211,19 @@ class Array
 
   def at(idx, len = nil)
     if (len.nil?)
-      @tuple.at(idx) || nil
+      @tuple.at(idx)
     else
       @tuple.subary(idx, idx + len).to_a
     end
   end
   def [](idx,len=nil)
-    at(idx,len) || nil
+    at(idx,len)
   end
   def first
-    @tuple.at(0) || nil
+    @tuple.at(0)
   end
   def last
-    @tuple.at(-1) || nil
+    @tuple.at(-1)
   end
   def []=(idx, val)
     @tuple = @tuple.replace(idx, val)
