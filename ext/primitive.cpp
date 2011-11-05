@@ -28,6 +28,12 @@ namespace Channel9
 				return channel_send(cenv, ctx, value(self & other), Nil);
 			case MESSAGE_BITWISE_OR:
 				return channel_send(cenv, ctx, value(self | other), Nil);
+			case MESSAGE_BITWISE_XOR:
+				return channel_send(cenv, ctx, value(self ^ other), Nil);
+			case MESSAGE_BITWISE_LEFT_SHIFT:
+				return channel_send(cenv, ctx, value(self << other), Nil);
+			case MESSAGE_BITWISE_RIGHT_SHIFT:
+				return channel_send(cenv, ctx, value(self >> other), Nil);
 			case MESSAGE_MODULUS:
 				return channel_send(cenv, ctx, value(self % other), Nil);
 			case MESSAGE_LT:

@@ -40,6 +40,9 @@ namespace Channel9
 		MAKE_MESSAGE("/");
 		MAKE_MESSAGE("&");
 		MAKE_MESSAGE("|");
+		MAKE_MESSAGE("^");
+		MAKE_MESSAGE("<<");
+		MAKE_MESSAGE(">>");
 		MAKE_MESSAGE("%");
 		MAKE_MESSAGE("<");
 		MAKE_MESSAGE(">");
