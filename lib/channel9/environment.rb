@@ -16,7 +16,7 @@ module Channel9
       if (val.kind_of? Primitive::Message)
         exit(val.positional[0])
       else
-        exit(val.real_num)
+        exit(val.to_i)
       end
     end
     def self.truthy?; true; end
