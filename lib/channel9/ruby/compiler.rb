@@ -1328,6 +1328,12 @@ module Channel9
             builder.message_new(:to_a, 0, 0)
             builder.channel_call
             builder.pop
+            if (lhs.length == 0)
+              builder.tuple_new(1)
+              builder.message_new(:to_a, 0, 0)
+              builder.channel_call
+              builder.pop
+            end
             if (splat[1])
               transform(splat[1])
             else
@@ -1692,12 +1698,26 @@ module Channel9
               # it's as if it were a single arg splat. Otherwise,
               # it's like a normal method invocation.
               builder.message_count
+              builder.is_not(0)
+              builder.jmp_if(label_prefix + ".is_unary")
+              builder.push(nil)
+              builder.jmp(label_prefix + ".done_unpack")
+
+              builder.set_label(label_prefix + ".is_unary")
+              builder.message_count
               builder.is_not(1)
               builder.jmp_if(label_prefix + ".splatify")
               builder.message_unpack(1, 0, 0)
               builder.jmp(label_prefix + ".done_unpack")
+
               builder.set_label(label_prefix + ".splatify")
               builder.message_unpack(0, 1, 0)
+              transform_colon3(:Array)
+              builder.swap
+              builder.message_new(:new_from_tuple, 0, 1)
+              builder.channel_call
+              builder.pop
+
               builder.set_label(label_prefix + ".done_unpack")
             else
               builder.message_count
