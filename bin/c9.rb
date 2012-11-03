@@ -9,32 +9,37 @@ end
 require 'channel9'
 require 'channel9/loader/ruby'
 
-debug = ARGV.include?("-d")
-ARGV.delete("-d")
-debug = ARGV.include?("-dd") ? :detail : debug
-ARGV.delete("-dd")
-print = ARGV.include?("-p")
-ARGV.delete("-p")
-compile = ARGV.include?("-c")
-ARGV.delete("-c")
-timing = ARGV.include?("-t")
-ARGV.delete("-t")
+args = ARGV
+if ENV['C9RB_OPTS']
+  args = ENV['C9RB_OPTS'].split(' ') + args
+end
+
+debug = args.include?("-d")
+args.delete("-d")
+debug = args.include?("-dd") ? :detail : debug
+args.delete("-dd")
+print = args.include?("-p")
+args.delete("-p")
+compile = args.include?("-c")
+args.delete("-c")
+timing = args.include?("-t")
+args.delete("-t")
 # trace all, start off tracing before the script itself is run.
-Channel9::Environment.trace = ARGV.include?("-TT")
-ARGV.delete("-TT")
-trace = ARGV.include?("-T")
-ARGV.delete("-T")
-if (ARGV.include?("-v"))
+Channel9::Environment.trace = args.include?("-TT")
+args.delete("-TT")
+trace = args.include?("-T")
+args.delete("-T")
+if (args.include?("-v"))
   puts("Channel9.rb 0.0.0.0.1")
-  ARGV.delete("-v")
+  args.delete("-v")
 end
 stime = Time.now
 loader = Channel9::Loader::Ruby.new(debug)
 if (print)
-  stream = Channel9::Loader::Ruby.compile(ARGV.shift)
+  stream = Channel9::Loader::Ruby.compile(args.shift)
   puts stream.to_json
 elsif (compile)
-  infile = ARGV.shift
+  infile = args.shift
   stream = Channel9::Loader::Ruby.compile(infile)
   outfile = infile.gsub(%r{/([^/]+?)(\.rb)?$}) do |m|
     "/#{$1}.c9b"
@@ -44,8 +49,8 @@ elsif (compile)
   end
 else
   exe = $0
-  filename = ARGV.shift
-  loader.setup_environment(exe, ARGV)
+  filename = args.shift
+  loader.setup_environment(exe, args)
   Channel9::Environment.trace = true if trace
   global_self = loader.env.special_channel(:global_self)
   loader_time = Time.now
