@@ -95,13 +95,16 @@ namespace Channel9
 		Value val = {type_mask(type) | ((uint64_t)value & Value::POINTER_MASK)};
 		return val;
 	}
-	inline Value value(long long machine_num)
+	inline Value value(int64_t machine_num)
 	{//cut off the top 4 bits, maintaining the sign
 		uint64_t type = (uint64_t)(machine_num >> 4) & Value::TYPE_MASK;
 		uint64_t num = type | ((uint64_t)(machine_num) & Value::VALUE_MASK);
 		Value val = {((uint64_t)(num))};
 		return val;
 	}
+	inline Value value(long long machine_num) { return value((int64_t)machine_num); }
+	inline Value value(unsigned long long machine_num) { return value((int64_t)machine_num); }
+	inline Value value(unsigned long machine_num) { return value((int64_t)machine_num); }
 	inline Value value(double float_num)
 	{//cut off the bottom 4 bits of precision
 		Value val;

@@ -26,7 +26,7 @@ namespace Channel9
 		m_in_gc = true;
 
 		//switch pools
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Start GC, old pool %p, new pool %p, %llu used in %llu data blocks\n", m_pools[m_cur_pool], m_pools[!m_cur_pool], m_used, m_data_blocks);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Start GC, old pool %p, new pool %p, %"PRIu64" used in %"PRIu64" data blocks\n", m_pools[m_cur_pool], m_pools[!m_cur_pool], m_used, m_data_blocks);
 
 		m_cur_pool = !m_cur_pool;
 
@@ -106,7 +106,7 @@ namespace Channel9
 		//decide on the next gc cycle
 		m_next_gc = std::max(CHUNK_SIZE*0.9, m_used * GC_GROWTH_LIMIT);
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %llu used in %llu data blocks\n", m_used, m_data_blocks);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %"PRIu64" used in %"PRIu64" data blocks\n", m_used, m_data_blocks);
 
 		m_in_gc = false;
 	}

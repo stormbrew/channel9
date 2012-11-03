@@ -1,9 +1,12 @@
 
 #pragma once
 
+#define __STDC_FORMAT_MACROS
+
 #include <iostream>
 #include <stdio.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #define TRACE_SPAM  0
 #define TRACE_DEBUG 1

@@ -141,37 +141,37 @@ namespace Channel9
 		IINFO(CHANNEL_CALL, 2, 2, 0, true);
 		IINFO(CHANNEL_RET, 2, 2, 0, true);
 
-		IINFO(MESSAGE_NEW, 
-			ins.arg2.machine_num + ins.arg3.machine_num, 1,
-			3, false 
+		IINFO(MESSAGE_NEW,
+			(size_t)(ins.arg2.machine_num + ins.arg3.machine_num), 1,
+			3, false
 			);
 		IINFO(MESSAGE_SPLAT, 2, 1, 0, false);
-		IINFO(MESSAGE_ADD, 
-			1 + ins.arg1.machine_num, 1, 
-			1, false 
+		IINFO(MESSAGE_ADD,
+			(size_t)(1 + ins.arg1.machine_num), 1,
+			1, false
 			);
 		IINFO(MESSAGE_COUNT, 1, 2, 0, false);
 		IINFO(MESSAGE_NAME, 1, 2, 0, false);
-		IINFO(MESSAGE_SYS_UNPACK, 
-			1, 1 + ins.arg1.machine_num, 
-			1, false 
+		IINFO(MESSAGE_SYS_UNPACK,
+			1, (size_t)(1 + ins.arg1.machine_num),
+			1, false
 			);
-		IINFO(MESSAGE_UNPACK, 
-			1, 1 + ins.arg1.machine_num + (ins.arg2.machine_num != 0?1:0) + ins.arg3.machine_num, 
-			3, false 
+		IINFO(MESSAGE_UNPACK,
+			1, (size_t)(1 + ins.arg1.machine_num + (ins.arg2.machine_num != 0?1:0) + ins.arg3.machine_num),
+			3, false
 			);
 
-		IINFO(STRING_NEW, ins.arg1.machine_num, 1, 1, false);
+		IINFO(STRING_NEW, (size_t)ins.arg1.machine_num, 1, 1, false);
 		IINFO(STRING_COERCE, 1, 2, 1, false);
 
-		IINFO(TUPLE_NEW, 
-			ins.arg1.machine_num, 1, 
-			1, false 
+		IINFO(TUPLE_NEW,
+			(size_t)ins.arg1.machine_num, 1,
+			1, false
 			);
 		IINFO(TUPLE_SPLAT, 2, 1, 0, false);
-		IINFO(TUPLE_UNPACK, 
-			1, 1 + ins.arg1.machine_num + (ins.arg2.machine_num != 0?1:0) + ins.arg3.machine_num,
-			3, false 
+		IINFO(TUPLE_UNPACK,
+			1, 1 + (size_t)(ins.arg1.machine_num + (ins.arg2.machine_num != 0?1:0) + ins.arg3.machine_num),
+			3, false
 			);
 		default: break;
 		}

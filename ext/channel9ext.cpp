@@ -1,6 +1,6 @@
 extern "C" {
 #	include "ruby.h"
-#	include "intern.h"
+//#	include "intern.h"
 }
 #include "environment.hpp"
 #include "context.hpp"
@@ -13,6 +13,11 @@ extern "C" {
 #include <stdint.h>
 
 using namespace Channel9;
+
+const char *STR2CSTR(VALUE val)
+{
+	return StringValuePtr(val);
+}
 
 typedef VALUE (*ruby_method)(ANYARGS);
 typedef VALUE (*ruby_protected)(VALUE);
@@ -78,7 +83,7 @@ public:
 
 	void send(Environment *env, const Value &val, const Value &ret)
 	{
-		TRACE_PRINTF(TRACE_GENERAL, TRACE_INFO, "Oh hi %s\n", STR2CSTR(rb_funcall(rb_class_of(m_val), rb_intern("to_s"), 0)));
+//		TRACE_PRINTF(TRACE_GENERAL, TRACE_INFO, "Oh hi %s\n", STR2CSTR(rb_funcall(rb_class_of(m_val), rb_intern("to_s"), 0)));
 		int error = 0;
 		VALUE vals[] = {m_val, rb_Environment_new(env), c9_to_rb(val), c9_to_rb(ret)};
 		rb_protect(ruby_protected(&protected_send), (VALUE)vals, &error);
