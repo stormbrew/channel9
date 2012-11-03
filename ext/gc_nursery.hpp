@@ -13,7 +13,7 @@ namespace Channel9
 	// As an invariant, whenever an inner collection is taking place there should be nothing pointing
 	// at the nursery as all objects (and references) should have been moved to the inner collector.
 	template <typename tInnerGC>
-	class GC::Nursery 
+	class GC::Nursery
 	{
 		struct Remembered
 		{
@@ -90,7 +90,7 @@ namespace Channel9
 
 		// extra is how much to allocate, type is one of Channel9::ValueType, return the new location
 		// likely to call one of the more specific versions below
-		template <typename tObj> 
+		template <typename tObj>
 		tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
 		{
 			size_t object_size = sizeof(tObj) + extra;
@@ -108,12 +108,12 @@ namespace Channel9
 		}
 
 		//potentially faster versions to be called only if the size is known at compile time
-		template <typename tObj> 
+		template <typename tObj>
 		tObj *alloc_small(size_t extra, uint16_t type)
 		{
 			return alloc<tObj>(extra, type);
 		}
-		template <typename tObj> 
+		template <typename tObj>
 		tObj *alloc_med(size_t extra, uint16_t type)
 		{
 			return m_inner_gc.alloc_med<tObj>(extra, type);
@@ -140,14 +140,14 @@ namespace Channel9
 		}
 
 		// read a pointer and do anything necessary to it.
-		template <typename tRef> 
+		template <typename tRef>
 		tRef read_ptr(const tRef &obj)
 		{
 			return m_inner_gc.read_ptr(obj);
 		}
 
 		// tell the GC that obj will contain a reference to the object pointed to by ptr
-		template <typename tRef, typename tVal> 
+		template <typename tRef, typename tVal>
 		void write_ptr(tRef &ref, const tVal &val)
 		{
 			assert(sizeof(val) == sizeof(uintptr_t));
@@ -256,7 +256,7 @@ namespace Channel9
 	template <typename tInnerGC>
 	void GC::Nursery<tInnerGC>::collect()
 	{
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection begun (free: %llu/%llu)\n", (uint64_t)m_free, uint64_t(m_size));
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection begun (free: %"PRIu64"/%"PRIu64")\n", (uint64_t)m_free, uint64_t(m_size));
 		TRACE_DO(TRACE_GC, TRACE_INFO) m_moved = 0;
 		// first, scan the roots
 		for (std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
@@ -268,7 +268,7 @@ namespace Channel9
 		// not the full root set.
 		Remembered *it = m_remembered_set;
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updating %llu pointers in remembered set\n", uint64_t(m_remembered_end - m_remembered_set));
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updating %"PRIu64" pointers in remembered set\n", uint64_t(m_remembered_end - m_remembered_set));
 		while (it != m_remembered_end)
 		{
 			uintptr_t raw = (*it->location & POINTER_MASK);
@@ -299,13 +299,13 @@ namespace Channel9
 			}
 			it++;
 		}
-	
+
 		// and then reset the nursery space
 		m_next_pos = m_data;
 		m_remembered_set = m_remembered_end = (Remembered*)(m_data + m_size);
 		m_free = m_size;
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection done, moved %llu bytes to the inner collector\n", uint64_t(m_moved));
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection done, moved %"PRIu64" bytes to the inner collector\n", uint64_t(m_moved));
 	}
 
 	template <typename tPtr>

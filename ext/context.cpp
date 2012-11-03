@@ -43,7 +43,7 @@ namespace Channel9
 			caller = ptr<RunningContext>(ret);
 		else
 			caller = env->context();
-			
+
 		RunningContext *ctx = activate_context(caller, oself);
 
 		ctx->push(msg);
@@ -62,7 +62,7 @@ namespace Channel9
 		while (max > 0 && ctx)
 		{
 			SourcePos pos = ctx->m_instructions->source_pos(ctx->m_pos);
-			printf("%s:%llu:%llu (%s)\n", pos.file.c_str(), (uint64_t)pos.line_num, (uint64_t)pos.column, pos.annotation.c_str());
+			printf("%s:%"PRIu64":%"PRIu64" (%s)\n", pos.file.c_str(), (uint64_t)pos.line_num, (uint64_t)pos.column, pos.annotation.c_str());
 			ctx = ctx->m_caller;
 			--max;
 		}

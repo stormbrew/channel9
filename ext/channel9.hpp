@@ -1,6 +1,8 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
+#include <inttypes.h>
 
 namespace Channel9
 {

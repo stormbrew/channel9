@@ -1,7 +1,7 @@
 extern "C" {
 #	include "ruby.h"
-#	include "intern.h"
 }
+#include "channel9.hpp"
 #include "environment.hpp"
 #include "context.hpp"
 #include "value.hpp"
@@ -13,6 +13,13 @@ extern "C" {
 #include <stdint.h>
 
 using namespace Channel9;
+
+#ifndef STR2CSTR
+const char *STR2CSTR(VALUE val)
+{
+	return StringValuePtr(val);
+}
+#endif
 
 typedef VALUE (*ruby_method)(ANYARGS);
 typedef VALUE (*ruby_protected)(VALUE);
@@ -145,7 +152,7 @@ static GCRef<Value> rb_to_c9(VALUE val)
 	case T_SYMBOL:
 		return value(rb_id2name(SYM2ID(val)));
 	case T_STRING:
-		if (rb_class_of(val) == rb_cMessageId) 
+		if (rb_class_of(val) == rb_cMessageId)
 		{
 			return value((long long)make_message_id(STR2CSTR(val)));
 		} else if (rb_class_of(val) == rb_cProtocolId) {
@@ -649,7 +656,7 @@ public:
 	void scan()
 	{
 		rb_gc_start();
-	}	
+	}
 };
 
 extern "C" void Init_channel9ext()
