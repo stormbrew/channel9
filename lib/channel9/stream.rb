@@ -27,7 +27,7 @@ module Channel9
         instruction.collect! {|i|
           if (i.is_a?(Hash) && i.length == 1)
             k = v = nil
-            i.each {|k,v|}
+            i.each {|ik,iv| k,v=ik,iv }
             case k
             when 'undef'
               Channel9::Primitive::Undef

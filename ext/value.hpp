@@ -102,6 +102,7 @@ namespace Channel9
 		Value val = {((uint64_t)(num))};
 		return val;
 	}
+	inline Value value(long machine_num) { return value((long long)machine_num); }
 	inline Value value(double float_num)
 	{//cut off the bottom 4 bits of precision
 		Value val;
