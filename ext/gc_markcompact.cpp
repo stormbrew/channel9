@@ -71,6 +71,24 @@ namespace Channel9
 		m_roots.erase(root);
 	}
 
+	void GC::Markcompact::scan(Data * d)
+	{
+		// must not be forwarding pointers in the new heap.
+		assert((d->forward()) == 0);
+		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
+		switch(d->m_type)
+		{
+		case STRING:  			gc_scan( (String*)  (d->m_data)); break;
+		case TUPLE:   			gc_scan( (Tuple*)   (d->m_data)); break;
+		case MESSAGE: 			gc_scan( (Message*) (d->m_data)); break;
+		case CALLABLE_CONTEXT: 	gc_scan( (CallableContext*) (d->m_data)); break;
+		case RUNNING_CONTEXT:	gc_scan( (RunningContext*)  (d->m_data)); break;
+		case RUNNABLE_CONTEXT: 	gc_scan( (RunnableContext*) (d->m_data)); break;
+		case VARIABLE_FRAME:   	gc_scan( (VariableFrame*)   (d->m_data)); break;
+		default: assert(false && "Unknown GC type");
+		}
+	}
+
 	void GC::Markcompact::collect()
 	{
 		m_gc_phase = Marking;
@@ -99,6 +117,12 @@ namespace Channel9
 		{
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan root %p\n", *it);
 			(*it)->scan();
+		}
+
+		while(!m_scan_list.empty()) {
+			Data * d = m_scan_list.top();
+			m_scan_list.pop();
+			scan(d);
 		}
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Marked %"PRIu64" objects, Begin Compacting\n", m_dfs_marked);
@@ -198,6 +222,12 @@ namespace Channel9
 		{
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan root %p\n", *it);
 			(*it)->scan();
+		}
+
+		while(!m_scan_list.empty()) {
+			Data * d = m_scan_list.top();
+			m_scan_list.pop();
+			scan(d);
 		}
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updated %"PRIu64" pointers, unmarked %"PRIu64" objects, cleaning up\n", m_dfs_updated, m_dfs_unmarked);

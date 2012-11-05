@@ -102,6 +102,7 @@ namespace Channel9
 		std::vector<Data *> m_pinned_objs;
 
 		void collect();
+		void scan(Data * d);
 
 		uint8_t *next_slow(size_t size, size_t alloc_size, uint16_t type);
 		inline uint8_t *next(size_t size, uint16_t type)// __attribute__((always_inline))
@@ -216,7 +217,7 @@ namespace Channel9
 		template <typename tRef, typename tVal>
 		void write_ptr(tRef &ref, const tVal &val) { ref = val; }
 
-		bool need_collect() 
+		bool need_collect()
 		{
 			return m_next_gc < m_used;
 		}
@@ -235,7 +236,7 @@ namespace Channel9
 	bool GC::Semispace::mark(tObj **from_ptr)
 	{
 		tObj *from = *from_ptr;
-		Data * old = (Data*)(from) - 1;
+		Data * old = Data::ptr_for(from);
 
 		// we should never be marking an object that's in the nursery here.
 		assert(!in_nursery(*from_ptr));
