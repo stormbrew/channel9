@@ -20,7 +20,7 @@
 
 
 #ifndef TRACE_LEVEL
-#define TRACE_LEVEL 4
+#define TRACE_LEVEL TRACE_ERROR
 #endif
 
 #ifndef TRACE_SUB
