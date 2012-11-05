@@ -3,8 +3,13 @@ failed = false
 total_c9_time = 0.0
 total_rb_time = 0.0
 
-Dir["simple_tests/*.rb"].each do |test|
-  if (match = test.match(%r{^simple_tests/([0-9]{3,3})\.(.+)\.rb$}))
+dir = ARGV.first
+if !dir || !File.directory?(dir)
+  raise "No directory specified or directory not found (#{dir})."
+end
+
+Dir["#{dir}/*.rb"].sort.each do |test|
+  if (match = test.match(%r{^#{dir}/([0-9]{3,3})\.(.+)\.rb$}))
     num = match[1]
     name = match[2]
 

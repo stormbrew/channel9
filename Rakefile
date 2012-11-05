@@ -66,9 +66,12 @@ task :build => ["build:alpha", "build:beta", "build:delta"]
 namespace "spec" do
   desc "Run simple specs"
   task :simple => ["build"] do
-    sh "./simple_tests.rb"
+    sh "bin/simple_test_runner.rb simple_tests"
   end
 
+  task :perf => ["build"] do
+    sh "bin/simple_test_runner.rb perf_tests"
+  end
 
   desc "Run rubyspec language specs"
   task :language => ["build", "git:submodules"] do
