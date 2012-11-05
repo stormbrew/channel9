@@ -38,8 +38,8 @@ namespace Channel9
 		}
 
 		void clean(){
-			for(uintptr_t i = 0; i < size; i++)
-				table[i] = Entry();
+			for(Entry *i = table, *end = table + size; i != end; ++i)
+				*i = Entry();
 		}
 
 		template<typename tObj>
