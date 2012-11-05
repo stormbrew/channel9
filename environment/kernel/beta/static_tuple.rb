@@ -4,9 +4,9 @@ class StaticTuple
   def to_tuple_prim
     self
   end
-  
+
   def to_a
-    Array.new(self)
+    Array.new_from_tuple(self)
   end
 
   def first
