@@ -33,7 +33,7 @@ namespace Channel9
 			inline Data *init(uint32_t count, uint16_t type, bool pool, bool pin){
 				m_count = count;
 				m_type = type;
-				m_flags = (uint64_t)pool | ((uint16_t)pin << 12);
+				m_flags = (uint16_t)pool | ((uint16_t)pin << 12);
 				return this;
 			}
 			bool pool() { return m_flags & POOL_MASK; }
@@ -212,6 +212,10 @@ namespace Channel9
 
 		template <typename tObj>
 		bool mark(tObj **from_ptr);
+
+		// make sure this object is ready to be read from
+		template <typename tObj>
+		void read_ptr(tObj * obj) { }
 
 		// tell the GC that obj will contain a reference to the object pointed to by ptr
 		template <typename tRef, typename tVal>

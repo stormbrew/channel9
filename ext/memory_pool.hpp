@@ -42,7 +42,7 @@ namespace Channel9
 		template <typename tObj> bool validate(tObj * obj);
 
 		// make sure this object is ready to be read from
-		template <typename tObj> void read_barrier(tObj * obj);
+		template <typename tObj> void read_ptr(tObj * obj);
 
 		// tell the GC that obj will contain a reference to the object pointed to by ptr
 		template <typename tRef, typename tObj> void write_ptr(tRef &ref, const tObj &obj);
