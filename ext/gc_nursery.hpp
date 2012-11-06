@@ -43,7 +43,8 @@ namespace Channel9
 		size_t m_free;
 		size_t m_min_free;
 
-		size_t m_moved;
+		size_t m_moved_bytes;
+		size_t m_moved_data;
 
 		const static uint64_t POINTER_MASK = 0x00007fffffffffffULL;
 
@@ -177,7 +178,7 @@ namespace Channel9
 		template <typename tPtr>
 		bool in_nursery(const tPtr *ptr)
 		{
-			return ((uint8_t*)ptr >= m_data && (uint8_t*)ptr < m_data + m_size);
+			return ((uint8_t*)ptr >= m_data && (uint8_t*)ptr < (uint8_t*)m_remembered_set);
 		}
 
 		template <typename tObj>
@@ -195,7 +196,10 @@ namespace Channel9
 			*manip_ptr = (*manip_ptr & ~POINTER_MASK) | ((uintptr_t)nptr & POINTER_MASK);
 			TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " moved to %p\n", nptr);
 			gc_scan(nptr);
-			TRACE_DO(TRACE_GC, TRACE_INFO) m_moved += data->m_size + sizeof(Data);
+			TRACE_DO(TRACE_GC, TRACE_INFO){
+				m_moved_bytes += data->m_size + sizeof(Data);
+				m_moved_data++;
+			}
 		}
 		void collect();
 
@@ -243,7 +247,10 @@ namespace Channel9
 					data->set_forward(nptr);
 					*from = nptr;
 					gc_scan(nptr);
-					TRACE_DO(TRACE_GC, TRACE_INFO) m_moved += data->m_size + sizeof(Data);
+					TRACE_DO(TRACE_GC, TRACE_INFO){
+						m_moved_bytes += data->m_size + sizeof(Data);
+						m_moved_data++;
+					}
 				}
 				return true;
 			}
@@ -263,7 +270,7 @@ namespace Channel9
 	void GC::Nursery<tInnerGC>::collect()
 	{
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection begun (free: %"PRIu64"/%"PRIu64")\n", (uint64_t)m_free, uint64_t(m_size));
-		TRACE_DO(TRACE_GC, TRACE_INFO) m_moved = 0;
+		TRACE_DO(TRACE_GC, TRACE_INFO) m_moved_bytes = m_moved_data = 0;
 		// first, scan the roots, which triggers a DFS through part the live set in the nursery
 		for (std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
@@ -282,7 +289,7 @@ namespace Channel9
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Updating pointer %p (was set to %p, current value %p):", it->location, (void*)it->val, (void*)*it->location);
 			if (it->val == *it->location)
 			{
-				Data *data = Data::from_ptr((char*)raw);
+				Data *data = Data::from_ptr((uint8_t*)raw);
 				uint8_t *nptr = data->forward_addr();
 				if (nptr)
 				{
@@ -312,7 +319,7 @@ namespace Channel9
 		m_remembered_set = m_remembered_end = (Remembered*)(m_data + m_size);
 		m_free = m_size;
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection done, moved %"PRIu64" bytes to the inner collector\n", uint64_t(m_moved));
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection done, moved %"PRIu64" Data/%"PRIu64" bytes to the inner collector\n", uint64_t(m_moved_data), uint64_t(m_moved_bytes));
 	}
 
 	template <typename tPtr>
