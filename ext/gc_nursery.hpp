@@ -162,8 +162,6 @@ namespace Channel9
 				Remembered *r = --m_remembered_set;
 				r->location = (uintptr_t*)&ref;
 				r->val = *(uintptr_t*)&val;
-
-				m_free -= sizeof(tRef*) * 2;
 			}
 			m_inner_gc.write_ptr(ref, val);
 		}
@@ -314,3 +312,4 @@ namespace Channel9
 		return value_pool.in_nursery(ptr);
 	}
 }
+
