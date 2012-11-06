@@ -3,6 +3,7 @@
 #include <set>
 #include <vector>
 #include <deque>
+#include <stack>
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
@@ -32,7 +33,7 @@ namespace Channel9
 			unsigned m_mark   : 1; //is this marked
 			unsigned m_pinned : 1; //is this pinned in memory
 			unsigned m_padding : 6;//padding for 8 byte alignment
-			uint8_t    m_data[0]; //the actual data, 8 byte aligned
+			uint8_t  m_data[0]; //the actual data, 8 byte aligned
 
 			void init(uint32_t count, uint16_t type, uint8_t block_size, bool pinned){
 				m_count  = count;
@@ -72,12 +73,12 @@ namespace Channel9
 		{
 			uint32_t m_capacity;   //in bytes, total size not including this header
 			uint32_t m_next_alloc; //in bytes, offset to the next allocation
-			uint32_t m_in_use;     //in bytes, how much is actually used, is m_next - unmarked Data pieces
+			uint32_t m_in_use;     //in bytes, how much is actually used, is m_next_alloc - unmarked Data pieces
 			uint8_t  m_skipped;    //how many times a block has skipped compaction
 			uint8_t  m_block_size; //used to initialize Data::m_block_size
-			bool     m_mark;       //has this anything block been reached yet?
+			bool     m_mark;       //has this block been reached yet?
 			uint8_t  padding;
-			uint8_t    m_data[0];    //actual memory
+			uint8_t  m_data[0];    //actual memory
 
 			void init(uint8_t block_size)
 			{
@@ -135,11 +136,12 @@ namespace Channel9
 
 
 		std::deque<Chunk>   m_chunks;       // list of all chunks
-		std::deque<Block *> m_empty_blocks;  // list of empty blocks
+		std::deque<Block *> m_empty_blocks; // list of empty blocks
 		Block * m_cur_medium_block;//block to allocate medium objects out of, moved to small once if it fails to allocate a medium object
 		Block * m_cur_small_block; //block to allocate small objects out of, may point to the same as medium
 
 		ForwardTable forward;
+		std::stack<Data *>  m_scan_list;  // list of live objects left to scan
 
 		enum GCPhase { Running, Marking, Compacting, Updating };
 
@@ -156,6 +158,7 @@ namespace Channel9
 		std::vector<Data *> m_pinned_objs;
 		Block m_pinned_block;
 
+		void scan(Data * d);
 		void collect();
 
 		uint8_t *next_slow(size_t alloc_size, size_t size, uint16_t type, bool new_alloc, bool small);
@@ -268,7 +271,7 @@ namespace Channel9
 
 		// make sure this object is ready to be read from
 		template <typename tObj>
-		void read_barrier(tObj * obj) { }
+		void read_ptr(tObj * obj) { }
 
 		// tell the GC that obj will contain a reference to the object pointed to by ptr
 		template <typename tRef, typename tVal>
@@ -321,7 +324,7 @@ namespace Channel9
 			}
 			b->m_in_use += d->m_count + sizeof(Data);
 
-			gc_scan(*from);
+			m_scan_list.push(d);
 
 			return false;
 		}
@@ -344,7 +347,7 @@ namespace Channel9
 			{
 				m_dfs_unmarked++;
 				d->m_mark = false;
-				gc_scan(*from);
+				m_scan_list.push(d);
 			}
 
 			return changed;
@@ -357,7 +360,7 @@ namespace Channel9
 		}
 	}
 
-	template <typename tObj> 
+	template <typename tObj>
 	tObj *GC::Markcompact::alloc_pinned(size_t extra, uint16_t type)
 	{
 		size_t size = sizeof(tObj) + extra;

@@ -1,9 +1,13 @@
 #include "trace.hpp"
 #include <stdio.h>
+#include <iomanip>
+#include "time.hpp"
 
 namespace Channel9
 {
 	bool trace_mute = false;
+
+	Time start_time;
 
 	void trace_out_header(int facility, int level, const char * file, int line)
 	{
@@ -23,6 +27,9 @@ namespace Channel9
 		static const char * levelcolor[] = { white, white, green, yellow, red, red };
 
 		static bool color = isatty(2); //stderr
+
+		if(color) ctrace << white;
+		ctrace << std::setprecision(3) << std::fixed << (Time() - start_time) << " ";
 
 		if(color) ctrace << cyan;
 		switch(facility)

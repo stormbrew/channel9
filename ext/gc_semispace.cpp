@@ -53,6 +53,23 @@ namespace Channel9
 				m_cur_chunk = chunk;
 		}
 	}
+	void GC::Semispace::scan(Data * d)
+	{
+		// must not be forwarding pointers in the new heap.
+		assert((d->forward()) == 0);
+		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
+		switch(d->m_type)
+		{
+		case STRING:  			gc_scan( (String*)  (d->m_data)); break;
+		case TUPLE:   			gc_scan( (Tuple*)   (d->m_data)); break;
+		case MESSAGE: 			gc_scan( (Message*) (d->m_data)); break;
+		case CALLABLE_CONTEXT: 	gc_scan( (CallableContext*) (d->m_data)); break;
+		case RUNNING_CONTEXT:	gc_scan( (RunningContext*)  (d->m_data)); break;
+		case RUNNABLE_CONTEXT: 	gc_scan( (RunnableContext*) (d->m_data)); break;
+		case VARIABLE_FRAME:   	gc_scan( (VariableFrame*)   (d->m_data)); break;
+		default: assert(false && "Unknown GC type");
+		}
+	}
 	void GC::Semispace::collect()
 	{
 		m_in_gc = true;
@@ -84,20 +101,7 @@ namespace Channel9
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Chunk %p\n", c);
 			for(Data * d = c->begin(); d != c->end(); d = d->next())
 			{
-				// must not be forwarding pointers in the new heap.
-				assert((d->forward()) == 0);
-				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
-				switch(d->m_type)
-				{
-				case STRING:  			gc_scan( (String*)  (d->m_data)); break;
-				case TUPLE:   			gc_scan( (Tuple*)   (d->m_data)); break;
-				case MESSAGE: 			gc_scan( (Message*) (d->m_data)); break;
-				case CALLABLE_CONTEXT: 	gc_scan( (CallableContext*) (d->m_data)); break;
-				case RUNNING_CONTEXT:	gc_scan( (RunningContext*)  (d->m_data)); break;
-				case RUNNABLE_CONTEXT: 	gc_scan( (RunnableContext*) (d->m_data)); break;
-				case VARIABLE_FRAME:   	gc_scan( (VariableFrame*)   (d->m_data)); break;
-				default: assert(false && "Unknown GC type");
-				}
+				scan(d);
 			}
 		}
 

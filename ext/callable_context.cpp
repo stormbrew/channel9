@@ -2,7 +2,7 @@
 #include "context.hpp"
 #include "environment.hpp"
 
-#include <time.h>
+#include "time.hpp"
 
 namespace Channel9
 {
@@ -25,10 +25,9 @@ namespace Channel9
 	void CallableContext::sweep()
 	{
 		size_t total = 0, swept = 0;
-		time_t start = 0;
+		Time start_time;
 		TRACE_DO(TRACE_GC, TRACE_INFO) {
 			total = contexts.size();
-			start = time(NULL);
 		}
 		context_set fresh_contexts;
 		fresh_contexts.reserve(contexts.size());
@@ -49,7 +48,8 @@ namespace Channel9
 			}
 		}
 		swap(contexts, fresh_contexts);
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Deleted %i out of %i CallableContexts, leaving %i. Took %is, %fs/obj\n", 
-			int(swept), int(total), int(total - swept), int(time(NULL)-start), double(time(NULL)-start)/total);
+		double timediff = Time() - start_time;
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Deleted %i out of %i CallableContexts, leaving %i. Took %.3fs, %fs/obj\n",
+			int(swept), int(total), int(total - swept), timediff, timediff/total);
 	}
 }
