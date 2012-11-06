@@ -39,9 +39,10 @@ namespace Channel9
 			STATE_INNER_COLLECT,
 		} m_state;
 
-		size_t m_size;
-		size_t m_free;
-		size_t m_min_free;
+		size_t m_size;        // size of the whole space
+		size_t m_free;        // currently empty space between the allocations and the remembered set
+		size_t m_min_free;    // start a compaction once free < min_free
+		size_t m_data_blocks; // number of data blocks that are allocated
 
 		size_t m_moved_bytes;
 		size_t m_moved_data;
@@ -91,7 +92,8 @@ namespace Channel9
 		 : m_state(STATE_NORMAL),
 		   m_size(size),
 		   m_free(size),
-		   m_min_free(1<<14)
+		   m_min_free(1<<14),
+		   m_data_blocks(0)
 		{
 			m_data = m_next_pos = (uint8_t*)malloc(size);
 			m_remembered_end = m_remembered_set = (Remembered*)(m_data + size);
@@ -109,6 +111,7 @@ namespace Channel9
 				Data *data = (Data*)m_next_pos;
 				m_next_pos += data_size;
 				m_free -= data_size;
+				m_data_blocks++;
 				data->init(object_size, type);
 				return (tObj*)data->m_data;
 			} else {
@@ -269,7 +272,7 @@ namespace Channel9
 	template <typename tInnerGC>
 	void GC::Nursery<tInnerGC>::collect()
 	{
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection begun (free: %"PRIu64"/%"PRIu64")\n", (uint64_t)m_free, uint64_t(m_size));
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection begun (%"PRIu64" objects, free: %"PRIu64"/%"PRIu64")\n", (uint64_t)m_data_blocks, (uint64_t)m_free, uint64_t(m_size));
 		TRACE_DO(TRACE_GC, TRACE_INFO) m_moved_bytes = m_moved_data = 0;
 		// first, scan the roots, which triggers a DFS through part the live set in the nursery
 		for (std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
@@ -318,6 +321,7 @@ namespace Channel9
 		m_next_pos = m_data;
 		m_remembered_set = m_remembered_end = (Remembered*)(m_data + m_size);
 		m_free = m_size;
+		m_data_blocks = 0;
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection done, moved %"PRIu64" Data/%"PRIu64" bytes to the inner collector\n", uint64_t(m_moved_data), uint64_t(m_moved_bytes));
 	}
