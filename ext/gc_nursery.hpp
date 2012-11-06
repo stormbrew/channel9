@@ -23,8 +23,8 @@ namespace Channel9
 
 		// m_data is a pointer to the base address of the nursery chunk,
 		// m_next_pos is the next position to allocate from,
-		// m_end_pos is the end of the allocation (also the pointer to the first item in the remembered set)
-		// m_data_end is the end of the nursery chunk as a whole.
+		// m_remembered_set is the first item in the remembered set (also the end of the allocation)
+		// m_remembered_end is the end of the remembered set and the end of the nursery chunk as a whole.
 		// After a nursery collection, the nursery will be evacuated and m_next_pos will == m_data and m_end_pos will == m_data_end
 		uint8_t *m_data;
 		uint8_t *m_next_pos;
@@ -50,10 +50,18 @@ namespace Channel9
 		struct Data
 		{
 			uint32_t m_size;
-			uint32_t m_type;
+			uint16_t m_type;
+			uint16_t m_flags;
 			uint8_t m_data[0];
 
-			static const uint32_t FORWARD_FLAG = 0x70000000;
+			static const uint16_t FORWARD_FLAG = 0x1;
+
+			inline Data *init(uint32_t size, uint16_t type){
+				m_size = size;
+				m_type = type;
+				m_flags = 0;
+				return this;
+			}
 
 			template <typename tPtr>
 			static Data *from_ptr(const tPtr *ptr)
@@ -65,12 +73,12 @@ namespace Channel9
 			template <typename tObj>
 			void set_forward(tObj *to)
 			{
-				m_type |= FORWARD_FLAG;
+				m_flags |= FORWARD_FLAG;
 				*(tObj**)m_data = to;
 			}
 			uint8_t *forward_addr() const
 			{
-				if (m_type & FORWARD_FLAG)
+				if (m_flags & FORWARD_FLAG)
 					return *(uint8_t**)m_data;
 				else
 					return NULL;
@@ -78,11 +86,11 @@ namespace Channel9
 		};
 
 	public:
-		Nursery(size_t size = 2<<22)
+		Nursery(size_t size = 1<<22)
 		 : m_state(STATE_NORMAL),
 		   m_size(size),
 		   m_free(size),
-		   m_min_free(size / 20)
+		   m_min_free(1<<14)
 		{
 			m_data = m_next_pos = (uint8_t*)malloc(size);
 			m_remembered_end = m_remembered_set = (Remembered*)(m_data + size);
@@ -94,13 +102,13 @@ namespace Channel9
 		tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
 		{
 			size_t object_size = sizeof(tObj) + extra;
-			if (!pinned && (sizeof(Data) + object_size) < m_free)
+			size_t data_size   = sizeof(Data) + object_size;
+			if (!pinned && data_size < m_free)
 			{
 				Data *data = (Data*)m_next_pos;
-				m_next_pos += sizeof(Data) + object_size;
-				m_free -= sizeof(Data) + object_size;
-				data->m_size = object_size;
-				data->m_type = type;
+				m_next_pos += data_size;
+				m_free -= data_size;
+				data->init(object_size, type);
 				return (tObj*)data->m_data;
 			} else {
 				return m_inner_gc.alloc<tObj>(extra, type, pinned);
@@ -154,7 +162,7 @@ namespace Channel9
 			if (!Channel9::in_nursery(&ref) && Channel9::in_nursery(val))
 			{
 				// TODO: What to do when this happens? Maybe it should be a deque anyways.
-				assert(m_free <= m_size);
+				assert(m_free >= sizeof(Remembered));
 
 				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Write barrier, adding: %p(%s) <- %p(%s)\n", &ref, Channel9::in_nursery(&ref)? "yes":"no", *(void**)&val, Channel9::in_nursery(val)? "yes":"no");
 
@@ -256,14 +264,15 @@ namespace Channel9
 	{
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection begun (free: %"PRIu64"/%"PRIu64")\n", (uint64_t)m_free, uint64_t(m_size));
 		TRACE_DO(TRACE_GC, TRACE_INFO) m_moved = 0;
-		// first, scan the roots
+		// first, scan the roots, which triggers a DFS through part the live set in the nursery
 		for (std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
 			(*it)->scan();
 		}
 
 		// we only look through the external pointers in the remembered set,
-		// not the full root set.
+		// not the full root set. This also triggers a partial dfs through the live set,
+		// and updates the forwarding pointers
 		Remembered *it = m_remembered_set;
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updating %"PRIu64" pointers in remembered set\n", uint64_t(m_remembered_end - m_remembered_set));
