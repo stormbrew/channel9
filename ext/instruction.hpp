@@ -62,6 +62,7 @@ namespace Channel9
 		TUPLE_UNPACK,
 
 		INUM_COUNT,
+		INUM_INVALID = -1,
 	};
 
 	struct InstructionInfo

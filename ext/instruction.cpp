@@ -65,7 +65,11 @@ namespace Channel9
 	INUM inum(std::string iname)
 	{
 		std::transform(iname.begin(), iname.end(), iname.begin(), toupper);
-		return inum_table[iname];
+		inum_table_t::iterator it = inum_table.find(iname);
+		if (it != inum_table.end())
+			return it->second;
+		else
+			return INUM_INVALID;
 	}
 	std::string iname(INUM inum)
 	{
@@ -199,7 +203,7 @@ namespace Channel9
 			);
 		default: break;
 		}
-		InstructionInfo ret = {NOP};
+		InstructionInfo ret = {INUM_INVALID};
 		return ret;
 	}
 
