@@ -81,6 +81,7 @@ public:
 		default:
 			break;
 		}
+		std::cout << "\n";
 		channel_send(env, ret, val, Channel9::value(no_return_channel));
 	}
 	std::string inspect() const
