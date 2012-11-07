@@ -73,8 +73,6 @@ namespace Channel9
 
 	void GC::Markcompact::scan(Data * d)
 	{
-		// must not be forwarding pointers in the new heap.
-		assert((d->forward()) == 0);
 		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
 		switch(d->m_type)
 		{
