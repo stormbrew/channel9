@@ -4,9 +4,14 @@ project (channel9)
 set (channel9_VERSION_MAJOR 1)
 set (channel9_VERSION_MINOR 0)
 
-#set (CMAKE_CXX_FLAGS "-g -O4 --param inline-unit-growth=100000 --param large-function-growth=100000 --param max-inline-insns-single=100000 -Wall -Werror -frtti -Wno-unused-but-set-variable -Wno-strict-aliasing")
-set (CMAKE_CXX_FLAGS "-g -O0")
-add_definitions( -DCOLLECTOR_CLASS=Markcompact -D__STDC_FORMAT_MACROS -DTRACE_SUB=0xffffffff -DTRACE_LEVEL=0)
+if(DEFINED DEBUG)
+    set (CMAKE_CXX_FLAGS "-g -O0")
+    add_definitions( -DDEBUG -DTRACE_SUB=0xffffffff -DTRACE_LEVEL=0 )
+else(DEFINED DEBUG)
+    set (CMAKE_CXX_FLAGS "-g -O4 --param inline-unit-growth=100000 --param large-function-growth=100000 --param max-inline-insns-single=100000 -Wall -Werror -frtti -Wno-unused-but-set-variable -Wno-strict-aliasing")
+    add_definitions( -DNDEBUG -DTRACE_SUB=0 -DTRACE_LEVEL=6 )
+endif(DEFINED DEBUG)
+add_definitions( -DCOLLECTOR_CLASS=Markcompact -D__STDC_FORMAT_MACROS )
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
@@ -52,7 +57,7 @@ add_library (c9
     ext/variable_frame.hpp
     ext/variable_frame.cpp
 )
-set(LIBS ${LIBS} c9)
+set(LIBS ${LIBS} -Wl,-whole-archive c9 -Wl,-no-whole-archive)
 
 include_directories(src/jsoncpp)
 add_library(jsoncpp
