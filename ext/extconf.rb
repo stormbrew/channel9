@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 
 require 'mkmf'
 
@@ -8,6 +8,7 @@ collector_class = collector.capitalize
 
 $CFLAGS = "-Wall -Werror -frtti -Wno-unused-but-set-variable -Wno-strict-aliasing "# -Winline "
 $CFLAGS << "-D__STDC_FORMAT_MACROS "
+$CFLAGS << "-I../include "
 $CFLAGS << "-DCOLLECTOR=" + collector + " -DCOLLECTOR_CLASS=" + collector_class
 $LDFLAGS = "-lstdc++"
 
@@ -43,6 +44,5 @@ if !enable_config("valgrind-client")
   $CFLAGS << " -DNVALGRIND"
 end
 
-dir_config(channel9ext)
-create_makefile(channel9ext)
+create_makefile(channel9ext, "../src/libc9")
 

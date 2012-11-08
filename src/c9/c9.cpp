@@ -3,11 +3,11 @@
 #include <stdlib.h>
 
 #include "json/reader.h"
-#include "channel9.hpp"
-#include "istream.hpp"
-#include "environment.hpp"
-#include "context.hpp"
-#include "instruction.hpp"
+#include "c9/channel9.hpp"
+#include "c9/istream.hpp"
+#include "c9/environment.hpp"
+#include "c9/context.hpp"
+#include "c9/instruction.hpp"
 
 class NoReturnChannel : public Channel9::CallableContext
 {
