@@ -19,7 +19,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 include_directories(ext)
 
-add_library (c9
+add_library (c9 SHARED
     ext/bittwiddle.hpp
     ext/callable_context.hpp
     ext/callable_context.cpp
@@ -57,7 +57,7 @@ add_library (c9
     ext/variable_frame.hpp
     ext/variable_frame.cpp
 )
-set(LIBS ${LIBS} -Wl,-whole-archive c9 -Wl,-no-whole-archive)
+set(LIBS ${LIBS} c9)
 
 include_directories(src/jsoncpp)
 add_library(jsoncpp
