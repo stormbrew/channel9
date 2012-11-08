@@ -27,6 +27,23 @@ public:
 };
 NoReturnChannel *no_return_channel = new NoReturnChannel;
 
+
+class NothingChannel : public Channel9::CallableContext
+{
+public:
+	NothingChannel(){}
+	~NothingChannel(){}
+
+	void send(Channel9::Environment *env, const Channel9::Value &val, const Channel9::Value &ret)
+	{
+	}
+	std::string inspect() const
+	{
+		return "Nothing Channel";
+	}
+};
+NothingChannel *nothing_channel = new NothingChannel;
+
 class ExitChannel : public Channel9::CallableContext
 {
 public:
@@ -143,7 +160,7 @@ Channel9::Value convert_json(const Json::Value &val)
 	}
 }
 
-int run_program(const Json::Value &code, bool debug, bool detail)
+int run_program(Channel9::Environment *env, const Json::Value &code, bool debug, bool detail)
 {
 	using namespace Channel9;
 	GCRef<IStream*> istream = new IStream;
@@ -216,36 +233,18 @@ int run_program(const Json::Value &code, bool debug, bool detail)
 		}
 	}
 
-	Channel9::Environment *env = new Channel9::Environment();
-	env->set_special_channel("exit", Channel9::value(exit_channel));
-	env->set_special_channel("stdout", Channel9::value(stdout_channel));
-
 	(*istream)->normalize();
 	GCRef<Channel9::VariableFrame*> frame = Channel9::new_variable_frame(*istream);
 	GCRef<Channel9::RunnableContext*> ctx = Channel9::new_context(*istream, *frame);
-	Channel9::channel_send(env, value(*ctx), Channel9::Nil, Channel9::value(exit_channel));
+	Channel9::channel_send(env, value(*ctx), Channel9::Nil, Channel9::value(nothing_channel));
 
 	return 0;
-/*
-
-  environment = Channel9::Environment.new(debug)
-  context = Channel9::Context.new(environment, stream)
-  stime = Time.now
-  begin
-    context.channel_send(environment, nil, Channel9::CleanExitChannel)
-  ensure
-    etime = Time.now
-    puts("Ran in #{etime - stime}s")
-  end
-end
-*/
 }
 
 int main(int argc, const char **argv)
 {
 	bool debug = false;
 	bool detail = false;
-	const char *filename = NULL;
 	const char *program = *argv++; argc--; // chop off program name.
 	int i = 0;
 
@@ -257,35 +256,43 @@ int main(int argc, const char **argv)
 			detail = true;
 	}
 	// first non-flag argument is the file to parse
-	if (i < argc) {
-		filename = *argv;
-	} else {
+	if (i == argc)
+	{
 		std::cout << program << ": No file specified to run.\n";
 		exit(1);
 	}
 
-	std::ifstream file(filename);
-	if (file.is_open())
+	Channel9::Environment *env = new Channel9::Environment();
+	env->set_special_channel("exit", Channel9::value(exit_channel));
+	env->set_special_channel("stdout", Channel9::value(stdout_channel));
+
+	for (; i < argc; i++)
 	{
-		Json::Reader reader;
-		Json::Value body;
-		if (reader.parse(file, body, false))
+		const char *filename = argv[i];
+		std::ifstream file(filename);
+		if (file.is_open())
 		{
-			Json::Value code = body["code"];
-			if (!code.isArray())
+			Json::Reader reader;
+			Json::Value body;
+			if (reader.parse(file, body, false))
 			{
-				std::cout << program << ": No code block in " << filename << "\n";
+				Json::Value code = body["code"];
+				if (!code.isArray())
+				{
+					std::cout << program << ": No code block in " << filename << "\n";
+					exit(1);
+				}
+
+				run_program(env, code, debug, detail);
+			} else {
+				std::cout << program << ": Failed to parse json in " << filename << ":\n"
+					<< reader.getFormattedErrorMessages();
 				exit(1);
 			}
-
-			return run_program(code, debug, detail);
 		} else {
-			std::cout << program << ": Failed to parse json in " << filename << ":\n"
-				<< reader.getFormattedErrorMessages();
+			std::cout << program << ": Could not open file " << filename << ".\n";
 			exit(1);
 		}
-	} else {
-		std::cout << program << ": Could not open file " << filename << ".\n";
-		exit(1);
 	}
+	return 0;
 }
