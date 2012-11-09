@@ -45,6 +45,10 @@ add_library (libc9 SHARED
 set_target_properties(libc9 PROPERTIES OUTPUT_NAME c9)
 set(LIBS ${LIBS} libc9)
 
+add_library(testext SHARED
+    src/testext/testext.cpp
+)
+
 include_directories(src/jsoncpp)
 add_library(jsoncpp
     src/jsoncpp/json_reader.cpp
