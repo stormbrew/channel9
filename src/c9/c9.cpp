@@ -98,7 +98,7 @@ public:
 			std::cout << val.machine_num;
 			break;
 		case Channel9::STRING:
-			std::cout << val.str_p;
+			std::cout << Channel9::ptr<Channel9::String>(val)->c_str();
 			break;
 		default:
 			break;

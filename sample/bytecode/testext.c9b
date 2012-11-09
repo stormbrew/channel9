@@ -1,0 +1,40 @@
+{
+  "code": [
+    [
+      "line",
+      "sample/c9script/testext.c9s",
+      1,
+      0
+    ],
+    ["swap"],
+    ["pop"],
+    ["channel_special","hello_test_channel"],
+    [
+      "line",
+      "sample/c9script/testext.c9s",
+      1,
+      0
+    ],
+    ["push","boom"],
+    ["channel_call"],
+    ["pop"],
+    ["pop"],
+    [
+      "line",
+      "sample/c9script/testext.c9s",
+      2,
+      0
+    ],
+    ["channel_special","stdout"],
+    [
+      "line",
+      "sample/c9script/testext.c9s",
+      2,
+      0
+    ],
+    ["push","hello"],
+    ["channel_call"],
+    ["pop"],
+    ["channel_ret"]
+  ]
+}
