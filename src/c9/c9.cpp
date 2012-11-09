@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
+#include <dlfcn.h>
 
 #include "json/reader.h"
 #include "c9/channel9.hpp"
@@ -8,6 +9,10 @@
 #include "c9/environment.hpp"
 #include "c9/context.hpp"
 #include "c9/instruction.hpp"
+#include "c9/string.hpp"
+#include "c9/tuple.hpp"
+
+int run_file(const char *program, Channel9::Environment *env, const char *filename, bool environment_loaded = false);
 
 class NoReturnChannel : public Channel9::CallableContext
 {
@@ -160,7 +165,7 @@ Channel9::Value convert_json(const Json::Value &val)
 	}
 }
 
-int run_program(Channel9::Environment *env, const Json::Value &code, bool debug, bool detail)
+int run_program(Channel9::Environment *env, const Json::Value &code)
 {
 	using namespace Channel9;
 	GCRef<IStream*> istream = new IStream;
@@ -241,6 +246,109 @@ int run_program(Channel9::Environment *env, const Json::Value &code, bool debug,
 	return 0;
 }
 
+int run_bytecode(const char *program, Channel9::Environment *env, const char *filename)
+{
+	std::ifstream file(filename);
+	if (file.is_open())
+	{
+		Json::Reader reader;
+		Json::Value body;
+		if (reader.parse(file, body, false))
+		{
+			Json::Value code = body["code"];
+			if (!code.isArray())
+			{
+				std::cout << program << ": No code block in " << filename << "\n";
+				exit(1);
+			}
+
+			return run_program(env, code);
+		} else {
+			std::cout << program << ": Failed to parse json in " << filename << ":\n"
+				<< reader.getFormattedErrorMessages();
+			exit(1);
+		}
+	} else {
+		std::cout << program << ": Could not open file " << filename << ".\n";
+		exit(1);
+	}
+}
+
+int run_list(const char *program, Channel9::Environment *env, const char *filename)
+{
+	std::ifstream file(filename);
+	if (file.is_open())
+	{
+		while (!file.eof())
+		{
+			std::string line;
+			std::getline(file, line);
+			if (line.size() > 0)
+			{
+				run_file(program, env, line.c_str(), true);
+			} else {
+				break;
+			}
+		}
+		return 0;
+	} else {
+		std::cout << program << ": Could not open file " << filename << ".\n";
+		exit(1);
+	}
+}
+
+typedef int (*entry_point)(Channel9::Environment*);
+int run_shared_object(const char *program, Channel9::Environment *env, const char *filename)
+{
+	void *shobj = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
+	if (!shobj)
+	{
+		std::cout << program << ": Could not load shared object " << filename << "\n";
+		exit(1);
+	}
+	entry_point shobj_entry = (entry_point)dlsym(shobj, "Channel9_environment_initialize");
+	if (!shobj_entry)
+	{
+		std::cout << program << ": Coult not load entry point to shared object " << filename << "\n";
+		exit(1);
+	}
+	return shobj_entry(env);
+}
+
+int find_environment_and_run(const char *program, Channel9::Environment *env, const char *filename)
+{
+	std::cout << program << ": Running discoverable environments not yet implemented.\n";
+	exit(1);
+}
+
+int run_file(const char *program, Channel9::Environment *env, const char *filename, bool environment_loaded)
+{
+	// find the extension
+	const char *ext = filename;
+	for (const char *pos = filename; *pos != '\0'; pos++)
+	{
+		if (*pos == '.')
+			ext = pos;
+	}
+	if (strcmp(ext, ".c9b") == 0)
+	{
+		return run_bytecode(program, env, filename);
+	} else if (strcmp(ext, ".c9l") == 0) {
+		return run_list(program, env, filename);
+	} else if (strcmp(ext, ".so") == 0) {
+		return run_shared_object(program, env, filename);
+	} else if (filename == ext) {
+		std::cout << program << ": Don't know what to do with no extension.\n";
+		exit(1);
+	} else if (!environment_loaded) {
+		return find_environment_and_run(program, env, filename);
+	} else {
+		std::cout << program << ": Don't know what to do with extension `" << ext << "`\n";
+		exit(1);
+	}
+	return 1;
+}
+
 int main(int argc, const char **argv)
 {
 	bool debug = false;
@@ -262,37 +370,18 @@ int main(int argc, const char **argv)
 		exit(1);
 	}
 
+	const char *filename = argv[i++];
+
+	std::vector<Channel9::Value> args;
+	for (; i < argc; i++)
+	{
+		args.push_back(Channel9::value(Channel9::new_string(argv[i])));
+	}
+
 	Channel9::Environment *env = new Channel9::Environment();
 	env->set_special_channel("exit", Channel9::value(exit_channel));
 	env->set_special_channel("stdout", Channel9::value(stdout_channel));
+	env->set_special_channel("argv", Channel9::value(Channel9::new_tuple(args.begin(), args.end())));
 
-	for (; i < argc; i++)
-	{
-		const char *filename = argv[i];
-		std::ifstream file(filename);
-		if (file.is_open())
-		{
-			Json::Reader reader;
-			Json::Value body;
-			if (reader.parse(file, body, false))
-			{
-				Json::Value code = body["code"];
-				if (!code.isArray())
-				{
-					std::cout << program << ": No code block in " << filename << "\n";
-					exit(1);
-				}
-
-				run_program(env, code, debug, detail);
-			} else {
-				std::cout << program << ": Failed to parse json in " << filename << ":\n"
-					<< reader.getFormattedErrorMessages();
-				exit(1);
-			}
-		} else {
-			std::cout << program << ": Could not open file " << filename << ".\n";
-			exit(1);
-		}
-	}
-	return 0;
+	return run_file(program, env, filename, false);
 }
