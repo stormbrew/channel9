@@ -56,4 +56,4 @@ set(LIBS ${LIBS} jsoncpp)
 add_executable (c9
     src/c9/c9.cpp
 )
-target_link_libraries (c9 ${LIBS})
+target_link_libraries (c9 dl ${LIBS})
