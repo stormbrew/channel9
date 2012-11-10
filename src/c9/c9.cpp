@@ -285,7 +285,20 @@ int run_list(const char *program, Channel9::Environment *env, const char *filena
 			std::getline(file, line);
 			if (line.size() > 0)
 			{
-				run_file(program, env, line.c_str(), true);
+				if (line[0] != '/')
+				{
+					// if the path is not absolute it's relative
+					// to the c9l file.
+					const char *last_slash = NULL;
+					for (const char *pos = filename; *pos != '\0'; pos++)
+						if (*pos == '/')
+							last_slash = pos;
+
+					if (!last_slash)
+						run_file(program, env, line.c_str(), true);
+					else
+						run_file(program, env, (std::string(filename, last_slash + 1) + line).c_str(), true);
+				}
 			} else {
 				break;
 			}
