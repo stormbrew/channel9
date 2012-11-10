@@ -20,7 +20,7 @@ add_definitions( -DCOLLECTOR_CLASS=Markcompact -D__STDC_FORMAT_MACROS )
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
 include_directories(include)
 
@@ -45,10 +45,6 @@ add_library (libc9 SHARED
 set_target_properties(libc9 PROPERTIES OUTPUT_NAME c9)
 set(LIBS ${LIBS} libc9)
 
-add_library(testext SHARED
-    src/testext/testext.cpp
-)
-
 include_directories(src/jsoncpp)
 add_library(jsoncpp
     src/jsoncpp/json_reader.cpp
@@ -62,6 +58,10 @@ add_executable (c9
 )
 target_link_libraries (c9 dl ${LIBS})
 
+add_library(testext SHARED
+    src/testext/testext.cpp
+)
+
 add_custom_command(
     OUTPUT ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.so
     COMMAND ${CMAKE_COMMAND} -E copy ${LIBRARY_OUTPUT_PATH}/libtestext.so ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.so
@@ -70,13 +70,13 @@ add_custom_command(
 add_custom_target(testext-pkg-so ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.so)
 add_custom_command(
     OUTPUT ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.c9l
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/testext/testext.c9l ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.c9l
-    DEPENDS ${CMAKE_SOURCE_DIR}/src/testext/testext.c9l
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/testext/testext.c9l ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.c9l
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/testext/testext.c9l
 )
 add_custom_target(testext-pkg-c9l ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.c9l)
 add_custom_command(
     OUTPUT ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.c9b
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/testext/testext.c9b ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.c9b
-    DEPENDS ${CMAKE_SOURCE_DIR}/src/testext/testext.c9b
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/testext/testext.c9b ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.c9b
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/testext/testext.c9b
 )
 add_custom_target(testext-pkg-c9b ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/c9-env/testext/testext.c9b)
