@@ -18,6 +18,11 @@ if (eval)
 else
   filename = ARGV[0]
   infile = File.read(filename)
+  if ARGV.length > 1
+    outfile = ARGV[1]
+  else
+    outfile = filename.gsub(/\.c9s$/, ".c9b")
+  end
 end
 
 parser = Channel9::Script::Parser.new
@@ -36,7 +41,7 @@ begin
   if (print)
     puts code.to_json
   elsif (filename.match(/\.c9s$/))
-    File.open(filename.gsub(/\.c9s$/, ".c9b"), "w") do |f|
+    File.open(outfile, "w") do |f|
       f.write(code.to_json)
     end
   else
