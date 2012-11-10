@@ -20,43 +20,13 @@ add_definitions( -DCOLLECTOR_CLASS=Markcompact -D__STDC_FORMAT_MACROS )
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 include_directories(include)
 
-add_library (libc9 SHARED
-    src/libc9/callable_context.cpp
-    src/libc9/context.cpp
-    src/libc9/environment.cpp
-    src/libc9/gc_markcompact.cpp
-    src/libc9/gc_semispace.cpp
-    src/libc9/instruction.cpp
-    src/libc9/istream.cpp
-    src/libc9/memory_pool.cpp
-    src/libc9/message.cpp
-    src/libc9/primitive.cpp
-    src/libc9/string.cpp
-    src/libc9/trace.cpp
-    src/libc9/tuple.cpp
-    src/libc9/value.cpp
-    src/libc9/variable_frame.cpp
-    # Note: channel9ext.[hc]pp left out deliberately. They're for the ruby ext.
-)
-set_target_properties(libc9 PROPERTIES OUTPUT_NAME c9)
-set(LIBS ${LIBS} libc9)
-
-include_directories(src/jsoncpp)
-add_library(jsoncpp
-    src/jsoncpp/json_reader.cpp
-    src/jsoncpp/json_value.cpp
-    src/jsoncpp/json_writer.cpp
-)
-set(LIBS ${LIBS} jsoncpp)
-
-add_executable (c9
-    src/c9/c9.cpp
-)
-target_link_libraries (c9 dl ${LIBS})
+add_subdirectory(src/libc9)
+add_subdirectory(src/jsoncpp)
+add_subdirectory(src/c9)
 
 file(GLOB environments "environments/*")
 foreach(environment ${environments})
