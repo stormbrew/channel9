@@ -6,7 +6,6 @@ require 'channel9/ruby'
 module Channel9
   module Loader
     class Ruby
-      attr :debug
       attr :env
       attr :globals
       attr :root
@@ -16,10 +15,7 @@ module Channel9
         self
       end
 
-      def initialize(debug = false)
-        @debug = debug
-        @env = Channel9::Environment.new(debug)
-
+      def initialize()
         @root = File.expand_path(File.dirname(__FILE__) + "../../../..")
         @root_environment = @root + "/environment"
       end
@@ -49,14 +45,14 @@ module Channel9
         end
 
         env.set_special_channel(:initial_load_path, [
-            :"#{@root}/environment/kernel", 
+            :"#{@root}/environment/kernel",
             :"#{@root}/environment/lib",
             :"#{@root}/environment/site-lib",
             :"."
           ])
-        env.set_special_channel(:print, CallbackChannel.new {|ienv, val, iret| 
+        env.set_special_channel(:print, CallbackChannel.new {|ienv, val, iret|
           print(val.positional.first.to_s)
-          iret.channel_send(@env, val, InvalidReturnChannel) 
+          iret.channel_send(@env, val, InvalidReturnChannel)
         })
 
         load_c9_file("#{@root_environment}/kernel/delta.c9b")
@@ -186,7 +182,7 @@ module Channel9
           mod.channel_send(env, Primitive::Message.new(:"ruby_sys:make_singleton", [],[]), CallbackChannel.new {|_, singleton, _|
             singleton.channel_send(env, Primitive::Message.new(:"ruby_sys:add_method", [], [msgid, meth]), CallbackChannel.new {
               return
-            })            
+            })
           })
         end
       end
