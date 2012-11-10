@@ -1,2 +1,2 @@
-lib/libtestext.so
-../sample/bytecode/testext.c9b
+testext.so
+testext.c9b
