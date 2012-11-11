@@ -25,7 +25,7 @@ public:
 };
 TestChannel *test_channel = new TestChannel;
 
-extern "C" int Channel9_environment_initialize(Channel9::Environment *env)
+extern "C" int Channel9_environment_initialize(Channel9::Environment *env, const std::string &boot_path)
 {
 	env->set_special_channel("hello_test_channel", Channel9::value(test_channel));
 	return 0;
