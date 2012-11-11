@@ -2,6 +2,7 @@
 $LOAD_PATH.unshift "lib" if $0 == "bin/c9c"
 
 require 'pp'
+require 'fileutils'
 require 'channel9'
 require 'channel9/script/parser'
 require 'channel9/script/transformer'
@@ -41,6 +42,7 @@ begin
   if (print)
     puts code.to_json
   elsif (filename.match(/\.c9s$/))
+    FileUtils.mkdir_p(File.dirname(outfile))
     File.open(outfile, "w") do |f|
       f.write(code.to_json)
     end
