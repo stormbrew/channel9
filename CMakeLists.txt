@@ -28,6 +28,18 @@ add_subdirectory(src/libc9)
 add_subdirectory(src/jsoncpp)
 add_subdirectory(src/c9)
 
+function(add_c9script SRC DST COMMON_PATH TARGET_PREFIX) # extra args are script names.
+    foreach(FILE ${ARGN})
+        add_custom_command(
+            OUTPUT ${DST}/${COMMON_PATH}/${FILE}.c9b
+            COMMAND ruby -rubygems -I${CMAKE_SOURCE_DIR}/ruby/lib ${CMAKE_SOURCE_DIR}/ruby/bin/c9c ${SRC}/${COMMON_PATH}/${FILE} ${DST}/${COMMON_PATH}/${FILE}.c9b
+            DEPENDS ${SRC}/${COMMON_PATH}/${FILE}
+        )
+        add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE}.c9b)
+    endforeach()
+endfunction()
+
+
 file(GLOB environments "environments/*")
 foreach(environment ${environments})
     add_subdirectory(${environment})
