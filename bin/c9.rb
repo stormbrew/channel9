@@ -5,6 +5,7 @@ if $0 =~ %r{bin/c9.rb$}
   require 'rubygems'
 end
 
+require 'fileutils'
 require 'channel9'
 require 'channel9/loader/ruby'
 
@@ -26,9 +27,13 @@ if (print)
 else
   infile = args.shift
   stream = Channel9::Loader::Ruby.compile(infile)
-  outfile = infile.gsub(%r{/([^/]+?)(\.rb)?$}) do |m|
-    "/#{$1}.c9b"
+  if !(outfile = args.shift)
+    outfile = infile.gsub(%r{/([^/]+?)(\.rb)?$}) do |m|
+      "/#{$1}.c9b"
+    end
   end
+  puts File.dirname(outfile)
+  FileUtils.mkdir_p(File.dirname(outfile))
   File.open(outfile, "w") do |f|
     f.write stream.to_json
   end
