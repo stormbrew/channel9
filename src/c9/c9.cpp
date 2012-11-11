@@ -310,7 +310,7 @@ int run_list(const char *program, Channel9::Environment *env, const char *filena
 	}
 }
 
-typedef int (*entry_point)(Channel9::Environment*);
+typedef int (*entry_point)(Channel9::Environment*, const std::string&);
 int run_shared_object(const char *program, Channel9::Environment *env, const char *filename)
 {
 	void *shobj = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
@@ -325,7 +325,7 @@ int run_shared_object(const char *program, Channel9::Environment *env, const cha
 		std::cout << program << ": Coult not load entry point to shared object " << filename << "\n";
 		exit(1);
 	}
-	return shobj_entry(env);
+	return shobj_entry(env, filename);
 }
 
 int find_environment_and_run(const char *program, Channel9::Environment *env, const char *filename)
