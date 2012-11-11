@@ -10,9 +10,4 @@ add_custom_command(
 )
 add_custom_target(testext-pkg-c9l ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/testext.c9l)
 
-add_custom_command(
-    OUTPUT ${LIBRARY_OUTPUT_PATH}/testext.c9b
-    COMMAND ruby -rubygems -I${CMAKE_SOURCE_DIR}/ruby/lib ${CMAKE_SOURCE_DIR}/ruby/bin/c9c ${CMAKE_CURRENT_SOURCE_DIR}/testext.c9s ${LIBRARY_OUTPUT_PATH}/testext.c9b
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/testext.c9s
-)
-add_custom_target(testext-pkg-c9b ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/testext.c9b)
+add_c9script(${CMAKE_CURRENT_SOURCE_DIR} ${LIBRARY_OUTPUT_PATH} . pkg-testext testext.c9s)
