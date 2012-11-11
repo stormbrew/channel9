@@ -1,6 +1,6 @@
 module Channel9
   module Primitive
-    class MessageID
+    class MessageID < ::String
       def initialize(a)
         super(a.to_s)
       end
@@ -9,7 +9,7 @@ module Channel9
         {"message_id" => to_s}.to_json(*a)
       end
     end
-    class ProtocolID
+    class ProtocolID < ::String
       def initialize(a)
         super(a.to_s)
       end
