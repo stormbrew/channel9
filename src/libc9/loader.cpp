@@ -27,6 +27,15 @@ namespace Channel9
 	};
 	NothingChannel *nothing_channel = new NothingChannel;
 
+	template <typename tRight>
+	loader_error operator<<(const loader_error &left, const tRight &right)
+	{
+		std::stringstream stream;
+		stream << left.reason;
+		stream << right;
+		return loader_error(stream.str());
+	}
+
 	Value convert_json(const Json::Value &val);
 
 	Value convert_json_array(const Json::Value &arr)
@@ -49,8 +58,7 @@ namespace Channel9
 		} else if (obj["protocol_id"].isString()) {
 			return value((int64_t)make_protocol_id(obj["protocol_id"].asString()));
 		}
-		std::cout << "Unknown complex object " << obj.toStyledString() << "\n";
-		exit(1);
+		throw loader_error("Unknown complex object ") << obj.toStyledString();
 	}
 
 	Value convert_json(const Json::Value &val)
@@ -74,12 +82,11 @@ namespace Channel9
 		case objectValue:
 			return convert_json_complex(val);
 		default:
-			std::cout << "Invalid value encountered while parsing json\n";
-			exit(1);
+			throw loader_error("Invalid value encountered while parsing json");
 		}
 	}
 
-	int run_program(Environment *env, const Json::Value &code)
+	GCRef<RunnableContext*> load_program(Environment *env, const Json::Value &code)
 	{
 		using namespace Channel9;
 		GCRef<IStream*> istream = new IStream;
@@ -90,15 +97,13 @@ namespace Channel9
 			const Json::Value &line = *it;
 			if (!line.isArray() || line.size() < 1)
 			{
-				std::cout << "Malformed line " << num << ": not an array or not enough elements\n";
-				exit(1);
+				throw loader_error("Malformed line ") << num << ": not an array or not enough elements";
 			}
 
 			const Json::Value &ival = line[0];
 			if (!ival.isString())
 			{
-				std::cout << "Instruction on line " << num << " was not a string (" << ival.toStyledString() << ")\n";
-				exit(1);
+				throw loader_error("Instruction on line ") << num << " was not a string (" << ival.toStyledString() << ")";
 			}
 
 			const std::string &instruction = ival.asString();
@@ -120,25 +125,22 @@ namespace Channel9
 			} else if (instruction == "set_label") {
 				if (line.size() != 2 || !line[1].isString())
 				{
-					std::cout << "Invalid set_label line at " << num << "\n";
-					exit(1);
+					throw loader_error("Invalid set_label line at ") << num;
 				}
 				(*istream)->set_label(line[1].asString());
 			} else {
 				INUM insnum = inum(instruction);
 				if (insnum == INUM_INVALID)
 				{
-					std::cout << "Invalid instruction " << instruction << " at " << num << "\n";
-					exit(1);
+					throw loader_error("Invalid instruction ") << instruction << " at " << num;
 				}
 				Instruction ins = {insnum, {0}, {0}, {0}};
 				InstructionInfo info = iinfo(ins);
 				if (line.size() - 1 < info.argc)
 				{
-					std::cout << "Instruction " << instruction << " takes "
+					throw loader_error("Instruction ") << instruction << " takes "
 						<< info.argc << "arguments, but was given " << line.size() - 1
-						<< " at line " << num << "\n";
-					exit(1);
+						<< " at line " << num;
 				}
 
 				if (info.argc > 0)
@@ -155,14 +157,13 @@ namespace Channel9
 		(*istream)->normalize();
 		GCRef<VariableFrame*> frame = new_variable_frame(*istream);
 		GCRef<RunnableContext*> ctx = new_context(*istream, *frame);
-		channel_send(env, value(*ctx), Nil, value(nothing_channel));
 
-		return 0;
+		return ctx;
 	}
 
-	int run_bytecode(const char *program, Environment *env, const char *filename)
+	GCRef<RunnableContext*> load_bytecode(Environment *env, const std::string &filename) throw(loader_error)
 	{
-		std::ifstream file(filename);
+		std::ifstream file(filename.c_str());
 		if (file.is_open())
 		{
 			Json::Reader reader;
@@ -172,25 +173,28 @@ namespace Channel9
 				Json::Value code = body["code"];
 				if (!code.isArray())
 				{
-					std::cout << program << ": No code block in " << filename << "\n";
-					exit(1);
+					throw loader_error("No code block in ") << filename;
 				}
 
-				return run_program(env, code);
+				return load_program(env, code);
 			} else {
-				std::cout << program << ": Failed to parse json in " << filename << ":\n"
+				throw loader_error("Failed to parse json in ") << filename << ":\n"
 					<< reader.getFormattedErrorMessages();
-				exit(1);
 			}
 		} else {
-			std::cout << program << ": Could not open file " << filename << ".\n";
-			exit(1);
+			throw loader_error("Could not open file ") << filename;
 		}
 	}
 
-	int run_list(const char *program, Environment *env, const char *filename)
+	int run_bytecode(Environment *env, const std::string &filename)
 	{
-		std::ifstream file(filename);
+		GCRef<RunnableContext*> ctx = load_bytecode(env, filename);
+		channel_send(env, value(*ctx), Nil, value(nothing_channel));
+	}
+
+	int run_list(Environment *env, const std::string &filename)
+	{
+		std::ifstream file(filename.c_str());
 		if (file.is_open())
 		{
 			while (!file.eof())
@@ -203,15 +207,12 @@ namespace Channel9
 					{
 						// if the path is not absolute it's relative
 						// to the c9l file.
-						const char *last_slash = NULL;
-						for (const char *pos = filename; *pos != '\0'; pos++)
-							if (*pos == '/')
-								last_slash = pos;
+						size_t last_slash_pos = filename.rfind('/');
 
-						if (!last_slash)
-							run_file(program, env, line.c_str(), true);
+						if (last_slash_pos == std::string::npos)
+							run_file(env, line, true);
 						else
-							run_file(program, env, (std::string(filename, last_slash + 1) + line).c_str(), true);
+							run_file(env, filename.substr(0, last_slash_pos+1) + line, true);
 					}
 				} else {
 					break;
@@ -219,59 +220,52 @@ namespace Channel9
 			}
 			return 0;
 		} else {
-			std::cout << program << ": Could not open file " << filename << ".\n";
-			exit(1);
+			throw loader_error("Could not open file ") << filename << ".";
 		}
 	}
 
 	typedef int (*entry_point)(Environment*, const std::string&);
-	int run_shared_object(const char *program, Environment *env, const char *filename)
+	int run_shared_object(Environment *env, const std::string &filename)
 	{
-		void *shobj = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
+		void *shobj = dlopen(filename.c_str(), RTLD_LAZY | RTLD_LOCAL);
 		if (!shobj)
 		{
-			std::cout << program << ": Could not load shared object " << filename << "\n";
-			exit(1);
+			throw loader_error("Could not load shared object ") << filename;
 		}
 		entry_point shobj_entry = (entry_point)dlsym(shobj, "Channel9_environment_initialize");
 		if (!shobj_entry)
 		{
-			std::cout << program << ": Coult not load entry point to shared object " << filename << "\n";
-			exit(1);
+			throw loader_error("Could not load entry point to shared object ") << filename;
 		}
 		return shobj_entry(env, filename);
 	}
 
-	int find_environment_and_run(const char *program, Environment *env, const char *filename)
+	int find_environment_and_run(Environment *env, const std::string &filename)
 	{
-		std::cout << program << ": Running discoverable environments not yet implemented.\n";
-		exit(1);
+		throw loader_error("Running discoverable environments not yet implemented.");
 	}
 
-	int run_file(const char *program, Environment *env, const char *filename, bool environment_loaded)
+	int run_file(Environment *env, const std::string &filename, bool environment_loaded) throw(loader_error)
 	{
 		// find the extension
-		const char *ext = filename;
-		for (const char *pos = filename; *pos != '\0'; pos++)
+		std::string ext = "";
+		size_t ext_pos = filename.rfind('.');
+		if (ext_pos != std::string::npos)
+			ext = filename.substr(ext_pos);
+
+		if (ext == ".c9b")
 		{
-			if (*pos == '.')
-				ext = pos;
-		}
-		if (strcmp(ext, ".c9b") == 0)
-		{
-			return run_bytecode(program, env, filename);
-		} else if (strcmp(ext, ".c9l") == 0) {
-			return run_list(program, env, filename);
-		} else if (strcmp(ext, ".so") == 0) {
-			return run_shared_object(program, env, filename);
-		} else if (filename == ext) {
-			std::cout << program << ": Don't know what to do with no extension.\n";
-			exit(1);
+			return run_bytecode(env, filename);
+		} else if (ext == ".c9l") {
+			return run_list(env, filename);
+		} else if (ext == ".so") {
+			return run_shared_object(env, filename);
+		} else if (ext == "") {
+			throw loader_error("Don't know what to do with no extension.");
 		} else if (!environment_loaded) {
-			return find_environment_and_run(program, env, filename);
+			return find_environment_and_run(env, filename);
 		} else {
-			std::cout << program << ": Don't know what to do with extension `" << ext << "`\n";
-			exit(1);
+			throw loader_error("Don't know what to do with extension `") << ext << "`";
 		}
 		return 1;
 	}
