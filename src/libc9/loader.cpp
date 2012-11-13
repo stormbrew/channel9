@@ -1,6 +1,9 @@
 #include <fstream>
 #include <stdlib.h>
 #include <dlfcn.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "json/json.h"
 #include "json/reader.h"
@@ -210,9 +213,9 @@ namespace Channel9
 						size_t last_slash_pos = filename.rfind('/');
 
 						if (last_slash_pos == std::string::npos)
-							run_file(env, line, true);
+							run_file(env, line);
 						else
-							run_file(env, filename.substr(0, last_slash_pos+1) + line, true);
+							run_file(env, filename.substr(0, last_slash_pos+1) + line);
 					}
 				} else {
 					break;
@@ -240,12 +243,59 @@ namespace Channel9
 		return shobj_entry(env, filename);
 	}
 
-	int find_environment_and_run(Environment *env, const std::string &filename)
+	void set_argv(Environment *env, int argc, const char **argv)
 	{
-		throw loader_error("Running discoverable environments not yet implemented.");
+		std::vector<Channel9::Value> args;
+		for (int i = 0; i < argc; i++)
+		{
+			args.push_back(Channel9::value(Channel9::new_string(argv[i])));
+		}
+		env->set_special_channel("argv", Channel9::value(Channel9::new_tuple(args.begin(), args.end())));
 	}
 
-	int run_file(Environment *env, const std::string &filename, bool environment_loaded) throw(loader_error)
+	int load_environment_and_run(Environment *env, int argc, const char **argv) throw(loader_error)
+	{
+		if (argc < 1)
+			throw loader_error("No program file specified.");
+
+		std::string program = argv[0];
+
+		std::string ext = "";
+		size_t ext_pos = program.rfind('.');
+		if (ext_pos != std::string::npos)
+			ext = program.substr(ext_pos);
+
+		if (ext == "")
+			throw loader_error("Can't discover environment for file with no extension.");
+
+		if (ext == ".c9b" || ext == ".c9l" || ext == ".so")
+		{
+			// chop off the c9x file so it doesn't try to load itself.
+			set_argv(env, argc-1, argv+1);
+			return run_file(env, program);
+		} else {
+			// get the path of libc9.so. We expect c9 environments to be near it.
+			// They'll be at dirname(libc9.so)/c9-env/ext/ext.c9l.
+			Dl_info fninfo;
+			dladdr((void*)load_environment_and_run, &fninfo);
+			std::string search_path = std::string(fninfo.dli_fname);
+			search_path = search_path.substr(0, search_path.find_last_of('/') + 1);
+			search_path += "c9-env/";
+			std::string extname = ext.substr(1, std::string::npos);
+			search_path += extname + "/" + extname + ".c9l";
+
+			// find a matching module
+			struct stat match = {0};
+			if (stat(search_path.c_str(), &match) != 0)
+				throw loader_error("Could not find c9-env loader at ") << search_path;
+
+			// include the program name argument so it knows what to load.
+			set_argv(env, argc, argv);
+			return run_file(env, search_path);
+		}
+	}
+
+	int run_file(Environment *env, const std::string &filename) throw(loader_error)
 	{
 		// find the extension
 		std::string ext = "";
@@ -262,11 +312,8 @@ namespace Channel9
 			return run_shared_object(env, filename);
 		} else if (ext == "") {
 			throw loader_error("Don't know what to do with no extension.");
-		} else if (!environment_loaded) {
-			return find_environment_and_run(env, filename);
 		} else {
 			throw loader_error("Don't know what to do with extension `") << ext << "`";
 		}
-		return 1;
 	}
 }

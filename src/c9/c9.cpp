@@ -112,21 +112,12 @@ int main(int argc, const char **argv)
 		exit(1);
 	}
 
-	const char *filename = argv[i++];
-
-	std::vector<Channel9::Value> args;
-	for (; i < argc; i++)
-	{
-		args.push_back(Channel9::value(Channel9::new_string(argv[i])));
-	}
-
 	Channel9::Environment *env = new Channel9::Environment();
 	env->set_special_channel("exit", Channel9::value(exit_channel));
 	env->set_special_channel("stdout", Channel9::value(stdout_channel));
-	env->set_special_channel("argv", Channel9::value(Channel9::new_tuple(args.begin(), args.end())));
 
 	try {
-		return Channel9::run_file(env, filename, false);
+		return Channel9::load_environment_and_run(env, argc-i, argv+i);
 	} catch (const Channel9::loader_error &err) {
 		std::cout << program << ": " << err.reason << "\n";
 		return 1;
