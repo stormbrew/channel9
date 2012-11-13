@@ -125,5 +125,10 @@ int main(int argc, const char **argv)
 	env->set_special_channel("stdout", Channel9::value(stdout_channel));
 	env->set_special_channel("argv", Channel9::value(Channel9::new_tuple(args.begin(), args.end())));
 
-	return Channel9::run_file(program, env, filename, false);
+	try {
+		return Channel9::run_file(env, filename, false);
+	} catch (const Channel9::loader_error &err) {
+		std::cout << program << ": " << err.reason << "\n";
+		return 1;
+	}
 }
