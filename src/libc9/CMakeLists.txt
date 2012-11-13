@@ -6,6 +6,7 @@ add_library (libc9 SHARED
     gc_semispace.cpp
     instruction.cpp
     istream.cpp
+    loader.cpp
     memory_pool.cpp
     message.cpp
     primitive.cpp
@@ -15,4 +16,5 @@ add_library (libc9 SHARED
     value.cpp
     variable_frame.cpp
 )
+target_link_libraries(libc9 dl jsoncpp)
 set_target_properties(libc9 PROPERTIES OUTPUT_NAME c9)
