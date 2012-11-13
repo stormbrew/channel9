@@ -28,9 +28,7 @@ else
   infile = args.shift
   stream = Channel9::Loader::Ruby.compile(infile)
   if !(outfile = args.shift)
-    outfile = infile.gsub(%r{/([^/]+?)(\.rb)?$}) do |m|
-      "/#{$1}.c9b"
-    end
+    outfile = infile + ".c9b"
   end
   puts File.dirname(outfile)
   FileUtils.mkdir_p(File.dirname(outfile))

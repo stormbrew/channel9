@@ -1,6 +1,6 @@
 # Convert the $LOAD_PATH to a normal array instead of the
 # tuple it started as.
-$LOAD_PATH = Array.new($__c9_initial_load_path)
+$LOAD_PATH = Array.new_from_tuple($__c9_initial_load_path)
 $: = $LOAD_PATH
 $LOADED_FEATURES = []
 
@@ -39,3 +39,9 @@ load_c9 'kernel/delta/regexp.rb.c9b'
 
 load_c9 'kernel/delta/signal.rb.c9b'
 load_c9 'kernel/delta/thread.rb.c9b'
+
+$0 = $__c9_argv.at(0)
+ARGV = $__c9_argv
+#ARGV.shift
+
+load $0

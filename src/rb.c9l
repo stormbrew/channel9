@@ -16,4 +16,4 @@ kernel/beta/array.rb.c9b
 kernel/beta/proc.rb.c9b
 kernel/beta/exceptions.rb.c9b
 kernel/beta/class.rb.c9b
-kernel/delta.rb.c9b
+kernel/delta/boot.rb.c9b
