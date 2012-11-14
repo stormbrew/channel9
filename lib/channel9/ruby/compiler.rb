@@ -28,7 +28,7 @@ module Channel9
       def find_lexical_depth(name, add = false)
         @state[:vtable].each_with_index do |tbl, idx|
           if tbl.include?(name.to_sym)
-            return idx 
+            return idx
           end
         end
         if (add)
@@ -123,7 +123,7 @@ module Channel9
         builder.push(str)
         builder.message_new(:new, 0, 1)
         builder.channel_call
-        builder.pop        
+        builder.pop
       end
       def transform_xstr(str)
         transform_self
@@ -240,8 +240,8 @@ module Channel9
         builder.jmp_if_not(done_label)
 
         linfo = {
-          :type => :while, 
-          :beg_label => begin_label, 
+          :type => :while,
+          :beg_label => begin_label,
           :end_label => done_label,
           :retry_label => begin_label,
           :next_label => begin_label,
@@ -267,8 +267,8 @@ module Channel9
         builder.jmp_if(done_label)
 
         linfo = {
-          :type => :while, 
-          :beg_label => begin_label, 
+          :type => :while,
+          :beg_label => begin_label,
           :end_label => done_label,
           :retry_label => begin_label,
           :next_label => begin_label,
@@ -410,19 +410,19 @@ module Channel9
           builder.message_new(:[], 0, 0) # -> []msg -> args -> var -> var
           builder.swap # -> args -> msg -> var -> var
           builder.message_splat # -> msg -> var -> var
-          builder.channel_call 
+          builder.channel_call
           builder.pop # -> orig -> var
 
           transform(val) # -> opvar -> orig -> var
           builder.swap # -> orig -> opvar -> var
           builder.message_new(op, 0, 1) # -> msg -> opvar -> var
-          builder.channel_call 
+          builder.channel_call
           builder.pop # -> opres -> var
 
           builder.tuple_new(1) # -> restuple -> var
           builder.message_new(:[]=, 0, 0) # -> msg -> restuple -> var
           builder.frame_get("asgn1.tuple") # -> args -> msg -> restuple -> var
-          builder.message_splat # -> msg -> restuple -> var 
+          builder.message_splat # -> msg -> restuple -> var
           builder.swap # -> restuple -> msg -> var
           builder.message_splat # -> msg -> var
           builder.channel_call
@@ -461,13 +461,13 @@ module Channel9
           builder.message_new(attrib_read, 0, 0) # -> []msg -> args -> var -> var
           builder.swap # -> args -> msg -> var -> var
           builder.message_splat # -> msg -> var -> var
-          builder.channel_call 
+          builder.channel_call
           builder.pop # -> orig -> var -> var
 
           transform(val) # -> opvar -> orig -> var -> var
           builder.swap # -> orig -> opvar -> var -> var
           builder.message_new(op, 0, 1) # -> msg -> var -> var
-          builder.channel_call 
+          builder.channel_call
           builder.pop # -> opres -> var
 
           builder.tuple_new(1) # -> restuple -> var
@@ -549,7 +549,7 @@ module Channel9
         else
           transform(else_case)
         end
-        
+
         builder.set_label(done_label)
       end
 
@@ -567,7 +567,7 @@ module Channel9
           end
           if (match = args.last.to_s.match(%r{^\*(.+)}))
             splatarg = match[1].to_sym
-            args.pop 
+            args.pop
           end
         end
 
@@ -581,7 +581,7 @@ module Channel9
             must_have = args.length - defargs.length
             argdone_label = builder.make_label("args.done")
             defarg_labels = (0...defargs.length).collect {|i| builder.make_label("args.default.#{i}") }
-            
+
             builder.message_count
             builder.frame_set("arg.count")
             builder.message_unpack(args.length, splatarg ? 1 : 0, 0)
@@ -649,7 +649,7 @@ module Channel9
         # requires a return unwind handler, we
         # compile the body just to find out if
         # there's a return inside an ensure
-        # or a block. If there is, we know 
+        # or a block. If there is, we know
         # the function will need an unwind
         # handler.
         stream = Stream.new
@@ -689,7 +689,7 @@ module Channel9
         builder.frame_set("return")
         builder.dup_top
         builder.frame_set("message")
-        
+
         if (nru = need_return_unwind(name, code))
           builder.channel_special(:unwinder)
           builder.channel_new(method_lret_label)
@@ -697,7 +697,7 @@ module Channel9
           builder.pop
           builder.pop
         end
-        
+
         with_new_vtable do
           builder.message_sys_unpack(3)
           builder.frame_set("self")
@@ -730,7 +730,7 @@ module Channel9
         if (nru)
           builder.set_label(method_lret_label)
           # stack is SP -> ret -> unwind_message
-          # we want to see if the unwind_message is 
+          # we want to see if the unwind_message is
           # our return message. If so, we want to return from
           # this method. Otherwise, just move on to the next
           # unwind handler.
@@ -1139,7 +1139,7 @@ module Channel9
         builder.message_new(:"ruby_sys:get_constant", 0, 1)
         builder.channel_call
         builder.pop
-        
+
         builder.dup_top
         builder.jmp_if_not(make_label)
 
@@ -1620,7 +1620,7 @@ module Channel9
           builder.jmp(linfo[:redo_label])
         else
           raise_error :NotImplementedError, "Invalid (or unimplemented?) location for a redo"
-        end          
+        end
       end
       def transform_retry
         if (@state[:rescue_retry])
@@ -1661,7 +1661,7 @@ module Channel9
         builder.set_label(body_label)
         builder.frame_set(label_prefix + ".ret")
 
-        # if we got a self through the sys args, 
+        # if we got a self through the sys args,
         # we've been re-bound to a method so use that instead.
         builder.message_sys_unpack(4)
         builder.dup_top
@@ -1741,7 +1741,7 @@ module Channel9
             transform_nil()
           else
             linfo = {
-              :type => :block, 
+              :type => :block,
               :ret => label_prefix + ".ret",
               :redo_label => label_prefix + ".retry",
             }
@@ -1835,7 +1835,7 @@ module Channel9
         last = comparisons.last
         if (last && (last[0] == :lasgn || last[0] == :gasgn || last[0] == :iasgn))
           err_assign = comparisons.pop
-        end          
+        end
 
         comparisons.each do |cmp|
           builder.dup_top # value from enclosing case.
@@ -2018,7 +2018,7 @@ module Channel9
         builder.local_get "skip-ensure"
         builder.jmp_if(skip_ens_label)
 
-        builder.set_label(ens_label) 
+        builder.set_label(ens_label)
 
         # run the ensure block
         transform(ens)
@@ -2129,6 +2129,8 @@ module Channel9
 
       def transform_file(body)
         builder.local_set("script-return")
+        builder.pop
+        builder.channel_special(:global_self)
         builder.frame_set("self")
         if (!body.nil?)
           builder.push(nil)
