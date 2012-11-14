@@ -2143,8 +2143,9 @@ module Channel9
         else
           transform_nil
         end
+        builder.pop
         builder.local_get("script-return")
-        builder.swap
+        builder.push(true)
         builder.channel_ret
       end
 
