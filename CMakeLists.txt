@@ -1,8 +1,11 @@
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib/c9-env/rb)
+
+include_directories(${RUBY_INCLUDE_DIRS})
+add_definitions( -DC9RB_RUBY_LIB=\"${CMAKE_CURRENT_SOURCE_DIR}/lib\" -DC9_RUBY_LIB=\"${CMAKE_SOURCE_DIR}/ruby/lib\" )
 add_library(rb SHARED
     src/rb.cpp
 )
-target_link_libraries(rb libc9)
+target_link_libraries(rb libc9 ${RUBY_LIBRARY})
 
 add_custom_command(
     OUTPUT ${LIBRARY_OUTPUT_PATH}/rb.c9l
@@ -23,7 +26,7 @@ function(add_compiled_ruby SRC DST COMMON_PATH TARGET_PREFIX) # extra args are s
 	foreach(FILE ${ARGN})
 		add_custom_command(
 			OUTPUT ${DST}/${COMMON_PATH}/${FILE}.c9b
-			COMMAND ruby -rubygems -I${CMAKE_SOURCE_DIR}/ruby/lib -I${CMAKE_CURRENT_SOURCE_DIR}/lib ${CMAKE_CURRENT_SOURCE_DIR}/bin/c9.rb ${SRC}/${COMMON_PATH}/${FILE} ${DST}/${COMMON_PATH}/${FILE}.c9b
+			COMMAND ${RUBY_EXECUTABLE} -rubygems -I${CMAKE_SOURCE_DIR}/ruby/lib -I${CMAKE_CURRENT_SOURCE_DIR}/lib ${CMAKE_CURRENT_SOURCE_DIR}/bin/c9c.rb ${SRC}/${COMMON_PATH}/${FILE} ${DST}/${COMMON_PATH}/${FILE}.c9b
 			DEPENDS ${SRC}/${COMMON_PATH}/${FILE}
 		)
 		add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE}.c9b)
