@@ -14,6 +14,8 @@ namespace Channel9
 
 	// Loads the bytecode file at the path given. Returns a runnablecontext that can be activated.
 	GCRef<RunnableContext*> load_bytecode(Environment *env, const std::string &filename) throw(loader_error);
+	// Same as above but rather than loading from the file it loads from the string given.
+	GCRef<RunnableContext*> load_bytecode(Environment *env, const std::string &filename, const std::string &str) throw(loader_error);
 
 	// Given the argv, inspects the first argument to determine what environment the program should run in
 	// and then loads it, giving the full argv in the special channel of that name.
