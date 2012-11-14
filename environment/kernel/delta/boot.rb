@@ -41,7 +41,7 @@ load_c9 'kernel/delta/signal.rb.c9b'
 load_c9 'kernel/delta/thread.rb.c9b'
 
 $0 = $__c9_argv.at(0)
-ARGV = $__c9_argv
-#ARGV.shift
+
+Channel9.setup_environment('c9', $__c9_argv.front_pop)
 
 load $0
