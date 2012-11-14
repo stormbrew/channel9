@@ -5,7 +5,7 @@ require 'channel9/ruby/compiler'
 
 module Channel9
   module Ruby
-    def self.compile_string(type, str, filename = "__eval__", line = 1)
+    def self.compile_string(type, str, filename = "__eval__", line = 0)
       stream = Channel9::Stream.new
       stream.build do |builder|
         parser = RubyParser.new
@@ -34,6 +34,10 @@ module Channel9
         end
       end
       return stream
+    end
+
+    def self.compile_eval(str, filename = "__eval__")
+      return compile_string(:eval, str, filename)
     end
 
     def self.compile(filename)
