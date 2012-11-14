@@ -189,6 +189,25 @@ namespace Channel9
 		}
 	}
 
+	GCRef<RunnableContext*> load_bytecode(Environment *env, const std::string &filename, const std::string &str) throw(loader_error)
+	{
+		Json::Reader reader;
+		Json::Value body;
+		if (reader.parse(str, body, false))
+		{
+			Json::Value code = body["code"];
+			if (!code.isArray())
+			{
+				throw loader_error("No code block in ") << filename;
+			}
+
+			return load_program(env, code);
+		} else {
+			throw loader_error("Failed to parse json in ") << filename << ":\n"
+				<< reader.getFormattedErrorMessages();
+		}
+	}
+
 	int run_bytecode(Environment *env, const std::string &filename)
 	{
 		GCRef<RunnableContext*> ctx = load_bytecode(env, filename);
