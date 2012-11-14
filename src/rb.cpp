@@ -113,8 +113,23 @@ public:
 					return;
 				}
 			} else if (msg->m_message_id == mid_backtrace) {
-				Value empty[1];
-				channel_send(env, ret, value(new_tuple(empty,empty)), Channel9::value(no_return_channel));
+				std::vector<Value> bt;
+				RunningContext *ctx;
+				if (is(ret, RUNNING_CONTEXT))
+					ctx = ptr<RunningContext>(ret);
+				else
+					ctx = env->context();
+				while (ctx)
+				{
+					SourcePos pos = ctx->m_instructions->source_pos(ctx->m_pos);
+					std::stringstream posinfo;
+					posinfo << pos.file << ":" << pos.line_num << ":" << pos.column;
+					if (!pos.annotation.empty())
+						posinfo << " (" << pos.annotation << ")";
+					bt.push_back(value(new_string(posinfo.str())));
+					ctx = ctx->m_caller;
+				}
+				channel_send(env, ret, value(new_tuple(bt.begin(), bt.end())), Channel9::value(no_return_channel));
 				return;
 			} else if (msg->m_message_id == mid_load && msg->arg_count() == 1 && is(msg->args()[0], STRING)) {
 				// try to load an alongside bytecode object directly first.
