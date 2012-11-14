@@ -193,6 +193,7 @@ namespace Channel9
 	{
 		GCRef<RunnableContext*> ctx = load_bytecode(env, filename);
 		channel_send(env, value(*ctx), Nil, value(nothing_channel));
+		return 0;
 	}
 
 	int run_list(Environment *env, const std::string &filename)
@@ -293,6 +294,7 @@ namespace Channel9
 			set_argv(env, argc, argv);
 			return run_file(env, search_path);
 		}
+		return 1;
 	}
 
 	int run_file(Environment *env, const std::string &filename) throw(loader_error)
