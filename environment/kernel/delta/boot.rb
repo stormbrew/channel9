@@ -42,6 +42,11 @@ load_c9 'kernel/delta/thread.rb.c9b'
 
 $0 = $__c9_argv.at(0)
 
+if !$0
+  puts "You didn't specify a script to load."
+  exit(1)
+end
+
 Channel9.setup_environment('c9', $__c9_argv.front_pop)
 
 if $__c9_trace_loaded
