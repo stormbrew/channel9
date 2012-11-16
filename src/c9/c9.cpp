@@ -105,19 +105,13 @@ int main(int argc, const char **argv)
 		else if (strcmp("-TT", argv[i]) == 0)
 			Channel9::trace_mute = false;
 	}
-	// first non-flag argument is the file to parse
-	if (i == argc)
-	{
-		std::cout << program << ": No file specified to run.\n";
-		exit(1);
-	}
 
 	Channel9::Environment *env = new Channel9::Environment();
 	env->set_special_channel("exit", Channel9::value(exit_channel));
 	env->set_special_channel("stdout", Channel9::value(stdout_channel));
 
 	try {
-		return Channel9::load_environment_and_run(env, argc-i, argv+i, trace);
+		return Channel9::load_environment_and_run(env, program, argc-i, argv+i, trace);
 	} catch (const Channel9::loader_error &err) {
 		std::cout << program << ": " << err.reason << "\n";
 		return 1;

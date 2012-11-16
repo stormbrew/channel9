@@ -71,6 +71,14 @@ function(add_c9script SRC DST COMMON_PATH TARGET_PREFIX) # extra args are script
     endforeach()
 endfunction()
 
+function(add_c9_alias NAME)
+    add_custom_command(
+            OUTPUT ${PROJECT_BINARY_DIR}/bin/c9.${NAME}
+            COMMAND ${CMAKE_COMMAND} -E create_symlink ${PROJECT_BINARY_DIR}/bin/c9 ${PROJECT_BINARY_DIR}/bin/c9.${NAME}
+            DEPENDS ${PROJECT_BINARY_DIR}/bin/c9
+    )
+    add_custom_target(c9.${NAME} ALL DEPENDS ${PROJECT_BINARY_DIR}/bin/c9.${NAME})
+endfunction()
 
 file(GLOB environments "environments/*")
 foreach(environment ${environments})
