@@ -117,3 +117,5 @@ add_compiled_ruby(${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR} perf_tests p
 	002.recursive_sum.rb
 	003.linkedlist.rb
 )
+
+add_c9_alias(rb)
