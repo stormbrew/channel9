@@ -93,17 +93,17 @@ StdoutChannel *stdout_channel = new StdoutChannel;
 
 int main(int argc, const char **argv)
 {
-	bool debug = false;
-	bool detail = false;
+	bool trace = false;
 	const char *program = *argv++; argc--; // chop off program name.
 	int i = 0;
 
+	Channel9::trace_mute = true;
 	for (i = 0; i < argc && argv[i][0] == '-'; i++)
 	{
-		if (strcmp("-d", argv[i]) == 0)
-			debug = true;
-		else if (strcmp("-dd", argv[i]) == 0)
-			detail = true;
+		if (strcmp("-T", argv[i]) == 0)
+			trace = true;
+		else if (strcmp("-TT", argv[i]) == 0)
+			Channel9::trace_mute = false;
 	}
 	// first non-flag argument is the file to parse
 	if (i == argc)
@@ -117,7 +117,7 @@ int main(int argc, const char **argv)
 	env->set_special_channel("stdout", Channel9::value(stdout_channel));
 
 	try {
-		return Channel9::load_environment_and_run(env, argc-i, argv+i);
+		return Channel9::load_environment_and_run(env, argc-i, argv+i, trace);
 	} catch (const Channel9::loader_error &err) {
 		std::cout << program << ": " << err.reason << "\n";
 		return 1;

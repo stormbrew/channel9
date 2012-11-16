@@ -34,9 +34,10 @@ namespace Channel9
 		if(color) ctrace << cyan;
 		switch(facility)
 		{
-			case TRACE_GENERAL: ctrace << "general";   break;
-			case TRACE_VM:      ctrace << "vm";        break;
-			case TRACE_GC:      ctrace << "gc";        break;
+			case VAL_TRACE_GENERAL: ctrace << "general";   break;
+			case VAL_TRACE_VM:      ctrace << "vm";        break;
+			case VAL_TRACE_GC:      ctrace << "gc";        break;
+			case VAL_TRACE_ALLOC:   ctrace << "alloc";     break;
 			default: ctrace << "unknown " << facility; break;
 		}
 		if(color) ctrace << reset;
@@ -46,12 +47,12 @@ namespace Channel9
 		if(color) ctrace << levelcolor[level];
 		switch(level)
 		{
-			case TRACE_SPAM:  ctrace << "spam";     break;
-			case TRACE_DEBUG: ctrace << "debug";    break;
-			case TRACE_INFO:  ctrace << "info";     break;
-			case TRACE_WARN:  ctrace << "warn";     break;
-			case TRACE_ERROR: ctrace << "error";    break;
-			case TRACE_CRIT:  ctrace << "critical"; break;
+			case VAL_TRACE_SPAM:  ctrace << "spam";     break;
+			case VAL_TRACE_DEBUG: ctrace << "debug";    break;
+			case VAL_TRACE_INFO:  ctrace << "info";     break;
+			case VAL_TRACE_WARN:  ctrace << "warn";     break;
+			case VAL_TRACE_ERROR: ctrace << "error";    break;
+			case VAL_TRACE_CRIT:  ctrace << "critical"; break;
 			default:          ctrace << "unknown";  break;
 		}
 
