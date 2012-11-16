@@ -44,4 +44,7 @@ $0 = $__c9_argv.at(0)
 
 Channel9.setup_environment('c9', $__c9_argv.front_pop)
 
+if $__c9_trace_loaded
+  __c9_debugger__ :trace_enable
+end
 load $0
