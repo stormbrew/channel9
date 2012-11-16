@@ -22,7 +22,9 @@ namespace Channel9
 	// If given a .c9x or .so file as the first argument, the argv passed in to the script will not include
 	// its own name. This is so that you can explicitly load an environment and give it the program to
 	// run in the second argument.
-	int load_environment_and_run(Environment *env, int argc, const char **argv) throw(loader_error);
+	// Will also set a trace_loaded special channel in the environment to the value of trace_loaded.
+	// This is to advise the environment that it should unmute tracing before acting on its argv.
+	int load_environment_and_run(Environment *env, int argc, const char **argv, bool trace_loaded = false) throw(loader_error);
 
 	// Loads the file at the path given. If environment_loaded is false and the extension is unrecognized
 	// it will attempt to find and load the environment first.

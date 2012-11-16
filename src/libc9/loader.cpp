@@ -273,7 +273,7 @@ namespace Channel9
 		env->set_special_channel("argv", Channel9::value(Channel9::new_tuple(args.begin(), args.end())));
 	}
 
-	int load_environment_and_run(Environment *env, int argc, const char **argv) throw(loader_error)
+	int load_environment_and_run(Environment *env, int argc, const char **argv, bool trace_loaded) throw(loader_error)
 	{
 		if (argc < 1)
 			throw loader_error("No program file specified.");
@@ -311,6 +311,7 @@ namespace Channel9
 
 			// include the program name argument so it knows what to load.
 			set_argv(env, argc, argv);
+			env->set_special_channel("trace_loaded", bvalue(trace_loaded));
 			return run_file(env, search_path);
 		}
 		return 1;

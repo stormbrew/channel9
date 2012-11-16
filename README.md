@@ -52,14 +52,19 @@ Debugging
 
 You can pass flags to CMake to make it build a more debugger-friendly VM:
 
-	> cmake -DDEBUG=1 ../channel9
+	> cmake -DCMAKE_BUILD_TYPE=Debug ../channel9
 
 Or a more valgrindable VM:
 
-	> cmake -DVALGRIND=1 ../channel9
+	> cmake -DENABLE_VALGRIND ../channel9
 
-Or a VM that spams you with trace info:
+Or you can set trace levels (SPAM, DEBUG, INFO, WARN, ERROR, CRIT, or OFF) for
+the four trace facilities (GENERAL, VM, ALLOC, and GC):
 
-	> cmake -DTRACE=1 ../channel9
+	> cmake -DTRACE_LEVEL_GC=INFO -DTRACE_LEVEL_VM=OFF -DTRACE_LEVEL_GENERAL=WARN
+
+Note: They all default to off, and you need to pass -TT to bin/c9 to enable
+tracing at startup. -T will advise the environment to trace after it has loaded
+itself (thus not spamming you with noise while it boots up).
 
 Or you can combine any set of those.
