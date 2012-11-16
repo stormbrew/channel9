@@ -14,6 +14,13 @@ static ID rb_compile;
 static ID rb_compile_string;
 static ID rb_to_json;
 
+#ifndef STR2CSTR
+const char *STR2CSTR(VALUE val)
+{
+    return StringValuePtr(val);
+}
+#endif
+
 class NoReturnChannel : public Channel9::CallableContext
 {
 public:
