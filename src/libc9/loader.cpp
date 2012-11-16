@@ -1,4 +1,6 @@
 #include <fstream>
+#include <algorithm>
+
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -273,12 +275,21 @@ namespace Channel9
 		env->set_special_channel("argv", Channel9::value(Channel9::new_tuple(args.begin(), args.end())));
 	}
 
-	int load_environment_and_run(Environment *env, int argc, const char **argv, bool trace_loaded) throw(loader_error)
+	int load_environment_and_run(Environment *env, std::string program, int argc, const char **argv, bool trace_loaded) throw(loader_error)
 	{
-		if (argc < 1)
-			throw loader_error("No program file specified.");
+		// let the program invocation override the filename (ie. c9.rb always runs ruby)
+		// but if the exe doesn't match the exact expectation, use the first argument's
+		// extension to decide what to do.
+		size_t slash_pos = program.rfind('/');
+		if (slash_pos != std::string::npos)
+			program = program.substr(slash_pos + 1, std::string::npos);
+		if (program.length() < 3 || !std::equal(program.begin(), program.begin()+3, "c9."))
+		{
+			if (argc < 1)
+				throw loader_error("No program file specified.");
 
-		std::string program = argv[0];
+			program = argv[0];
+		}
 
 		std::string ext = "";
 		size_t ext_pos = program.rfind('.');
