@@ -1,4 +1,8 @@
 cmake_minimum_required (VERSION 2.6)
+
+set (CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type: Debug or Release")
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release)
+
 project (channel9)
 
 set (channel9_VERSION_MAJOR 1)
@@ -8,11 +12,9 @@ find_package(Ruby REQUIRED)
 
 add_definitions( -D__STDC_FORMAT_MACROS )
 
-set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release)
-
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
-set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O4 --param inline-unit-growth=100000 --param large-function-growth=100000 --param max-inline-insns-single=100000 -Wall -Werror -frtti -Wno-unused-but-set-variable -Wno-strict-aliasing")
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 --param inline-unit-growth=100000 --param large-function-growth=100000 --param max-inline-insns-single=100000 -Wall -Werror -frtti -Wno-unused-but-set-variable -Wno-strict-aliasing")
 
 if(CMAKE_BUILD_TYPE EQUAL "Debug")
     add_definitions( -DDEBUG )
