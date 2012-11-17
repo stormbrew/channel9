@@ -81,41 +81,4 @@ add_custom_command(
 )
 add_custom_target(rb-pkg-stdlib ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/lib)
 
-add_compiled_ruby(${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR} simple_tests simple_tests
-	001.math.rb
-	002.puts.rb
-	003.load.rb
-	004.locals.rb
-	005.while.rb
-	006.if.rb
-	007.method.rb
-	008.const.rb
-	009.class.rb
-	010.module.rb
-	011.block.rb
-	012.global.rb
-	013.dstring.rb
-	014.ensure.rb
-	015.case.rb
-	016.raise.rb
-	017.default-args.rb
-	018.array.rb
-	019.super.rb
-	020.const_scope.rb
-	021.masgn.rb
-	022.attrs.rb
-	023.cvar.rb
-	024.dup.rb
-	025.for.rb
-	026.eval.rb
-	027.hash.rb
-	028.module.rb
-)
-
-add_compiled_ruby(${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_BINARY_DIR} perf_tests perf_tests
-	001.fib.rb
-	002.recursive_sum.rb
-	003.linkedlist.rb
-)
-
 add_c9_alias(rb)
