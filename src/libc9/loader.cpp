@@ -74,8 +74,9 @@ namespace Channel9
 		case nullValue:
 			return Nil;
 		case intValue:
-		case uintValue:
 			return value(val.asInt64());
+		case uintValue:
+			return value((int64_t)val.asUInt64());
 		case realValue:
 			return value(val.asDouble());
 		case stringValue:
