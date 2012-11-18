@@ -1,8 +1,6 @@
 Channel9
 --------
 
-Channel9 is a VM written (so far) entirely in Ruby.
-
 What sets it apart from most VMs is that its central construct is
 not objects (as in Ruby's VMs), or strings (as in TCL), or hashes
 (as in python/perl/etc). The central primitive of channel9 is
