@@ -167,7 +167,7 @@ namespace Channel9
 		return ctx;
 	}
 
-	GCRef<RunnableContext*> load_bytecode(Environment *env, const std::string &filename) throw(loader_error)
+	GCRef<RunnableContext*> load_bytecode(Environment *env, const std::string &filename)
 	{
 		std::ifstream file(filename.c_str());
 		if (file.is_open())
@@ -192,7 +192,7 @@ namespace Channel9
 		}
 	}
 
-	GCRef<RunnableContext*> load_bytecode(Environment *env, const std::string &filename, const std::string &str) throw(loader_error)
+	GCRef<RunnableContext*> load_bytecode(Environment *env, const std::string &filename, const std::string &str)
 	{
 		Json::Reader reader;
 		Json::Value body;
@@ -276,7 +276,7 @@ namespace Channel9
 		env->set_special_channel("argv", Channel9::value(Channel9::new_tuple(args.begin(), args.end())));
 	}
 
-	int load_environment_and_run(Environment *env, std::string program, int argc, const char **argv, bool trace_loaded) throw(loader_error)
+	int load_environment_and_run(Environment *env, std::string program, int argc, const char **argv, bool trace_loaded)
 	{
 		// let the program invocation override the filename (ie. c9.rb always runs ruby)
 		// but if the exe doesn't match the exact expectation, use the first argument's
@@ -329,7 +329,7 @@ namespace Channel9
 		return 1;
 	}
 
-	int run_file(Environment *env, const std::string &filename) throw(loader_error)
+	int run_file(Environment *env, const std::string &filename)
 	{
 		// find the extension
 		std::string ext = "";
