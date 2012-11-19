@@ -147,6 +147,7 @@ namespace Channel9
 		FFICall(ffi_fn func, FFIDefinition *ret, FFIDefinition *args)
 		 : m_func(func), m_return(ret->get_type()), m_return_def(NULL), m_args(args)
 		{ build_cif(); }
+		~FFICall() {}
 
 		void send(Environment *env, const Value &val, const Value &ret);
 		void scan();
