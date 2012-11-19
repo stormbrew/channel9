@@ -4,5 +4,5 @@ $ffi_puts("testing simple ffi") -> $stdout
 
 local stat = $ffi_struct_stat()
 $ffi_stat("/etc", stat) -> $stdout
-stat(1) -> $stdout
-stat(12)(0) -> $stdout
+stat("st_ino") -> $stdout
+stat("st_mtim")("tv_sec") -> $stdout
