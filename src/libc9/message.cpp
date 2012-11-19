@@ -23,12 +23,10 @@ namespace Channel9
 
 #			define MAKE_PROTOCOL(name) \
 			protocol_ids[name] = proto_counter++; \
-			protocol_names.push_back(name); \
-			TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Predefined Protocol ID: %s -> %d\n", (name), (int)(proto_counter)-1)
+			protocol_names.push_back(name);
 #			define MAKE_MESSAGE(name) \
 			message_ids[name] = message_counter++; \
-			message_names.push_back(name); \
-			TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Predefined Message ID: %s -> %d\n", (name), (int)(message_counter)-1)
+			message_names.push_back(name);
 
 		MAKE_PROTOCOL("");
 		MAKE_PROTOCOL("c9");
