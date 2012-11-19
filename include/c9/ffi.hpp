@@ -36,6 +36,7 @@ namespace Channel9
 		std::vector<ffi_type*> m_elements;
 		std::vector<FFIDefinition*> m_ptr_types;
 		std::vector<FFIDefinition*> m_dependent_definitions;
+		std::map<std::string, size_t> m_name_map;
 
 	public:
 		FFIDefinition(const std::string &name) : m_name(name)
@@ -69,10 +70,18 @@ namespace Channel9
 		size_t get_offset(size_t idx) const;
 
 		void normalize();
+		void add(const std::string &name, ffi_type *type);
+		void add(const std::string &name, FFIDefinition *type);
 		void add(ffi_type *type, size_t count = 1);
 		void add(FFIDefinition *type, size_t count = 1);
+
+		void add_pointer(const std::string &name, FFIDefinition *type);
+		void add_pointer(const std::string &name);
 		void add_pointer(FFIDefinition *type, size_t count = 1);
 		void add_pointer(size_t count = 1); // adds string pointers.
+
+		static const size_t not_present = -1;
+		size_t name_idx(const std::string &name) const;
 
 		void send(Environment *env, const Value &val, const Value &ret);
 		void scan();

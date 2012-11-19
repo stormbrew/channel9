@@ -11,6 +11,89 @@ void ffi_map(ffi_type *type, FFIDefinition *ptr_type, const Value &val, char *bu
 {
 	switch (type->type)
 	{
+	case FFI_TYPE_SINT8:
+		if (is_number(val))
+		{
+			*(int8_t*)buffer = (int8_t)val.machine_num;
+			return;
+		} else {
+			throw std::runtime_error("Passed a non-number to an int8 argument.");
+		}
+	case FFI_TYPE_SINT16:
+		if (is_number(val))
+		{
+			*(int16_t*)buffer = (int16_t)val.machine_num;
+			return;
+		} else {
+			throw std::runtime_error("Passed a non-number to an int16 argument.");
+		}
+	case FFI_TYPE_SINT32:
+		if (is_number(val))
+		{
+			*(int32_t*)buffer = (int32_t)val.machine_num;
+			return;
+		} else {
+			throw std::runtime_error("Passed a non-number to an int32 argument.");
+		}
+	case FFI_TYPE_SINT64:
+		if (is_number(val))
+		{
+			*(int64_t*)buffer = (int64_t)val.machine_num;
+			return;
+		} else {
+			throw std::runtime_error("Passed a non-number to an int64 argument.");
+		}
+	case FFI_TYPE_UINT8:
+		if (is_number(val))
+		{
+			*(uint8_t*)buffer = (uint8_t)val.machine_num;
+			return;
+		} else {
+			throw std::runtime_error("Passed a non-number to an uint8 argument.");
+		}
+	case FFI_TYPE_UINT16:
+		if (is_number(val))
+		{
+			*(uint16_t*)buffer = (uint16_t)val.machine_num;
+			return;
+		} else {
+			throw std::runtime_error("Passed a non-number to an uint16 argument.");
+		}
+	case FFI_TYPE_UINT32:
+		if (is_number(val))
+		{
+			*(uint32_t*)buffer = (uint32_t)val.machine_num;
+			return;
+		} else {
+			throw std::runtime_error("Passed a non-number to an uint32 argument.");
+		}
+	case FFI_TYPE_UINT64:
+		if (is_number(val))
+		{
+			*(uint64_t*)buffer = (uint64_t)val.machine_num;
+			return;
+		} else {
+			throw std::runtime_error("Passed a non-number to an uint64 argument.");
+		}
+
+	case FFI_TYPE_FLOAT:
+		if (Channel9::type(val) == FLOAT_NUM)
+		{
+			*(float*)buffer = (float)float_num(val);
+			return;
+		} else {
+			throw std::runtime_error("Passed a non-float to a float argument.");
+		}
+
+	case FFI_TYPE_DOUBLE:
+		if (Channel9::type(val) == FLOAT_NUM)
+		{
+			*(double*)buffer = (double)float_num(val);
+			return;
+		} else {
+			throw std::runtime_error("Passed a non-float to a double argument.");
+		}
+
 	case FFI_TYPE_POINTER:
 		if (!ptr_type) // is a string
 		{
@@ -26,6 +109,12 @@ void ffi_map(ffi_type *type, FFIDefinition *ptr_type, const Value &val, char *bu
 				*buff_ptr = obj->blob();
 				return;
 			}
+		} else if (is(val, NIL)) {
+			void const **buff_ptr = reinterpret_cast<void const **>(buffer);
+			*buff_ptr = NULL;
+			return;
+		} else {
+			throw std::runtime_error("Unknown pointer type.");
 		}
 	default: break;
 	}
@@ -53,12 +142,28 @@ Value ffi_unmap(ffi_type *type, FFIDefinition *ptr_type, FFIObject *outer, char 
 	case FFI_TYPE_UINT64:
 		return value(int64_t(*(uint64_t*)buffer));
 
+	case FFI_TYPE_FLOAT:
+		return value(double(*(float*)buffer));
+	case FFI_TYPE_DOUBLE:
+		return value(double(*(double*)buffer));
+
 	case FFI_TYPE_STRUCT:
 		return value(new FFIObject(ptr_type, outer, buffer));
 
 	default:
 		throw std::runtime_error("Could not unmap FFI type");
 	}
+}
+
+void FFIDefinition::add(const std::string &name, ffi_type *type)
+{
+	m_name_map[name] = count();
+	add(type);
+}
+void FFIDefinition::add(const std::string &name, FFIDefinition *type)
+{
+	m_name_map[name] = count();
+	add(type);
 }
 
 void FFIDefinition::add(ffi_type *type, size_t count)
@@ -96,6 +201,26 @@ void FFIDefinition::add_pointer(size_t count)
 	// deal with it that way.
 	add(&ffi_type_pointer, count);
 }
+void FFIDefinition::add_pointer(const std::string &name, FFIDefinition *type)
+{
+	m_name_map[name] = count();
+	add_pointer(type);
+}
+void FFIDefinition::add_pointer(const std::string &name)
+{
+	m_name_map[name] = count();
+	add_pointer();
+}
+
+size_t FFIDefinition::name_idx(const std::string &name) const
+{
+	std::map<std::string, size_t>::const_iterator it = m_name_map.find(name);
+	if (it == m_name_map.end())
+		return -1;
+	else
+		return it->second;
+}
+
 void FFIDefinition::normalize()
 {
 	if (m_type.size == 0)
@@ -160,25 +285,30 @@ void FFIObject::send(Environment *env, const Value &val, const Value &ret)
 	{
 		Message *msg = ptr<Message>(val);
 		Value idx;
+		size_t inum = -1;
 		Value val;
 
-		switch (msg->arg_count())
+		if (msg->arg_count() > 0)
 		{
-		case 1:
-			idx = *msg->args();
-			if (is_number(idx))
-			{
-				channel_send(env, ret, get(idx.machine_num), Nil);
-				return;
-			}
-			break;
-		case 2:
 			idx = msg->args()[0];
-			val = msg->args()[1];
 			if (is_number(idx))
+				inum = (size_t)idx.machine_num;
+			else if (is(idx, STRING)) {
+				String *s = ptr<String>(idx);
+				inum = m_definition->name_idx(s->str());
+			}
+			if (inum == -1 || inum >= m_definition->count())
+				throw std::runtime_error("Invalid index.");
+			switch (msg->arg_count())
 			{
-				set(idx.machine_num, val);
+			case 1:
+				channel_send(env, ret, get(inum), Nil);
+				return;
+			case 2:
+				val = msg->args()[1];
+				set(inum, val);
 				channel_send(env, ret, val, Nil);
+				return;
 			}
 		}
 	}
