@@ -8,7 +8,12 @@ module Kernel
         val
       end
     end
-    Channel9::prim_sprintf(fmt, *vals).to_s
+    buf = $__c9_ffi_sprintf_buf.call()
+    if ($__c9_ffi_sprintf.call(buf, fmt, *vals) > 0)
+      return buf.call(0)
+    else
+      raise "System failure in sprintf"
+    end
   end
 
   def require(name)

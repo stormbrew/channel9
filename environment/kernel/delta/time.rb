@@ -13,7 +13,7 @@ class Time
 
   def self.new
     i = allocate
-    i.initialize(Channel9::prim_time_now)
+    i.initialize($__c9_ffi_time_now.call(nil))
     i
   end
   def self.now
