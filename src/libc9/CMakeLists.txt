@@ -7,6 +7,7 @@ add_library (libc9 SHARED
     callable_context.cpp
     context.cpp
     environment.cpp
+    ffi.cpp
     gc_markcompact.cpp
     gc_semispace.cpp
     instruction.cpp
