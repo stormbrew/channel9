@@ -2,6 +2,7 @@
 #include "c9/environment.hpp"
 
 #include <time.h>
+#include <stdexcept>
 
 namespace Channel9
 {
@@ -16,6 +17,10 @@ namespace Channel9
 	{
 		TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Forwarding primitive call: %s.%s from:%s to class:%s\n",
 			inspect(oself).c_str(), inspect(msg).c_str(), inspect(ctx).c_str(), inspect(prim_class).c_str());
+
+		if (prim_class == Nil)
+			throw std::runtime_error("No primitive class defined.");
+
 		Message *orig = ptr<Message>(msg);
 		assert(orig->message_id() != MESSAGE_C9_PRIMITIVE_CALL);
 		Message *fwd = new_message(make_protocol_id(PROTOCOL_C9_SYSTEM, MESSAGE_C9_PRIMITIVE_CALL), 0, 2);
