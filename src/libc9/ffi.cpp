@@ -150,9 +150,14 @@ Value ffi_unmap(ffi_type *type, FFIDefinition *ptr_type, FFIObject *outer, char 
 	case FFI_TYPE_STRUCT:
 		return value(new FFIObject(ptr_type, outer, buffer));
 
-	default:
-		throw std::runtime_error("Could not unmap FFI type");
+	case FFI_TYPE_POINTER:
+		if (!ptr_type)
+			return value(new_string(*(char**)buffer));
+		// TODO: else it's a structure, deal with it.
+
+	default: break;
 	}
+	throw std::runtime_error("Could not unmap FFI type");
 }
 
 void FFIDefinition::add(const std::string &name, ffi_type *type)
@@ -277,6 +282,7 @@ void FFIDefinition::scan()
 	{
 		gc_scan(*it);
 	}
+	CallableContext::scan();
 }
 
 void FFIObject::send(Environment *env, const Value &val, const Value &ret)
@@ -319,6 +325,7 @@ void FFIObject::scan()
 	gc_scan(m_definition);
 	if (m_outer)
 		gc_scan(m_outer);
+	CallableContext::scan();
 }
 std::string FFIObject::inspect() const
 {
@@ -395,6 +402,7 @@ void FFICall::scan()
 	gc_scan(m_args);
 	if (m_return_def)
 		gc_scan(m_return_def);
+	CallableContext::scan();
 }
 
 std::string FFICall::inspect() const
