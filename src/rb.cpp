@@ -154,7 +154,7 @@ public:
 					}
 				}
 
-				FFICall *sprintf_call = new FFICall(ffi_fn(asprintf), &ffi_type_sint, types);
+				FFICall *sprintf_call = new FFICall("asprintf", ffi_fn(asprintf), &ffi_type_sint, types);
 				sprintf_call->send(env, value(msg), ret);
 				return;
 			}
@@ -282,7 +282,7 @@ void setup_basic_ffi_functions(Environment *env)
 	write_args->add(ffi_type_map<int>());
 	write_args->add_pointer();
 	write_args->add(ffi_type_map<size_t>());
-	FFICall *write_call = new FFICall(ffi_fn(write), ffi_type_map<ssize_t>(), write_args);
+	FFICall *write_call = new FFICall("write", ffi_fn(write), ffi_type_map<ssize_t>(), write_args);
 
 	env->set_special_channel("ffi_write", Channel9::value(write_call));
 
@@ -290,7 +290,7 @@ void setup_basic_ffi_functions(Environment *env)
 	time_t_holder->add("time", ffi_type_map<time_t>());
 	FFIDefinition *time_now_args = new FFIDefinition("time_now_args");
 	time_now_args->add_pointer(time_t_holder);
-	FFICall *time_now_call = new FFICall(ffi_fn(time), ffi_type_map<time_t>(), time_now_args);
+	FFICall *time_now_call = new FFICall("time", ffi_fn(time), ffi_type_map<time_t>(), time_now_args);
 
 	env->set_special_channel("ffi_time_now", Channel9::value(time_now_call));
 
@@ -312,13 +312,12 @@ void setup_basic_ffi_functions(Environment *env)
 	struct_stat->add("st_atim", struct_timespec);
 	struct_stat->add("st_mtim", struct_timespec);
 	struct_stat->add("st_ctim", struct_timespec);
-	struct_stat->add(ffi_type_map<int>(), 3);
-	assert(struct_stat->size() == sizeof(struct stat));
+	struct_stat->add(ffi_type_map<long>(), 3);
 
 	FFIDefinition *stat_args = new FFIDefinition("stat args");
 	stat_args->add_pointer(); // string path
 	stat_args->add_pointer(struct_stat);
-	FFICall *stat_call = new FFICall(ffi_fn(stat), &ffi_type_sint, stat_args);
+	FFICall *stat_call = new FFICall("stat", ffi_fn(stat), &ffi_type_sint, stat_args);
 
 	env->set_special_channel("ffi_stat", Channel9::value(stat_call));
 	env->set_special_channel("ffi_struct_timespec", Channel9::value(struct_timespec));
