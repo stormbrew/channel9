@@ -408,6 +408,6 @@ void FFICall::scan()
 std::string FFICall::inspect() const
 {
 	std::stringstream stream;
-	stream << "FFICall(0x" << this << ")";
+	stream << "FFICall(" << m_name << "@0x" << this << ")";
 	return stream.str();
 }

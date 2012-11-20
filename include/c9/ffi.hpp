@@ -129,6 +129,8 @@ namespace Channel9
 
 	class FFICall : public CallableContext
 	{
+		std::string m_name;
+
 		ffi_fn m_func;
 
 		ffi_cif m_cif;
@@ -141,11 +143,11 @@ namespace Channel9
 		void build_cif();
 
 	public:
-		FFICall(ffi_fn func, ffi_type *ret, FFIDefinition *args)
-		 : m_func(func), m_return(ret), m_return_def(NULL), m_args(args)
+		FFICall(const std::string &name, ffi_fn func, ffi_type *ret, FFIDefinition *args)
+		 : m_name(name), m_func(func), m_return(ret), m_return_def(NULL), m_args(args)
 		{ build_cif(); }
-		FFICall(ffi_fn func, FFIDefinition *ret, FFIDefinition *args)
-		 : m_func(func), m_return(ret->get_type()), m_return_def(NULL), m_args(args)
+		FFICall(const std::string &name, ffi_fn func, FFIDefinition *ret, FFIDefinition *args)
+		 : m_name(name), m_func(func), m_return(ret->get_type()), m_return_def(NULL), m_args(args)
 		{ build_cif(); }
 		~FFICall() {}
 
