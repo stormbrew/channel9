@@ -10,7 +10,7 @@ module Kernel
     end
     buf = $__c9_ffi_sprintf_buf.call()
     if ($__c9_ffi_sprintf.call(buf, fmt, *vals) > 0)
-      return buf.call(0)
+      return buf.call(0).to_s
     else
       raise "System failure in sprintf"
     end
