@@ -375,7 +375,7 @@ void FFICall::send(Environment *env, const Value &val, const Value &ret)
 		Message *msg = ptr<Message>(val);
 		if (msg->arg_count() != m_args->count())
 			throw std::runtime_error("Incorrect number of arguments passed to FFICall");
-		void **args = (void**)alloca(m_args->count());
+		void **args = (void**)alloca(m_args->count() * sizeof(void*));
 		Message::const_iterator it = msg->args();
 		size_t idx = 0;
 		for (it = msg->args(); it != msg->args_end(); it++, idx++)
