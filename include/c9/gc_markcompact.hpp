@@ -98,9 +98,9 @@ namespace Channel9
 				if(m_next_alloc + alloc_size <= m_capacity)
 				{
 					Data * ret = (Data*)(m_data + m_next_alloc);
+					VALGRIND_MEMPOOL_ALLOC(m_data, ret, alloc_size);
 					ret->init(size, type, m_block_size, false);
 					m_next_alloc += alloc_size;
-					VALGRIND_MEMPOOL_ALLOC(m_data, ret, size);
 					return ret;
 				}
 				return NULL;
