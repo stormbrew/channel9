@@ -1,5 +1,6 @@
 #pragma once
 #include "c9/channel9.hpp"
+#include "memcheck.h"
 
 namespace Channel9
 {
@@ -96,6 +97,7 @@ namespace Channel9
 		   m_data_blocks(0)
 		{
 			m_data = m_next_pos = (uint8_t*)malloc(size);
+			VALGRIND_CREATE_MEMPOOL(m_data, 0, false)
 			m_remembered_end = m_remembered_set = (Remembered*)(m_data + size);
 		}
 
@@ -109,10 +111,14 @@ namespace Channel9
 			if (!pinned && data_size < m_free)
 			{
 				Data *data = (Data*)m_next_pos;
+				VALGRIND_MEMPOOL_ALLOC(m_data, m_next_pos, data_size);
 				m_next_pos += data_size;
 				m_free -= data_size;
 				m_data_blocks++;
 				data->init(object_size, type);
+				TRACE_PRINTF(TRACE_ALLOC, TRACE_SPAM,
+					"Nursery Alloc %u type %x ... got %p ... alloc return %p\n",
+					(unsigned)object_size, type, data, data->m_data);
 				return (tObj*)data->m_data;
 			} else {
 				return m_inner_gc.alloc<tObj>(extra, type, pinned);
@@ -172,6 +178,7 @@ namespace Channel9
 
 				m_free -= sizeof(Remembered);
 				Remembered *r = --m_remembered_set;
+				VALGRIND_MEMPOOL_ALLOC(m_data, r, sizeof(Remembered));
 				r->location = (uintptr_t*)&ref;
 				r->val = *(uintptr_t*)&val;
 			}
@@ -244,10 +251,12 @@ namespace Channel9
 				if (nptr)
 				{
 					*from = nptr;
+					TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Nursery pointer fix at %p: %p -> %p\n", from, *from, nptr);
 				} else {
 					nptr = m_inner_gc.alloc<tObj>(data->m_size - sizeof(tObj), data->m_type);
 					memcpy(nptr, *from, data->m_size);
 					data->set_forward(nptr);
+					TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Nursery commit at %p: %p -> %p (%u bytes) in inner collector\n", from, *from, nptr, data->m_size);
 					*from = nptr;
 					gc_scan(nptr);
 					TRACE_DO(TRACE_GC, TRACE_INFO){
@@ -322,6 +331,8 @@ namespace Channel9
 		m_remembered_set = m_remembered_end = (Remembered*)(m_data + m_size);
 		m_free = m_size;
 		m_data_blocks = 0;
+		VALGRIND_DESTROY_MEMPOOL(m_data);
+		VALGRIND_CREATE_MEMPOOL(m_data, 0, false);
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection done, moved %"PRIu64" Data/%"PRIu64" bytes to the inner collector\n", uint64_t(m_moved_data), uint64_t(m_moved_bytes));
 	}
