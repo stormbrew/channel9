@@ -32,7 +32,7 @@ extern "C" int Channel9_environment_initialize(Channel9::Environment *env, const
 {
 	FFIDefinition *args = new FFIDefinition("Puts Arguments");
 	args->add_pointer();
-	FFICall *puts_call = new FFICall(ffi_fn(puts), &ffi_type_sint, args);
+	FFICall *puts_call = new FFICall("puts", ffi_fn(puts), &ffi_type_sint, args);
 
 
 	env->set_special_channel("ffi_puts", Channel9::value(puts_call));
