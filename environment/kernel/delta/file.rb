@@ -62,26 +62,95 @@ class File < IO
   end
 
   class Stat
-    def initialize(arr)
-      @arr = arr
+    ["atime", "blksize", "blocks", "ctime",
+    "dev", "dev_major", "dev_minor",
+    "file?", "ftype", "gid", "ino", "mode", "mtime",
+    "nlink", "rdev", "size", "uid"].each do |i|
+      attr_accessor i.to_sym
     end
 
-    ["atime", "blksize", "blockdev?", "blocks", "chardev?", "ctime",
-    "dev", "dev_major", "dev_minor", "directory?", "executable?", "executable_real?",
-    "file?", "ftype", "gid", "grpowned?", "ino", "mode", "mtime",
-    "nlink", "owned?", "pipe?", "rdev", "rdev_major", "rdev_minor", "readable?",
-    "readable_real?", "setgid?", "setuid?", "size", "socket?", "sticky?", "symlink?",
-    "uid", "writable?", "writable_real?", "zero?"].each_with_index do |i, idx|
-      define_method(i.to_sym) do
-        @arr.at(idx)
-      end
+    def writable?
+      mode & 0200 != 0
     end
+    def writable_real?
+      mode & 0200 != 0
+    end
+    def zero?
+      size == 0
+    end
+    def grpowned?
+      return false
+    end
+    def owned?
+      return false
+    end
+    def pipe?
+      return mode & 010000 != 0
+    end
+    def readable?
+      return mode & 0400 != 0
+    end
+    def readable_real?
+      return mode & 0400 != 0
+    end
+    def setgid?
+      return mode & 02000 != 0
+    end
+    def setuid?
+      return mode & 04000 != 0
+    end
+    def socket?
+      return mode & 0140000 != 0
+    end
+    def sticky?
+      return mode & 01000 != 0
+    end
+    def symlink?
+      return mode & 0120000 != 0
+    end
+    def blockdev?
+      return mode & 060000 != 0
+    end
+    def chardev?
+      return mode & 020000 != 0
+    end
+    def directory?
+      return mode & 040000 != 0
+    end
+    def executable?
+      return mode & 0400 != 0
+    end
+    def executable_real?
+      return mode & 0400 != 0
+    end
+    def file?
+      return mode & 0100000 != 0
+    end
+    def ftype
+      return mode & 0170000
+    end
+
   end
-    
+
   def self.stat(name)
-    info = Channel9.prim_stat(name.to_s_prim)
-    if (info)
-      Stat.new(info)
+    info = $__c9_ffi_struct_stat.call()
+    ok = $__c9_ffi_stat.call(name.to_s_prim, info)
+    if (ok == 0)
+      stat = Stat.new
+      stat.atime = Time.new(info.call(:st_atim).call(:tv_sec))
+      stat.blksize = info.call(:st_blksize)
+      stat.blocks = info.call(:st_blocks)
+      stat.ctime = Time.new(info.call(:st_ctim).call(:tv_sec))
+      stat.dev = info.call(:st_dev)
+      stat.gid = info.call(:st_gid)
+      stat.ino = info.call(:st_ino)
+      stat.mode = info.call(:st_mode)
+      stat.mtime = Time.new(info.call(:st_mtim).call(:tv_sec))
+      stat.nlink = info.call(:st_nlink)
+      stat.rdev = info.call(:st_rdev)
+      stat.size = info.call(:st_size)
+      stat.uid = info.call(:st_uid)
+      stat
     else
       raise Errno::ENOENT, "No file #{name}"
     end
