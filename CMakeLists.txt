@@ -16,7 +16,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 --param inline-unit-growth=100000 --param large-function-growth=100000 --param max-inline-insns-single=100000 -Wall -Werror -frtti -Wno-unused-but-set-variable -Wno-strict-aliasing")
 
-if(CMAKE_BUILD_TYPE EQUAL "Debug")
+if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
     add_definitions( -DDEBUG )
 else()
     add_definitions( -DNDEBUG )
