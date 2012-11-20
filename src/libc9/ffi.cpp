@@ -303,7 +303,7 @@ void FFIObject::send(Environment *env, const Value &val, const Value &ret)
 				String *s = ptr<String>(idx);
 				inum = m_definition->name_idx(s->str());
 			}
-			if (inum == -1 || inum >= m_definition->count())
+			if (inum == FFIDefinition::not_present || inum >= m_definition->count())
 				throw std::runtime_error("Invalid index.");
 			switch (msg->arg_count())
 			{
