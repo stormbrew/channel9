@@ -328,6 +328,12 @@ void setup_basic_ffi_functions(Environment *env)
 	env->set_special_channel("ffi_sprintf_buf", Channel9::value(string_holder));
 	env->set_special_channel("ffi_sprintf", Channel9::value(new SprintfChannel(string_holder)));
 
+	FFIDefinition *chdir_args = new FFIDefinition("chdir args");
+	chdir_args->add_pointer();
+	FFICall *chdir_call = new FFICall("chdir", ffi_fn(chdir), &ffi_type_sint, chdir_args);
+
+	env->set_special_channel("ffi_chdir", Channel9::value(chdir_call));
+
 	env->set_special_channel("glob", Channel9::value(new GlobChannel));
 }
 
