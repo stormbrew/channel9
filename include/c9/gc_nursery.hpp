@@ -2,6 +2,8 @@
 #include "c9/channel9.hpp"
 #include "memcheck.h"
 
+#include <stdexcept>
+
 namespace Channel9
 {
 	template <typename tPtr>
@@ -89,11 +91,11 @@ namespace Channel9
 		};
 
 	public:
-		Nursery(size_t size = 1<<22)
+		Nursery(size_t size = 2<<22) // 8mb nursery
 		 : m_state(STATE_NORMAL),
 		   m_size(size),
 		   m_free(size),
-		   m_min_free(1<<14),
+		   m_min_free(1<<20), // leave 1mb buffer free
 		   m_data_blocks(0)
 		{
 			m_data = m_next_pos = (uint8_t*)malloc(size);
@@ -172,7 +174,8 @@ namespace Channel9
 			if (!Channel9::in_nursery(&ref) && Channel9::in_nursery(val))
 			{
 				// TODO: What to do when this happens? Maybe it should be a deque anyways.
-				assert(m_free >= sizeof(Remembered));
+				if (m_free < sizeof(Remembered))
+					throw std::runtime_error("No free space for remembered set! PANIC!");
 
 				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Write barrier, adding: %p(%s) <- %p(%s)\n", &ref, Channel9::in_nursery(&ref)? "yes":"no", *(void**)&val, Channel9::in_nursery(val)? "yes":"no");
 
