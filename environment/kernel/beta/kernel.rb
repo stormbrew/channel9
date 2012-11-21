@@ -104,7 +104,8 @@ module Kernel
 
   def print(*args)
     args.each {|text|
-      $__c9_print.call(text.to_s_prim)
+      text_prim = text.to_s_prim
+      $__c9_ffi_write.call(1, text_prim, text_prim.length)
     }
   end
 

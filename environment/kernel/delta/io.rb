@@ -42,7 +42,7 @@ class Stdout < IO
 
   def write(*args)
     args.each {|text|
-      $__c9_print.call(text.to_s_prim)
+      $__c9_ffi_write.call(1, text.to_s_prim, text.length)
     }
   end
 end
@@ -51,6 +51,12 @@ class Stderr < IO
     s = allocate
     s.initialize()
     s
+  end
+
+  def write(*args)
+    args.each {|text|
+      $__c9_ffi_write.call(2, text.to_s_prim, text.length)
+    }
   end
 end
 
