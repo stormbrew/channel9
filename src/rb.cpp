@@ -27,24 +27,6 @@ const char *STR2CSTR(VALUE val)
 }
 #endif
 
-class NoReturnChannel : public Channel9::CallableContext
-{
-public:
-	NoReturnChannel(){}
-	~NoReturnChannel(){}
-
-	void send(Channel9::Environment *env, const Channel9::Value &val, const Channel9::Value &ret)
-	{
-		std::cout << "Unexpected return to no return channel.\n";
-		exit(1);
-	}
-	std::string inspect() const
-	{
-		return "No Return Channel";
-	}
-};
-GCRef<CallableContext*> no_return_channel = new NoReturnChannel;
-
 class SetSpecialChannel : public CallableContext
 {
 public:
@@ -64,7 +46,7 @@ public:
 				}
 			}
 		}
-		channel_send(env, ret, val, value(*no_return_channel));
+		channel_send(env, ret, val, value(&no_return_ctx));
 	}
 	std::string inspect() const
 	{
@@ -122,7 +104,7 @@ public:
 				return;
 			}
 		}
-		channel_send(env, ret, val, value(*no_return_channel));
+		channel_send(env, ret, val, value(&no_return_ctx));
 	}
 	std::string inspect() const
 	{
@@ -162,7 +144,7 @@ public:
 					channel_send(env, value(*ctx), Nil, ret);
 					return;
 				} catch (loader_error &err) {
-					channel_send(env, ret, False, Channel9::value(*no_return_channel));
+					channel_send(env, ret, False, Channel9::value(&no_return_ctx));
 					return;
 				}
 			} else if (msg->m_message_id == mid_backtrace) {
@@ -182,7 +164,7 @@ public:
 					bt.push_back(value(new_string(posinfo.str())));
 					ctx = ctx->m_caller;
 				}
-				channel_send(env, ret, value(new_tuple(bt.begin(), bt.end())), Channel9::value(*no_return_channel));
+				channel_send(env, ret, value(new_tuple(bt.begin(), bt.end())), Channel9::value(&no_return_ctx));
 				return;
 			} else if (msg->m_message_id == mid_load && msg->arg_count() == 1 && is(msg->args()[0], STRING)) {
 				// try to load an alongside bytecode object directly first.
@@ -201,7 +183,7 @@ public:
 						channel_send(env, value(*ctx), Nil, ret);
 						return;
 					} else {
-						channel_send(env, ret, False, Channel9::value(*no_return_channel));
+						channel_send(env, ret, False, Channel9::value(&no_return_ctx));
 						return;
 					}
 				}
@@ -219,10 +201,10 @@ public:
 				if (!NIL_P(res)) {
 					// make it a json string.
 					res = rb_funcall(res, rb_to_json, 0);
-					channel_send(env, ret, value(*load_bytecode(env, path, STR2CSTR(res))), value(*no_return_channel));
+					channel_send(env, ret, value(*load_bytecode(env, path, STR2CSTR(res))), value(&no_return_ctx));
 					return;
 				} else {
-					channel_send(env, ret, False, value(*no_return_channel));
+					channel_send(env, ret, False, value(&no_return_ctx));
 					return;
 				}
 			} else {
@@ -231,7 +213,7 @@ public:
 			}
 		}
 
-		channel_send(env, ret, val, Channel9::value(*no_return_channel));
+		channel_send(env, ret, val, Channel9::value(&no_return_ctx));
 	}
 	std::string inspect() const
 	{
