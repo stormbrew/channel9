@@ -8,6 +8,7 @@ namespace Channel9
 {
 	std::vector<CallableContext*> CallableContext::contexts;
 	bool CallableContext::sweep_flag = false;
+	NoReturnContext no_return_ctx;
 
 	static void callable_context_send(Environment *cenv, const Value &ctx, const Value &oself, const Value &msg);
 	INIT_SEND_FUNC(CALLABLE_CONTEXT, &callable_context_send);
