@@ -4,6 +4,7 @@ include_directories(${RUBY_INCLUDE_DIRS})
 add_definitions( -DC9RB_RUBY_LIB=\"${CMAKE_CURRENT_SOURCE_DIR}/lib\" -DC9_RUBY_LIB=\"${CMAKE_SOURCE_DIR}/ruby/lib\" )
 add_library(rb SHARED
     src/rb.cpp
+    src/rb_glob.cpp
 )
 target_link_libraries(rb libc9 ${RUBY_LIBRARY})
 
