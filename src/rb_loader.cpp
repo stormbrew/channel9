@@ -6,6 +6,11 @@
 
 #include <ruby.h>
 
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 using namespace Channel9;
 
 static VALUE rb_ruby_mod;
@@ -41,6 +46,56 @@ LoaderChannel::LoaderChannel(const std::string &environment_path)
 
 	rb_require("rubygems");
 	rb_require("channel9/ruby");
+}
+
+void LoaderChannel::store_bytecode(const std::string &path, const char *bytecode)
+{
+	FILE *bytecode_file = fopen((path + ".c9b").c_str(), "w");
+	if (bytecode_file)
+	{
+		fwrite(bytecode, strlen(bytecode), 1, bytecode_file);
+		fclose(bytecode_file);
+	}
+}
+
+void LoaderChannel::compile_and_run_ruby(Environment *env, const Value &ret, const std::string &path)
+{
+	struct stat rb_file;
+	struct stat c9_file;
+
+	bool rb_file_found = stat(path.c_str(), &rb_file) == 0;
+	bool c9_file_found = stat((path + ".c9b").c_str(), &c9_file) == 0;
+
+	if (c9_file_found)
+	{
+		if (!rb_file_found || c9_file.st_ctim.tv_sec >= rb_file.st_ctim.tv_sec)
+		{
+			try {
+				GCRef<RunnableContext*> ctx = load_bytecode(env, path + ".c9b");
+				channel_send(env, value(*ctx), Nil, ret);
+				return;
+			} catch (loader_error &err) {
+				// ignore.
+			}
+		}
+	}
+
+	if (rb_file_found)
+	{
+		// now try to compile it.
+		VALUE res = rb_funcall(rb_ruby_mod, rb_compile, 1, rb_str_new2(path.c_str()));
+		if (!NIL_P(res)) {
+			// make it a json string.
+			res = rb_funcall(res, rb_to_json, 0);
+			GCRef<RunnableContext*> ctx = load_bytecode(env, path, STR2CSTR(res));
+			store_bytecode(path, STR2CSTR(res));
+			channel_send(env, value(*ctx), Nil, ret);
+			return;
+		}
+	}
+
+	channel_send(env, ret, False, Channel9::value(&no_return_ctx));
+	return;
 }
 
 void LoaderChannel::send(Channel9::Environment *env, const Channel9::Value &val, const Channel9::Value &ret)
@@ -82,24 +137,8 @@ void LoaderChannel::send(Channel9::Environment *env, const Channel9::Value &val,
 		} else if (msg->m_message_id == mid_load && msg->arg_count() == 1 && is(msg->args()[0], STRING)) {
 			// try to load an alongside bytecode object directly first.
 			std::string path = ptr<String>(*msg->args())->str();
-			try {
-				GCRef<RunnableContext*> ctx = load_bytecode(env, path + ".c9b");
-				channel_send(env, value(*ctx), Nil, ret);
-				return;
-			} catch (loader_error &err) {
-				// now try to compile it.
-				VALUE res = rb_funcall(rb_ruby_mod, rb_compile, 1, rb_str_new2(path.c_str()));
-				if (!NIL_P(res)) {
-					// make it a json string.
-					res = rb_funcall(res, rb_to_json, 0);
-					GCRef<RunnableContext*> ctx = load_bytecode(env, path, STR2CSTR(res));
-					channel_send(env, value(*ctx), Nil, ret);
-					return;
-				} else {
-					channel_send(env, ret, False, Channel9::value(&no_return_ctx));
-					return;
-				}
-			}
+			compile_and_run_ruby(env, ret, path);
+			return;
 		} else if (msg->m_message_id == mid_compile && msg->arg_count() == 4 &&
 			is(msg->args()[0], STRING) && is(msg->args()[1], STRING) &&
 			is(msg->args()[2], STRING) && is_number(msg->args()[3])) {
