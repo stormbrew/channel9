@@ -1,5 +1,4 @@
 #include <stdexcept>
-#include <glob.h>
 
 #include "c9/channel9.hpp"
 #include "c9/environment.hpp"
@@ -9,6 +8,8 @@
 #include "c9/message.hpp"
 #include "c9/loader.hpp"
 #include "c9/ffi.hpp"
+
+#include "rb_glob.hpp"
 
 #include "ruby.h"
 
@@ -68,44 +69,6 @@ public:
 	std::string inspect() const
 	{
 		return "Set Special Channel";
-	}
-};
-
-class GlobChannel : public CallableContext
-{
-public:
-	GlobChannel(){}
-	~GlobChannel(){}
-
-	void send(Environment *env, const Value &val, const Value &ret)
-	{
-		if (is(val, MESSAGE))
-		{
-			Message *msg = ptr<Message>(val);
-			if (msg->arg_count() == 1)
-			{
-				if (is(msg->args()[0], STRING))
-				{
-					String *pattern = ptr<String>(msg->args()[0]);
-					glob_t matches = {0};
-					int ok = glob(pattern->c_str(), 0, NULL, &matches);
-					std::vector<Value> match_vals;
-					if (ok == 0)
-					{
-						for (size_t i = 0; i < matches.gl_pathc; i++)
-							match_vals.push_back(value(new_string(matches.gl_pathv[i])));
-					}
-					Tuple *res = new_tuple(match_vals.begin(), match_vals.end());
-					channel_send(env, ret, value(res), value(*no_return_channel));
-					return;
-				}
-			}
-		}
-		channel_send(env, ret, Nil, value(*no_return_channel));
-	}
-	std::string inspect() const
-	{
-		return "Glob Channel";
 	}
 };
 
