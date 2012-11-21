@@ -8,24 +8,9 @@
 #include "c9/string.hpp"
 #include "c9/tuple.hpp"
 #include "c9/loader.hpp"
+#include "c9/callable_context.hpp"
 
-class NoReturnChannel : public Channel9::CallableContext
-{
-public:
-	NoReturnChannel(){}
-	~NoReturnChannel(){}
-
-	void send(Channel9::Environment *env, const Channel9::Value &val, const Channel9::Value &ret)
-	{
-		std::cout << "Unexpected return to no return channel.\n";
-		exit(1);
-	}
-	std::string inspect() const
-	{
-		return "No Return Channel";
-	}
-};
-NoReturnChannel *no_return_channel = new NoReturnChannel;
+using Channel9::no_return_ctx;
 
 class ExitChannel : public Channel9::CallableContext
 {
@@ -82,7 +67,7 @@ public:
 			break;
 		}
 		std::cout << "\n";
-		channel_send(env, ret, val, Channel9::value(no_return_channel));
+		channel_send(env, ret, val, Channel9::value(&no_return_ctx));
 	}
 	std::string inspect() const
 	{

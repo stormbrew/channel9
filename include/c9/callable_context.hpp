@@ -41,4 +41,19 @@ namespace Channel9
 	{
 		gc_scan(m_val);
 	}
+
+	class NoReturnContext : public CallableContext
+	{
+	public:
+		virtual void send(Environment *env, const Value &val, const Value &ret)
+		{
+			// TODO: Make this do something more sensible
+			printf("Trap: Tried to return to unreturnable context.");
+			exit(1);
+		}
+		virtual std::string inspect() const { return "No Return Context"; }
+		virtual ~NoReturnContext() {}
+	};
+
+	extern NoReturnContext no_return_ctx;
 }

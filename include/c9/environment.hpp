@@ -42,4 +42,3 @@ namespace Channel9
 		RunningContext *context() const { return m_context; }
 	};
 }
-
