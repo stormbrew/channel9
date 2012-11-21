@@ -218,7 +218,7 @@ namespace Channel9
 
 		void safe_point()
 		{
-			if (m_inner_gc.need_collect() || m_free < m_min_free)
+			if (unlikely(m_free < m_min_free || m_inner_gc.need_collect()))
 			{
 				m_state = STATE_NURSERY_COLLECT;
 				collect();

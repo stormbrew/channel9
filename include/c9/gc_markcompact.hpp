@@ -284,7 +284,7 @@ namespace Channel9
 		}
 		// now is a valid time to stop the world
 		void safe_point() {
-			if(need_collect())
+			if(unlikely(need_collect()))
 				collect();
 		}
 
