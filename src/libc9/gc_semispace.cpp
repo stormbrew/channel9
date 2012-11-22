@@ -166,5 +166,44 @@ namespace Channel9
 
 		m_in_gc = false;
 	}
+
+	bool GC::Semispace::mark(void **from_ptr)
+	{
+		void *from = *from_ptr;
+		Data * old = Data::ptr_for(from);
+
+		// we should never be marking an object that's in the nursery here.
+		assert(!in_nursery(*from_ptr));
+
+		if(old->pool() == m_cur_pool){
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
+			return false;
+		}
+
+		if(old->pinned()){
+			old->set_pool(m_cur_pool);
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X pinned, update pool, recursing\n", from, old->m_type);
+			GC::scan(from, (ValueType)old->m_type);
+			return false;
+		}
+
+		if(old->forward()){
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X => %p\n", from, old->m_type, (*(void**)from));
+			*from_ptr = *(void**)from;
+			return true;
+		}
+
+		void * n = (void*)next(old->m_count, old->m_type);
+		memcpy(n, from, old->m_count);
+
+		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X <= %p\n", from, old->m_type, n);
+
+		old->set_forward();
+		// put the new location in the old object's space
+		*(void**)from = n;
+		// change the marked pointer
+		*from_ptr = n;
+		return true;
+	}
 }
 

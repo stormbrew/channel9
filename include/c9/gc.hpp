@@ -36,7 +36,7 @@ namespace Channel9
 
 
 		// notify the gc that an obj is pointed to, might mark it, might move it, might do something else. Returns true if it moved
-		template <typename tObj> bool mark(tObj ** from);
+		bool mark(void ** from);
 
 		// is this object valid? only to be used for debugging
 		template <typename tObj> bool validate(tObj * obj);

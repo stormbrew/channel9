@@ -39,19 +39,19 @@ namespace Channel9
 		{
 		case STRING:{
 			String *str = ptr<String>(from);
-			if(value_pool.mark(&str))
+			if(value_pool.mark((void**)&str))
 				from = make_value_ptr(STRING, str);
 			break;
 		}
 		case TUPLE:{
 			Tuple *tuple = ptr<Tuple>(from);
-			if(value_pool.mark(&tuple))
+			if(value_pool.mark((void**)&tuple))
 				from = make_value_ptr(TUPLE, tuple);
 			break;
 		}
 		case MESSAGE:{
 			Message *msg = ptr<Message>(from);
-			if(value_pool.mark(&msg))
+			if(value_pool.mark((void**)&msg))
 				from = make_value_ptr(MESSAGE, msg);
 			break;
 		}
@@ -63,19 +63,19 @@ namespace Channel9
 
 		case VARIABLE_FRAME:{
 			VariableFrame *frame = ptr<VariableFrame>(from);
-			if (value_pool.mark(&frame))
+			if (value_pool.mark((void**)&frame))
 				from = make_value_ptr(VARIABLE_FRAME, frame);
 			break;
 		}
 		case RUNNING_CONTEXT:{
 			RunningContext *ctx = ptr<RunningContext>(from);
-			if(value_pool.mark(&ctx))
+			if(value_pool.mark((void**)&ctx))
 				from = make_value_ptr(RUNNING_CONTEXT, ctx);
 			break;
 		}
 		case RUNNABLE_CONTEXT:{
 			RunnableContext *ctx = ptr<RunnableContext>(from);
-			if(value_pool.mark(&ctx))
+			if(value_pool.mark((void**)&ctx))
 				from = make_value_ptr(RUNNABLE_CONTEXT, ctx);
 			break;
 		}

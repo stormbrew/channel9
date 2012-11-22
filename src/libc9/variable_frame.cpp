@@ -44,7 +44,7 @@ namespace Channel9
 		size_t lexical_count = from->m_instructions->lexical_count();
 		gc_scan(from->m_instructions);
 		if (from->m_parent_frame)
-			value_pool.mark(&from->m_parent_frame);
+			value_pool.mark((void**)&from->m_parent_frame);
 
 		for (size_t i = 0; i < lexical_count; i++)
 		{

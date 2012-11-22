@@ -150,8 +150,7 @@ namespace Channel9
 		}
 
 		// notify the gc that an obj is pointed to, might mark it, might move it, might do something else. Returns true if it moved
-		template <typename tObj>
-		bool mark(tObj ** from);
+		bool mark(void ** from);
 
 		void scan(void *obj)
 		{
@@ -252,8 +251,7 @@ namespace Channel9
 	};
 
 	template <typename tInnerGC>
-	template <typename tObj>
-	bool GC::Nursery<tInnerGC>::mark(tObj ** from)
+	bool GC::Nursery<tInnerGC>::mark(void ** from)
 	{
 		switch (m_state)
 		{
@@ -261,13 +259,16 @@ namespace Channel9
 			if (in_nursery(*from))
 			{
 				Data *data = Data::from_ptr(*from);
-				tObj *nptr = (tObj*)data->forward_addr();
+				void *nptr = (void*)data->forward_addr();
 				if (nptr)
 				{
 					*from = nptr;
 					TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Nursery pointer fix at %p: %p -> %p\n", from, *from, nptr);
 				} else {
-					nptr = m_inner_gc.alloc<tObj>(data->m_size - sizeof(tObj), data->m_type);
+					// note that we get an extra byte because we're kind of circumventing
+					// the interface to get an arbitrary block of bytes.
+					// TODO: Make that less messy.
+					nptr = m_inner_gc.alloc<char>(data->m_size, data->m_type);
 					memcpy(nptr, *from, data->m_size);
 					data->set_forward(nptr);
 					TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Nursery commit at %p: %p -> %p (%u bytes) in inner collector\n", from, *from, nptr, data->m_size);
