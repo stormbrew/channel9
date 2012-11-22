@@ -149,7 +149,7 @@ namespace Channel9
 
 		void scan()
 		{
-			value_pool.mark((void**)&m_val);
+			gc_mark(&m_val);
 		}
 
 		const tVal &operator*() const { return m_val; }

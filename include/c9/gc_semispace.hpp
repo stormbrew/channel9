@@ -108,10 +108,6 @@ namespace Channel9
 			assert((d->forward()) == 0);
 			GC::scan(d->m_data, ValueType(d->m_type));
 		}
-		void scan(void *p)
-		{
-			scan(Data::ptr_for(p));
-		}
 
 		uint8_t *next_slow(size_t size, size_t alloc_size, uint16_t type);
 		inline uint8_t *next(size_t size, uint16_t type)// __attribute__((always_inline))
@@ -219,7 +215,12 @@ namespace Channel9
 				return (Data::ptr_for(from)->pool() == m_cur_pool);
 		}
 
-		bool mark(void **from_ptr);
+		bool mark(uintptr_t *from_ptr);
+
+		void scan(void *p)
+		{
+			scan(Data::ptr_for(p));
+		}
 
 		// make sure this object is ready to be read from
 		template <typename tObj>

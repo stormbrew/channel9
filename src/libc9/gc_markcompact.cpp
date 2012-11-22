@@ -61,17 +61,18 @@ namespace Channel9
 		}
 	}
 
-bool GC::Markcompact::mark(void ** from)
+	bool GC::Markcompact::mark(uintptr_t *from_ptr)
 	{
+		void *from = raw_tagged_ptr(*from_ptr);
 		// we should never be marking an object that's in the nursery here.
-		assert(!in_nursery(*from));
+		assert(!in_nursery(from));
 
-		Data * d = Data::ptr_for(*from);
+		Data * d = Data::ptr_for(from);
 		switch(m_gc_phase)
 		{
 		case Marking: {
 
-			TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Marking %p -> %i %s\n", *from, d->m_mark, d->m_mark ? "no-follow" : "follow");
+			TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Marking %p -> %i %s\n", from, d->m_mark, d->m_mark ? "no-follow" : "follow");
 
 			if(d->m_mark)
 				return false;
@@ -98,16 +99,16 @@ bool GC::Markcompact::mark(void ** from)
 			return false;
 		}
 		case Updating: {
-			void * to = forward.get(*from);
+			void * to = forward.get(from);
 
-			TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Updating %p -> %p", *from, to);
+			TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Updating %p -> %p", from, to);
 
 			bool changed = (to != NULL);
 			if(changed)
 			{
 				m_dfs_updated++;
-				*from = to;
-				d = Data::ptr_for(*from);
+				update_tagged_ptr(from_ptr, to);
+				d = Data::ptr_for(to);
 			}
 
 			TRACE_QUIET_PRINTF(TRACE_GC, TRACE_SPAM, ", d->m_mark = %i %s\n", d->m_mark, d->m_mark ? "follow" : "no-follow");
