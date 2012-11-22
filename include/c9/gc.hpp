@@ -52,6 +52,10 @@ namespace Channel9
 		void register_root(GCRoot *root);
 		void unregister_root(GCRoot *root);
 
+	protected:
+		void scan(void *ptr, ValueType type); // provided by base class,
+		void scan(void *ptr); // provided by derived for arbitrary object pointers.
+
 	public:
 		class Semispace;
 		class Markcompact;
@@ -79,6 +83,12 @@ namespace Channel9
 
 		virtual ~GCRoot();
 	};
+
+	typedef void (scan_func)(void *obj);
+	extern scan_func *scan_types[0xff];
+
+#	define INIT_SCAN_FUNC(type, func) \
+		static scan_func *_scan_func_##type = scan_types[type] = (scan_func*)func;
 }
 
 #include "c9/gc_semispace.hpp"

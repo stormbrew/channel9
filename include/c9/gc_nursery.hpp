@@ -16,7 +16,7 @@ namespace Channel9
 	// As an invariant, whenever an inner collection is taking place there should be nothing pointing
 	// at the nursery as all objects (and references) should have been moved to the inner collector.
 	template <typename tInnerGC>
-	class GC::Nursery
+	class GC::Nursery : protected GC
 	{
 		struct Remembered
 		{
@@ -153,6 +153,17 @@ namespace Channel9
 		template <typename tObj>
 		bool mark(tObj ** from);
 
+		void scan(void *obj)
+		{
+			if (Channel9::in_nursery(obj))
+			{
+				Data *data = Data::from_ptr(obj);
+				GC::scan(obj, ValueType(data->m_type));
+			} else {
+				m_inner_gc.scan(obj);
+			}
+		}
+
 		// is this object valid? only to be used for debugging
 		template <typename tObj> bool validate(tObj * obj)
 		{
@@ -208,7 +219,7 @@ namespace Channel9
 			data->set_forward(nptr);
 			*manip_ptr = (*manip_ptr & ~POINTER_MASK) | ((uintptr_t)nptr & POINTER_MASK);
 			TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " moved to %p\n", nptr);
-			gc_scan(nptr);
+			scan(nptr);
 			TRACE_DO(TRACE_GC, TRACE_INFO){
 				m_moved_bytes += data->m_size + sizeof(Data);
 				m_moved_data++;
@@ -261,7 +272,7 @@ namespace Channel9
 					data->set_forward(nptr);
 					TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Nursery commit at %p: %p -> %p (%u bytes) in inner collector\n", from, *from, nptr, data->m_size);
 					*from = nptr;
-					gc_scan(nptr);
+					m_inner_gc.scan(nptr);
 					TRACE_DO(TRACE_GC, TRACE_INFO){
 						m_moved_bytes += data->m_size + sizeof(Data);
 						m_moved_data++;

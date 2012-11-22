@@ -71,22 +71,6 @@ namespace Channel9
 		m_roots.erase(root);
 	}
 
-	void GC::Markcompact::scan(Data * d)
-	{
-		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
-		switch(d->m_type)
-		{
-		case STRING:  			gc_scan( (String*)  (d->m_data)); break;
-		case TUPLE:   			gc_scan( (Tuple*)   (d->m_data)); break;
-		case MESSAGE: 			gc_scan( (Message*) (d->m_data)); break;
-		case CALLABLE_CONTEXT: 	gc_scan( (CallableContext*) (d->m_data)); break;
-		case RUNNING_CONTEXT:	gc_scan( (RunningContext*)  (d->m_data)); break;
-		case RUNNABLE_CONTEXT: 	gc_scan( (RunnableContext*) (d->m_data)); break;
-		case VARIABLE_FRAME:   	gc_scan( (VariableFrame*)   (d->m_data)); break;
-		default: assert(false && "Unknown GC type");
-		}
-	}
-
 	void GC::Markcompact::collect()
 	{
 		m_gc_phase = Marking;

@@ -159,7 +159,6 @@ namespace Channel9
 		std::vector<Data *> m_pinned_objs;
 		Block m_pinned_block;
 
-		void scan(Data * d);
 		void collect();
 
 		uint8_t *next_slow(size_t alloc_size, size_t size, uint16_t type, bool new_alloc, bool small);
@@ -269,6 +268,15 @@ namespace Channel9
 
 		template <typename tObj>
 		bool mark(tObj ** from);
+
+		void scan(Data * d)
+		{
+			GC::scan(d->m_data, ValueType(d->m_type));
+		}
+		void scan(void *p)
+		{
+			scan(Data::ptr_for(p));
+		}
 
 		// make sure this object is ready to be read from
 		template <typename tObj>
