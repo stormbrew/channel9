@@ -8,12 +8,12 @@ add_library (libc9 SHARED
     context.cpp
     environment.cpp
     ffi.cpp
+    gc.cpp
     gc_markcompact.cpp
     gc_semispace.cpp
     instruction.cpp
     istream.cpp
     loader.cpp
-    memory_pool.cpp
     message.cpp
     primitive.cpp
     string.cpp

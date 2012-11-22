@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "c9/channel9.hpp"
-#include "c9/memory_pool.hpp"
+#include "c9/gc.hpp"
 #include "c9/string.hpp"
 
 namespace Channel9
@@ -149,7 +149,7 @@ namespace Channel9
 
 		void scan()
 		{
-			value_pool.mark(&m_val);
+			gc_mark(&m_val);
 		}
 
 		const tVal &operator*() const { return m_val; }

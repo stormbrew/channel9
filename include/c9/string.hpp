@@ -1,6 +1,6 @@
 #pragma once
 
-#include "c9/memory_pool.hpp"
+#include "c9/gc.hpp"
 
 #include <string>
 #include <string.h>
@@ -112,11 +112,6 @@ namespace Channel9
 	inline String *new_string(const std::string &str)
 	{
 		return new_string(str.begin(), str.end());
-	}
-
-	inline void gc_scan(String *from)
-	{
-		// nothing to scan. Here for completeness' sake.
 	}
 
 	inline String *join_string(const String *l, const String *r)

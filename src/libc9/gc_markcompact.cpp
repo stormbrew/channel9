@@ -1,5 +1,5 @@
 #include "c9/channel9.hpp"
-#include "c9/memory_pool.hpp"
+#include "c9/gc.hpp"
 
 #include "c9/value.hpp"
 
@@ -61,6 +61,74 @@ namespace Channel9
 		}
 	}
 
+	bool GC::Markcompact::mark(uintptr_t *from_ptr)
+	{
+		void *from = raw_tagged_ptr(*from_ptr);
+		// we should never be marking an object that's in the nursery here.
+		assert(!in_nursery(from));
+
+		Data * d = Data::ptr_for(from);
+		switch(m_gc_phase)
+		{
+		case Marking: {
+
+			TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Marking %p -> %i %s\n", from, d->m_mark, d->m_mark ? "no-follow" : "follow");
+
+			if(d->m_mark)
+				return false;
+
+			m_dfs_marked++;
+			d->m_mark = true;
+
+			m_data_blocks++;
+			m_used += d->m_count + sizeof(Data);
+
+			Block * b = d->block();
+			if(b == NULL)
+				b = & m_pinned_block;
+
+			if(!b->m_mark)
+			{
+				b->m_mark = true;
+				b->m_in_use = 0;
+			}
+			b->m_in_use += d->m_count + sizeof(Data);
+
+			m_scan_list.push(d);
+
+			return false;
+		}
+		case Updating: {
+			void * to = forward.get(from);
+
+			TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Updating %p -> %p", from, to);
+
+			bool changed = (to != NULL);
+			if(changed)
+			{
+				m_dfs_updated++;
+				update_tagged_ptr(from_ptr, to);
+				d = Data::ptr_for(to);
+			}
+
+			TRACE_QUIET_PRINTF(TRACE_GC, TRACE_SPAM, ", d->m_mark = %i %s\n", d->m_mark, d->m_mark ? "follow" : "no-follow");
+
+			if(d->m_mark)
+			{
+				m_dfs_unmarked++;
+				d->m_mark = false;
+				m_scan_list.push(d);
+			}
+
+			return changed;
+		}
+		case Running:
+		case Compacting:
+		default:
+			assert(false && "Markcompact::mark should only be called when marking or updating");
+			return false;
+		}
+	}
 
 	void GC::Markcompact::register_root(GCRoot *root)
 	{
@@ -69,22 +137,6 @@ namespace Channel9
 	void GC::Markcompact::unregister_root(GCRoot *root)
 	{
 		m_roots.erase(root);
-	}
-
-	void GC::Markcompact::scan(Data * d)
-	{
-		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
-		switch(d->m_type)
-		{
-		case STRING:  			gc_scan( (String*)  (d->m_data)); break;
-		case TUPLE:   			gc_scan( (Tuple*)   (d->m_data)); break;
-		case MESSAGE: 			gc_scan( (Message*) (d->m_data)); break;
-		case CALLABLE_CONTEXT: 	gc_scan( (CallableContext*) (d->m_data)); break;
-		case RUNNING_CONTEXT:	gc_scan( (RunningContext*)  (d->m_data)); break;
-		case RUNNABLE_CONTEXT: 	gc_scan( (RunnableContext*) (d->m_data)); break;
-		case VARIABLE_FRAME:   	gc_scan( (VariableFrame*)   (d->m_data)); break;
-		default: assert(false && "Unknown GC type");
-		}
 	}
 
 	void GC::Markcompact::collect()

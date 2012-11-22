@@ -57,6 +57,28 @@ namespace Channel9
 		NEGATIVE_NUMBER = 0xF0
 	};
 
+	// this really belongs in value.hpp, but header load order
+	// makes that impractical. It needs to be there for the GC
+	// stuff, which value.hpp depends on.
+	// TODO: Fix that load order and put this back where it belongs.
+	enum {
+		POINTER_MASK 	= 0x00007fffffffffffULL,
+	};
+	// get just the pointer portion of something that may be a Value
+	template <typename tType>
+	void *raw_tagged_ptr(tType &ref)
+	{
+		tType *ptr = &ref;
+		return (void*)(*(uintptr_t*)ptr & POINTER_MASK);
+	}
+	// update just the pointer portion of something that may be a Value
+	template <typename tType>
+	void update_tagged_ptr(tType *ptr, const void *to)
+	{
+		uintptr_t &ref = *(uintptr_t*)ptr;
+		ref = ((uintptr_t)to & POINTER_MASK) | (ref & ~POINTER_MASK);
+	}
+
 	/* On some platforms (*cough* OSX/x64 *cough*), uintptr_t doesn't map
 	 * to the same type as any of the uint*_t types (uint64 is long long and
 	 * uintptr_t is long), and this makes function overloading just plain not

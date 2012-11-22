@@ -1,6 +1,6 @@
 #pragma once
 
-#include "c9/memory_pool.hpp"
+#include "c9/gc.hpp"
 #include "c9/value.hpp"
 
 #include <vector>
@@ -96,14 +96,6 @@ namespace Channel9
 	inline Tuple *new_tuple(const std::vector<Value> &str)
 	{
 		return new_tuple(str.begin(), str.end());
-	}
-
-	inline void gc_scan(Tuple *from)
-	{
-		for (size_t i = 0; i < from->m_count; i++)
-		{
-			gc_scan(from->m_data[i]);
-		}
 	}
 
 	inline Tuple *join_tuple(const Tuple *l, const Tuple *r)
