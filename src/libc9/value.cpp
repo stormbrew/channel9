@@ -29,59 +29,12 @@ namespace Channel9
 
 	void gc_scan(Value &from)
 	{
-		ValueType obj_type = type(from);
-		DO_DEBUG {
-			if (basic_type(from) != HEAP_TYPE && obj_type != CALLABLE_CONTEXT)
-				return;
-		}
-
-		switch (obj_type)
+		ValueType t = basic_type(from);
+		if (t == HEAP_TYPE)
 		{
-		case STRING:{
-			String *str = ptr<String>(from);
-			if(gc_mark(&str))
-				from = make_value_ptr(STRING, str);
-			break;
-		}
-		case TUPLE:{
-			Tuple *tuple = ptr<Tuple>(from);
-			if(gc_mark(&tuple))
-				from = make_value_ptr(TUPLE, tuple);
-			break;
-		}
-		case MESSAGE:{
-			Message *msg = ptr<Message>(from);
-			if(gc_mark(&msg))
-				from = make_value_ptr(MESSAGE, msg);
-			break;
-		}
-		case CALLABLE_CONTEXT:{
-			//can't move, not in the collector
+			value_pool.mark((uintptr_t*)&from);
+		} else if (unlikely(t == CALLABLE_CONTEXT)) {
 			gc_scan(ptr<CallableContext>(from));
-			break;
-		}
-
-		case VARIABLE_FRAME:{
-			VariableFrame *frame = ptr<VariableFrame>(from);
-			if (gc_mark(&frame))
-				from = make_value_ptr(VARIABLE_FRAME, frame);
-			break;
-		}
-		case RUNNING_CONTEXT:{
-			RunningContext *ctx = ptr<RunningContext>(from);
-			if(gc_mark(&ctx))
-				from = make_value_ptr(RUNNING_CONTEXT, ctx);
-			break;
-		}
-		case RUNNABLE_CONTEXT:{
-			RunnableContext *ctx = ptr<RunnableContext>(from);
-			if(gc_mark(&ctx))
-				from = make_value_ptr(RUNNABLE_CONTEXT, ctx);
-			break;
-		}
-		default:
-			assert(false && "Unknown type in GC scan.");
-			break;
 		}
 	}
 
