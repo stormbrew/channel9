@@ -4,7 +4,7 @@
 #include "c9/environment.hpp"
 #include "c9/callable_context.hpp"
 #include "c9/istream.hpp"
-#include "c9/memory_pool.hpp"
+#include "c9/gc.hpp"
 #include "c9/variable_frame.hpp"
 #include "c9/message.hpp"
 
