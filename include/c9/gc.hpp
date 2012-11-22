@@ -36,7 +36,7 @@ namespace Channel9
 
 
 		// notify the gc that an obj is pointed to, might mark it, might move it, might do something else. Returns true if it moved
-		bool mark(void ** from);
+		bool mark(uintptr_t *from);
 
 		// is this object valid? only to be used for debugging
 		template <typename tObj> bool validate(tObj * obj);
@@ -94,6 +94,15 @@ namespace Channel9
 #include "c9/gc_semispace.hpp"
 #include "c9/gc_markcompact.hpp"
 #include "c9/gc_nursery.hpp"
+
+namespace Channel9
+{
+	template <typename tObj>
+	bool gc_mark(tObj **obj)
+	{
+		return value_pool.mark((uintptr_t*)obj);
+	}
+}
 
 #undef COLLECTOR
 #undef COLLECTOR_CLASS

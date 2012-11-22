@@ -167,13 +167,13 @@ namespace Channel9
 		m_in_gc = false;
 	}
 
-	bool GC::Semispace::mark(void **from_ptr)
+	bool GC::Semispace::mark(uintptr_t *from_ptr)
 	{
-		void *from = *from_ptr;
+		void *from = raw_tagged_ptr(*from_ptr);
 		Data * old = Data::ptr_for(from);
 
 		// we should never be marking an object that's in the nursery here.
-		assert(!in_nursery(*from_ptr));
+		assert(!in_nursery(from));
 
 		if(old->pool() == m_cur_pool){
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
@@ -189,7 +189,7 @@ namespace Channel9
 
 		if(old->forward()){
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X => %p\n", from, old->m_type, (*(void**)from));
-			*from_ptr = *(void**)from;
+			update_tagged_ptr(from_ptr, *(void**)from);
 			return true;
 		}
 
@@ -202,7 +202,7 @@ namespace Channel9
 		// put the new location in the old object's space
 		*(void**)from = n;
 		// change the marked pointer
-		*from_ptr = n;
+		update_tagged_ptr(from_ptr, n);
 		return true;
 	}
 }

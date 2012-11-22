@@ -266,7 +266,7 @@ namespace Channel9
 				return (Data::ptr_for(from)->m_mark == false);
 		}
 
-		bool mark(void ** from);
+		bool mark(uintptr_t *from);
 
 		void scan(Data * d)
 		{
