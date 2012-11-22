@@ -41,7 +41,7 @@ namespace Channel9
 	void Environment::scan()
 	{
 		if (m_context)
-			value_pool.mark(&m_context);
+			value_pool.mark((void**)&m_context);
 
 		gc_scan(&m_ipos);
 

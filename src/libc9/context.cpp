@@ -81,7 +81,7 @@ namespace Channel9
 	void scan_runnable(RunnableContext *ctx)
 	{
 		gc_scan(ctx->m_instructions);
-		value_pool.mark(&ctx->m_lexicalvars);
+		value_pool.mark((void**)&ctx->m_lexicalvars);
 		size_t i;
 		size_t count = ctx->m_instructions->frame_count();
 		for (i = 0; i < count; i++)
@@ -93,13 +93,13 @@ namespace Channel9
 	{
 		gc_scan(ctx->m_instructions);
 		if (ctx->m_caller)
-			value_pool.mark(&ctx->m_caller);
+			value_pool.mark((void**)&ctx->m_caller);
 
 		// only scan the stack and lexical variables if the
 		// context is currently active
 		if (ctx->m_pos)
 		{
-			value_pool.mark(&ctx->m_lexicalvars);
+			value_pool.mark((void**)&ctx->m_lexicalvars);
 			size_t i;
 			for (i = 0; i < ctx->m_stack_pos; i++)
 			{

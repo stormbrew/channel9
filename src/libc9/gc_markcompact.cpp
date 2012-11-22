@@ -61,6 +61,73 @@ namespace Channel9
 		}
 	}
 
+bool GC::Markcompact::mark(void ** from)
+	{
+		// we should never be marking an object that's in the nursery here.
+		assert(!in_nursery(*from));
+
+		Data * d = Data::ptr_for(*from);
+		switch(m_gc_phase)
+		{
+		case Marking: {
+
+			TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Marking %p -> %i %s\n", *from, d->m_mark, d->m_mark ? "no-follow" : "follow");
+
+			if(d->m_mark)
+				return false;
+
+			m_dfs_marked++;
+			d->m_mark = true;
+
+			m_data_blocks++;
+			m_used += d->m_count + sizeof(Data);
+
+			Block * b = d->block();
+			if(b == NULL)
+				b = & m_pinned_block;
+
+			if(!b->m_mark)
+			{
+				b->m_mark = true;
+				b->m_in_use = 0;
+			}
+			b->m_in_use += d->m_count + sizeof(Data);
+
+			m_scan_list.push(d);
+
+			return false;
+		}
+		case Updating: {
+			void * to = forward.get(*from);
+
+			TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Updating %p -> %p", *from, to);
+
+			bool changed = (to != NULL);
+			if(changed)
+			{
+				m_dfs_updated++;
+				*from = to;
+				d = Data::ptr_for(*from);
+			}
+
+			TRACE_QUIET_PRINTF(TRACE_GC, TRACE_SPAM, ", d->m_mark = %i %s\n", d->m_mark, d->m_mark ? "follow" : "no-follow");
+
+			if(d->m_mark)
+			{
+				m_dfs_unmarked++;
+				d->m_mark = false;
+				m_scan_list.push(d);
+			}
+
+			return changed;
+		}
+		case Running:
+		case Compacting:
+		default:
+			assert(false && "Markcompact::mark should only be called when marking or updating");
+			return false;
+		}
+	}
 
 	void GC::Markcompact::register_root(GCRoot *root)
 	{
