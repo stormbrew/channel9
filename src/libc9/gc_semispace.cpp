@@ -1,5 +1,5 @@
 #include "c9/channel9.hpp"
-#include "c9/memory_pool.hpp"
+#include "c9/gc.hpp"
 
 #include "c9/value.hpp"
 
@@ -51,23 +51,6 @@ namespace Channel9
 			// in the next chunk while continuing to put small ones in the current chunk
 			if(alloc_size < SMALL)
 				m_cur_chunk = chunk;
-		}
-	}
-	void GC::Semispace::scan(Data * d)
-	{
-		// must not be forwarding pointers in the new heap.
-		assert((d->forward()) == 0);
-		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Obj %p, type %X\n", d->m_data, d->m_type);
-		switch(d->m_type)
-		{
-		case STRING:  			gc_scan( (String*)  (d->m_data)); break;
-		case TUPLE:   			gc_scan( (Tuple*)   (d->m_data)); break;
-		case MESSAGE: 			gc_scan( (Message*) (d->m_data)); break;
-		case CALLABLE_CONTEXT: 	gc_scan( (CallableContext*) (d->m_data)); break;
-		case RUNNING_CONTEXT:	gc_scan( (RunningContext*)  (d->m_data)); break;
-		case RUNNABLE_CONTEXT: 	gc_scan( (RunnableContext*) (d->m_data)); break;
-		case VARIABLE_FRAME:   	gc_scan( (VariableFrame*)   (d->m_data)); break;
-		default: assert(false && "Unknown GC type");
 		}
 	}
 	void GC::Semispace::collect()
@@ -182,6 +165,45 @@ namespace Channel9
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %"PRIu64" used in %"PRIu64" data blocks, next collection at %"PRIu64"\n", m_used, m_data_blocks, m_next_gc);
 
 		m_in_gc = false;
+	}
+
+	bool GC::Semispace::mark(uintptr_t *from_ptr)
+	{
+		void *from = raw_tagged_ptr(*from_ptr);
+		Data * old = Data::ptr_for(from);
+
+		// we should never be marking an object that's in the nursery here.
+		assert(!in_nursery(from));
+
+		if(old->pool() == m_cur_pool){
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
+			return false;
+		}
+
+		if(old->pinned()){
+			old->set_pool(m_cur_pool);
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X pinned, update pool, recursing\n", from, old->m_type);
+			GC::scan(from, (ValueType)old->m_type);
+			return false;
+		}
+
+		if(old->forward()){
+			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X => %p\n", from, old->m_type, (*(void**)from));
+			update_tagged_ptr(from_ptr, *(void**)from);
+			return true;
+		}
+
+		void * n = (void*)next(old->m_count, old->m_type);
+		memcpy(n, from, old->m_count);
+
+		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X <= %p\n", from, old->m_type, n);
+
+		old->set_forward();
+		// put the new location in the old object's space
+		*(void**)from = n;
+		// change the marked pointer
+		update_tagged_ptr(from_ptr, n);
+		return true;
 	}
 }
 

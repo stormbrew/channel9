@@ -192,4 +192,15 @@ namespace Channel9
 		forward_primitive_call(cenv, def, ctx, oself, msg_val);
 	}
 	INIT_SEND_FUNC(MESSAGE, &message_channel_simple);
+
+	static void scan_message(Message *from)
+	{
+		size_t count = from->m_sysarg_count + from->m_arg_count;
+		for (size_t i = 0; i < count; i++)
+		{
+			gc_scan(from->m_data[i]);
+		}
+	}
+	INIT_SCAN_FUNC(MESSAGE, &scan_message);
+
 }

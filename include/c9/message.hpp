@@ -171,15 +171,6 @@ namespace Channel9
 		return msg;
 	}
 
-	inline void gc_scan(Message *from)
-	{
-		size_t count = from->m_sysarg_count + from->m_arg_count;
-		for (size_t i = 0; i < count; i++)
-		{
-			gc_scan(from->m_data[i]);
-		}
-	}
-
 	inline Value value(const Message &msg) { return make_value_ptr(MESSAGE, new_message(msg)); }
 	inline Value value(const Message *msg) { return make_value_ptr(MESSAGE, msg); }
 }

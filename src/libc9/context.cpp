@@ -13,6 +13,11 @@ namespace Channel9
 	INIT_SEND_FUNC(RUNNING_CONTEXT, &running_context_send);
 	INIT_SEND_FUNC(RUNNABLE_CONTEXT, &runnable_context_send);
 
+	static void scan_runnable(RunnableContext *runnable);
+	static void scan_running(RunningContext *running);
+	INIT_SCAN_FUNC(RUNNING_CONTEXT, &scan_running);
+	INIT_SCAN_FUNC(RUNNABLE_CONTEXT, &scan_runnable);
+
 	void forward_primitive_call(Environment *cenv, const Value &prim_class, const Value &ctx, const Value &oself, const Value &msg)
 	{
 		TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Forwarding primitive call: %s.%s from:%s to class:%s\n",
@@ -70,6 +75,36 @@ namespace Channel9
 			printf("%s:%"PRIu64":%"PRIu64" (%s)\n", pos.file.c_str(), (uint64_t)pos.line_num, (uint64_t)pos.column, pos.annotation.c_str());
 			ctx = ctx->m_caller;
 			--max;
+		}
+	}
+
+	void scan_runnable(RunnableContext *ctx)
+	{
+		gc_scan(ctx->m_instructions);
+		gc_mark(&ctx->m_lexicalvars);
+		size_t i;
+		size_t count = ctx->m_instructions->frame_count();
+		for (i = 0; i < count; i++)
+		{
+			gc_scan(ctx->m_data[i]);
+		}
+	}
+	void scan_running(RunningContext *ctx)
+	{
+		gc_scan(ctx->m_instructions);
+		if (ctx->m_caller)
+			gc_mark(&ctx->m_caller);
+
+		// only scan the stack and lexical variables if the
+		// context is currently active
+		if (ctx->m_pos)
+		{
+			gc_mark(&ctx->m_lexicalvars);
+			size_t i;
+			for (i = 0; i < ctx->m_stack_pos; i++)
+			{
+				gc_scan(ctx->m_data[i]);
+			}
 		}
 	}
 }

@@ -16,7 +16,7 @@ namespace Channel9
 	// As an invariant, whenever an inner collection is taking place there should be nothing pointing
 	// at the nursery as all objects (and references) should have been moved to the inner collector.
 	template <typename tInnerGC>
-	class GC::Nursery
+	class GC::Nursery : protected GC
 	{
 		struct Remembered
 		{
@@ -150,8 +150,18 @@ namespace Channel9
 		}
 
 		// notify the gc that an obj is pointed to, might mark it, might move it, might do something else. Returns true if it moved
-		template <typename tObj>
-		bool mark(tObj ** from);
+		bool mark(uintptr_t *from);
+
+		void scan(void *obj)
+		{
+			if (Channel9::in_nursery(obj))
+			{
+				Data *data = Data::from_ptr(obj);
+				GC::scan(obj, ValueType(data->m_type));
+			} else {
+				m_inner_gc.scan(obj);
+			}
+		}
 
 		// is this object valid? only to be used for debugging
 		template <typename tObj> bool validate(tObj * obj)
@@ -208,7 +218,7 @@ namespace Channel9
 			data->set_forward(nptr);
 			*manip_ptr = (*manip_ptr & ~POINTER_MASK) | ((uintptr_t)nptr & POINTER_MASK);
 			TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " moved to %p\n", nptr);
-			gc_scan(nptr);
+			scan(nptr);
 			TRACE_DO(TRACE_GC, TRACE_INFO){
 				m_moved_bytes += data->m_size + sizeof(Data);
 				m_moved_data++;
@@ -241,27 +251,31 @@ namespace Channel9
 	};
 
 	template <typename tInnerGC>
-	template <typename tObj>
-	bool GC::Nursery<tInnerGC>::mark(tObj ** from)
+	bool GC::Nursery<tInnerGC>::mark(uintptr_t *from_ptr)
 	{
+		void *from = raw_tagged_ptr(*from_ptr);
 		switch (m_state)
 		{
 		case STATE_NURSERY_COLLECT:
-			if (in_nursery(*from))
+			if (in_nursery(from))
 			{
-				Data *data = Data::from_ptr(*from);
-				tObj *nptr = (tObj*)data->forward_addr();
+				Data *data = Data::from_ptr(from);
+				void *nptr = (void*)data->forward_addr();
 				if (nptr)
 				{
-					*from = nptr;
-					TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Nursery pointer fix at %p: %p -> %p\n", from, *from, nptr);
+					update_tagged_ptr(from_ptr, nptr);
+					TRACE_PRINTF(TRACE_GC, TRACE_SPAM, "Nursery pointer fix at %p: %p -> %p\n", from_ptr, from, nptr);
 				} else {
-					nptr = m_inner_gc.alloc<tObj>(data->m_size - sizeof(tObj), data->m_type);
-					memcpy(nptr, *from, data->m_size);
+					// note that we get an extra byte because we're kind of circumventing
+					// the interface to get an arbitrary block of bytes.
+					// TODO: Make that less messy.
+					nptr = m_inner_gc.alloc<char>(data->m_size, data->m_type);
+					memcpy(nptr, from, data->m_size);
 					data->set_forward(nptr);
-					TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Nursery commit at %p: %p -> %p (%u bytes) in inner collector\n", from, *from, nptr, data->m_size);
-					*from = nptr;
-					gc_scan(nptr);
+					TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Nursery commit at %p: %p -> %p (%u bytes) in inner collector\n", from_ptr, from, nptr, data->m_size);
+
+					update_tagged_ptr(from_ptr, nptr);
+					m_inner_gc.scan(nptr);
 					TRACE_DO(TRACE_GC, TRACE_INFO){
 						m_moved_bytes += data->m_size + sizeof(Data);
 						m_moved_data++;
@@ -273,7 +287,7 @@ namespace Channel9
 			// in the nursery.
 			return false;
 		case STATE_INNER_COLLECT:
-			return m_inner_gc.mark(from);
+			return m_inner_gc.mark(from_ptr);
 		case STATE_NORMAL:
 			assert(false && "Marking object while not in a collection.");
 			return false;
