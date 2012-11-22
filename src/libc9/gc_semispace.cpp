@@ -1,5 +1,5 @@
 #include "c9/channel9.hpp"
-#include "c9/memory_pool.hpp"
+#include "c9/gc.hpp"
 
 #include "c9/value.hpp"
 
