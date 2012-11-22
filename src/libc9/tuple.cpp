@@ -91,6 +91,14 @@ namespace Channel9
 		Value def = cenv->special_channel("Channel9::Primitive::Tuple");
 		forward_primitive_call(cenv, def, ctx, oself, msg_val);
 	}
-
 	INIT_SEND_FUNC(TUPLE, &tuple_channel_simple);
+
+	static void scan_tuple(Tuple *from)
+	{
+		for (size_t i = 0; i < from->m_count; i++)
+		{
+			gc_scan(from->m_data[i]);
+		}
+	}
+	INIT_SCAN_FUNC(TUPLE, &scan_tuple);
 }
