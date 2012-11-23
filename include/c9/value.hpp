@@ -85,7 +85,7 @@ namespace Channel9
 	template <typename tPtr>
 	tPtr *ptr(const Value &val)
 	{
-		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) assert(value_pool.validate((tPtr*)(val.raw & Value::POINTER_MASK)));
+		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) assert(nursery_pool.validate((tPtr*)(val.raw & Value::POINTER_MASK)));
 		return (tPtr*)(val.raw & Value::POINTER_MASK);
 	}
 
@@ -130,7 +130,7 @@ namespace Channel9
 		ValueType t = basic_type(from);
 		if (unlikely(t == HEAP_TYPE))
 		{
-			value_pool.mark((uintptr_t*)&from);
+			nursery_pool.mark((uintptr_t*)&from);
 		} else if (unlikely(t == CALLABLE_CONTEXT)) {
 			gc_scan(ptr<CallableContext>(from));
 		}
@@ -151,10 +151,10 @@ namespace Channel9
 
 	public:
 		GCRef(const tVal &val)
-		 : GCRoot(value_pool), m_val(val)
+		 : GCRoot(nursery_pool), m_val(val)
 		{}
 		GCRef(const GCRef<tVal> &ref)
-		 : GCRoot(value_pool), m_val(ref.m_val)
+		 : GCRoot(nursery_pool), m_val(ref.m_val)
 		{}
 
 		void scan()

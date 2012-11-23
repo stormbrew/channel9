@@ -5,7 +5,9 @@
 
 namespace Channel9
 {
-	GC::Nursery<MemoryPool> value_pool;
+	GC::Nursery nursery_pool;
+	GC::Normal normal_pool;
+	//GC::Tenure tenure_pool;
 	scan_func *scan_types[0xff];
 
 	void GC::scan(void *ptr, ValueType type)
@@ -15,7 +17,7 @@ namespace Channel9
 			scan_types[type](ptr);
 	}
 
-	GCRoot::GCRoot(GC::Nursery<MemoryPool> &pool)
+	GCRoot::GCRoot(GC::Nursery &pool)
 	 : m_pool(pool)
 	{
 		m_pool.register_root(this);
