@@ -10,6 +10,7 @@ add_library (libc9 SHARED
     ffi.cpp
     gc.cpp
     gc_markcompact.cpp
+    gc_nursery.cpp
     gc_semispace.cpp
     instruction.cpp
     istream.cpp

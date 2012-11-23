@@ -17,7 +17,7 @@ namespace Channel9
 
 		void link_frame(VariableFrame *parent)
 		{
-			value_pool.write_ptr(m_parent_frame, parent);
+			nursery_pool.write_ptr(m_parent_frame, parent);
 			m_parent_frame = parent;
 		}
 
@@ -30,7 +30,7 @@ namespace Channel9
 		const Value &lookup(size_t id, size_t depth) const;
 		void set(size_t id, const Value &val)
 		{
-			value_pool.write_ptr(m_lexicals[id], val);
+			nursery_pool.write_ptr(m_lexicals[id], val);
 		}
 		void set(size_t id, size_t depth, const Value &val);
 	};
@@ -38,7 +38,7 @@ namespace Channel9
 	inline VariableFrame *new_variable_frame(IStream *instructions)
 	{
 		size_t lexical_count = instructions->lexical_count();
-		VariableFrame *frame = value_pool.alloc<VariableFrame>(lexical_count * sizeof(Value), VARIABLE_FRAME);
+		VariableFrame *frame = nursery_pool.alloc<VariableFrame>(lexical_count * sizeof(Value), VARIABLE_FRAME);
 		frame->m_instructions = instructions;
 		frame->m_parent_frame = NULL;
 		for (size_t i = 0; i < lexical_count; i++)

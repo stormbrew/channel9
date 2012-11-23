@@ -127,7 +127,7 @@ namespace Channel9
 	inline Message *new_message(uint64_t message_id, size_t sysargs = 0, size_t args = 0)
 	{
 		size_t count = sysargs + args;
-		Message *msg = value_pool.alloc<Message>(sizeof(Value)*count, MESSAGE);
+		Message *msg = nursery_pool.alloc<Message>(sizeof(Value)*count, MESSAGE);
 		msg->m_id = message_id;
 		msg->m_sysarg_count = sysargs;
 		msg->m_arg_count = args;
@@ -166,7 +166,7 @@ namespace Channel9
 	inline Message *new_message(const Message &other)
 	{
 		size_t size = sizeof(Message) + sizeof(Value)*other.total_count();
-		Message *msg = value_pool.alloc<Message>(sizeof(Value)*other.total_count(), MESSAGE);
+		Message *msg = nursery_pool.alloc<Message>(sizeof(Value)*other.total_count(), MESSAGE);
 		memcpy(msg, &other, size);
 		return msg;
 	}

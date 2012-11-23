@@ -651,7 +651,7 @@ static void Init_Channel9_Primitives()
 class RubyCollector : GCRoot
 {
 public:
-	RubyCollector() : GCRoot(value_pool) {}
+	RubyCollector() : GCRoot(nursery_pool) {}
 
 	void scan()
 	{

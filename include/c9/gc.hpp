@@ -59,24 +59,27 @@ namespace Channel9
 	public:
 		class Semispace;
 		class Markcompact;
-		template <typename tInnerGC>
+
 		class Nursery;
+		//class Tenure;
+
+		typedef COLLECTOR_CLASS Normal;
 	};
 
-	typedef GC::COLLECTOR_CLASS MemoryPool;
-
-	extern GC::Nursery<MemoryPool> value_pool;
+	extern GC::Nursery nursery_pool;
+	extern GC::Normal normal_pool;
+	//extern GC::Tenure tenure_pool;
 
 	// Base class for GC root objects. Should inherit privately.
 	class GCRoot
 	{
 	private:
-		GC::Nursery<MemoryPool> &m_pool;
+		GC::Nursery &m_pool;
 
 	protected:
-		GCRoot(GC::Nursery<MemoryPool> &pool);
+		GCRoot(GC::Nursery &pool);
 
-		GC::Nursery<MemoryPool> &pool() const { return m_pool; }
+		GC::Nursery &pool() const { return m_pool; }
 
 	public:
 		virtual void scan() = 0;
@@ -100,7 +103,7 @@ namespace Channel9
 	template <typename tObj>
 	bool gc_mark(tObj **obj)
 	{
-		return value_pool.mark((uintptr_t*)obj);
+		return nursery_pool.mark((uintptr_t*)obj);
 	}
 }
 
