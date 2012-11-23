@@ -89,6 +89,7 @@ namespace Channel9
 					return NULL;
 			}
 		};
+		std::stack<void*>  m_scan_list;  // list of live objects left to scan
 
 	public:
 		Nursery(size_t size = 2<<22) // 8mb nursery
@@ -255,7 +256,7 @@ namespace Channel9
 					TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Nursery commit at %p: %p -> %p (%u bytes) in inner collector\n", from_ptr, from, nptr, data->m_size);
 
 					update_tagged_ptr(from_ptr, nptr);
-					m_inner_gc.scan(nptr);
+					m_scan_list.push(nptr);
 					TRACE_DO(TRACE_GC, TRACE_INFO){
 						m_moved_bytes += data->m_size + sizeof(Data);
 						m_moved_data++;
@@ -287,7 +288,11 @@ namespace Channel9
 			(*it)->scan();
 		}
 
-
+		while(!m_scan_list.empty()) {
+			void *p = m_scan_list.top();
+			m_scan_list.pop();
+			scan(p);
+		}
 
 		// we only look through the external pointers in the remembered set,
 		// not the full root set. This also triggers a partial dfs through the live set,
@@ -313,6 +318,12 @@ namespace Channel9
 				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " did nothing.\n");
 			}
 			it++;
+		}
+
+		while(!m_scan_list.empty()) {
+			void *p = m_scan_list.top();
+			m_scan_list.pop();
+			scan(p);
 		}
 
 		// and then reset the nursery space
