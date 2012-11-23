@@ -80,7 +80,7 @@ void LoaderChannel::compile_and_run_ruby(Environment *env, const Value &ret, con
 		}
 	}
 
-	if (rb_file_found && S_ISREG(c9_file.st_mode))
+	if (rb_file_found && S_ISREG(rb_file.st_mode))
 	{
 		// now try to compile it.
 		VALUE res = rb_funcall(rb_ruby_mod, rb_compile, 1, rb_str_new2(path.c_str()));
