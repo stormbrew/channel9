@@ -124,7 +124,17 @@ namespace Channel9
 	inline Value value(RunnableContext *ret_ctx) { return make_value_ptr(RUNNABLE_CONTEXT, ret_ctx); }
 	inline Value value(RunningContext *ret_ctx) { return make_value_ptr(RUNNING_CONTEXT, ret_ctx); }
 
-	void gc_scan(Value &from);
+	void gc_scan(CallableContext *ctx);
+	inline void gc_scan(Value &from)
+	{
+		ValueType t = basic_type(from);
+		if (unlikely(t == HEAP_TYPE))
+		{
+			value_pool.mark((uintptr_t*)&from);
+		} else if (unlikely(t == CALLABLE_CONTEXT)) {
+			gc_scan(ptr<CallableContext>(from));
+		}
+	}
 
 	inline bool in_nursery(const Value &val)
 	{
