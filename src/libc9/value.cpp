@@ -27,17 +27,6 @@ namespace Channel9
 		}
 	}
 
-	void gc_scan(Value &from)
-	{
-		ValueType t = basic_type(from);
-		if (t == HEAP_TYPE)
-		{
-			value_pool.mark((uintptr_t*)&from);
-		} else if (unlikely(t == CALLABLE_CONTEXT)) {
-			gc_scan(ptr<CallableContext>(from));
-		}
-	}
-
 	std::string inner_inspect(const Value &val)
 	{
 		std::stringstream res;
