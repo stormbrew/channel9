@@ -204,26 +204,6 @@ namespace Channel9
 			return ((uint8_t*)ptr >= m_data && (uint8_t*)ptr < (uint8_t*)m_remembered_set);
 		}
 
-		template <typename tObj>
-		void update_ptr(Data *data, tObj **ptr)
-		{
-			// we have to be careful in here because the pointer may have originally been a
-			// value. If so, we need to do the right thing here.
-			// TODO: If the location has been changed to an integer that just happens to correspond
-			// to a pointer, how do we deal with that?
-			uintptr_t *manip_ptr = (uintptr_t*)ptr;
-			tObj *optr = (tObj*)(*manip_ptr & POINTER_MASK);
-			tObj *nptr = m_inner_gc.alloc<tObj>(data->m_size - sizeof(tObj), data->m_type);
-			memcpy(nptr, optr, data->m_size);
-			data->set_forward(nptr);
-			*manip_ptr = (*manip_ptr & ~POINTER_MASK) | ((uintptr_t)nptr & POINTER_MASK);
-			TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " moved to %p\n", nptr);
-			scan(nptr);
-			TRACE_DO(TRACE_GC, TRACE_INFO){
-				m_moved_bytes += data->m_size + sizeof(Data);
-				m_moved_data++;
-			}
-		}
 		void collect();
 
 		void safe_point()
@@ -300,11 +280,14 @@ namespace Channel9
 	{
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery collection begun (%"PRIu64" objects, free: %"PRIu64"/%"PRIu64")\n", (uint64_t)m_data_blocks, (uint64_t)m_free, uint64_t(m_size));
 		TRACE_DO(TRACE_GC, TRACE_INFO) m_moved_bytes = m_moved_data = 0;
+
 		// first, scan the roots, which triggers a DFS through part the live set in the nursery
 		for (std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
 			(*it)->scan();
 		}
+
+
 
 		// we only look through the external pointers in the remembered set,
 		// not the full root set. This also triggers a partial dfs through the live set,
@@ -314,28 +297,17 @@ namespace Channel9
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updating %"PRIu64" pointers in remembered set\n", uint64_t(m_remembered_end - m_remembered_set));
 		while (it != m_remembered_end)
 		{
-			uintptr_t raw = (*it->location & POINTER_MASK);
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Updating pointer %p (was set to %p, current value %p):", it->location, (void*)it->val, (void*)*it->location);
 			if (it->val == *it->location)
 			{
-				Data *data = Data::from_ptr((uint8_t*)raw);
+				Data *data = Data::from_ptr((uint8_t*)raw_tagged_ptr(*it->location));
 				uint8_t *nptr = data->forward_addr();
 				if (nptr)
 				{
 					TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " to %p (in forward table)\n", nptr);
-					*it->location = (*it->location & ~POINTER_MASK) | ((uintptr_t)nptr & POINTER_MASK);
+					update_tagged_ptr(it->location, nptr);
 				} else {
-					switch(data->m_type)
-					{
-					case STRING:  			update_ptr(data, (String**)  it->location); break;
-					case TUPLE:   			update_ptr(data, (Tuple**)   it->location); break;
-					case MESSAGE: 			update_ptr(data, (Message**) it->location); break;
-					case CALLABLE_CONTEXT: 	update_ptr(data, (CallableContext**) it->location); break;
-					case RUNNING_CONTEXT:	update_ptr(data, (RunningContext**)  it->location); break;
-					case RUNNABLE_CONTEXT: 	update_ptr(data, (RunnableContext**) it->location); break;
-					case VARIABLE_FRAME:   	update_ptr(data, (VariableFrame**)   it->location); break;
-					default: assert(false && "Unknown GC type");
-					}
+					mark(it->location);
 				}
 			} else {
 				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " did nothing.\n");
