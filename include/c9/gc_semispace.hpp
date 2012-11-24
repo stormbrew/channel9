@@ -217,7 +217,7 @@ namespace Channel9
 				return (Data::ptr_for(from)->pool() == m_cur_pool);
 		}
 
-		bool mark(uintptr_t *from_ptr);
+		bool mark(void *obj, uintptr_t *from_ptr);
 
 		void scan(void *p)
 		{
@@ -228,9 +228,11 @@ namespace Channel9
 		template <typename tObj>
 		void read_ptr(tObj * obj) { }
 
-		// tell the GC that obj will contain a reference to the object pointed to by ptr
-		template <typename tRef, typename tVal>
-		void write_ptr(tRef &ref, const tVal &val) { ref = val; }
+		template <typename tField, typename tVal>
+		void write_ptr(void *obj, tField &field, const tVal &val)
+		{
+			field = val;
+		}
 
 		bool need_collect()
 		{

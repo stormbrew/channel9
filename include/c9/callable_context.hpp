@@ -30,7 +30,7 @@ namespace Channel9
 		virtual ~CallableContext() {};
 	};
 
-	inline void gc_scan(CallableContext *ctx)
+	inline void gc_scan(void *obj, CallableContext *ctx)
 	{
 		ctx->scan();
 	}
@@ -39,7 +39,7 @@ namespace Channel9
 	template <>
 	inline void GCRef<CallableContext*>::scan()
 	{
-		gc_scan(m_val);
+		gc_scan(NULL, m_val);
 	}
 
 	class NoReturnContext : public CallableContext

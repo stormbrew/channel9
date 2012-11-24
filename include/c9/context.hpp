@@ -69,7 +69,7 @@ namespace Channel9
 		size_t stack_count() const { return m_stack_pos - m_instructions->stack_offset(); }
 		void push(const Value &val)
 		{
-			nursery_pool.write_ptr(m_data[m_stack_pos++], val);
+			nursery_pool.write_ptr(this, m_data[m_stack_pos++], val);
 		}
 		void pop()
 		{
@@ -84,18 +84,18 @@ namespace Channel9
 
 		void set_framevar(size_t id, const Value &val)
 		{
-			nursery_pool.write_ptr(m_data[id], val);
+			nursery_pool.write_ptr(this, m_data[id], val);
 		}
 		void set_localvar(size_t id, const Value &val)
 		{
-			nursery_pool.write_ptr(m_data[m_instructions->local_offset() + id], val);
+			nursery_pool.write_ptr(this, m_data[m_instructions->local_offset() + id], val);
 		}
 		void set_lexicalvar(size_t id, const Value &val) { m_lexicalvars->set(id, val); }
 		void set_lexicalvar(size_t id, size_t depth, const Value &val) { m_lexicalvars->set(id, depth, val); }
 
 		void new_scope(VariableFrame *scope)
 		{
-			nursery_pool.write_ptr(m_lexicalvars, scope);
+			nursery_pool.write_ptr(this, m_lexicalvars, scope);
 		}
 
 		void debug_print_backtrace(size_t max = -1) const;

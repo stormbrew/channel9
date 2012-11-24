@@ -42,13 +42,13 @@ namespace Channel9
 	static void scan_variable_frame(VariableFrame *from)
 	{
 		size_t lexical_count = from->m_instructions->lexical_count();
-		gc_scan(from->m_instructions);
+		gc_scan(from, from->m_instructions);
 		if (from->m_parent_frame)
-			gc_mark(&from->m_parent_frame);
+			gc_mark(from, &from->m_parent_frame);
 
 		for (size_t i = 0; i < lexical_count; i++)
 		{
-			gc_scan(from->m_lexicals[i]);
+			gc_scan(from, from->m_lexicals[i]);
 		}
 	}
 	INIT_SCAN_FUNC(VARIABLE_FRAME, &scan_variable_frame);

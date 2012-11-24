@@ -4,13 +4,13 @@
 
 namespace Channel9
 {
-	bool GC::Nursery::mark(uintptr_t *from_ptr)
+	bool GC::Nursery::mark(void *obj, uintptr_t *from_ptr)
 	{
 		void *from = raw_tagged_ptr(*from_ptr);
 		switch (m_state)
 		{
 		case STATE_NURSERY_COLLECT:
-			if (in_nursery(from))
+			if (is_nursery(from))
 			{
 				Data *data = Data::from_ptr(from);
 				void *nptr = (void*)data->forward_addr();
@@ -40,7 +40,7 @@ namespace Channel9
 			// in the nursery.
 			return false;
 		case STATE_INNER_COLLECT:
-			return normal_pool.mark(from_ptr);
+			return normal_pool.mark(obj, from_ptr);
 		case STATE_NORMAL:
 			assert(false && "Marking object while not in a collection.");
 			return false;
@@ -83,7 +83,7 @@ namespace Channel9
 					TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " to %p (in forward table)\n", nptr);
 					update_tagged_ptr(it->location, nptr);
 				} else {
-					mark(it->location);
+					mark(it->in_object, it->location);
 				}
 			} else {
 				TRACE_QUIET_PRINTF(TRACE_GC, TRACE_DEBUG, " did nothing.\n");

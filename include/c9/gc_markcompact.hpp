@@ -268,24 +268,22 @@ namespace Channel9
 				return (Data::ptr_for(from)->m_mark == false);
 		}
 
-		bool mark(uintptr_t *from);
+		bool mark(void *obj, uintptr_t *from);
 
 		void scan(Data * d)
 		{
 			GC::scan(d->m_data, ValueType(d->m_type));
-		}
-		void scan(void *p)
-		{
-			scan(Data::ptr_for(p));
 		}
 
 		// make sure this object is ready to be read from
 		template <typename tObj>
 		void read_ptr(tObj * obj) { }
 
-		// tell the GC that obj will contain a reference to the object pointed to by ptr
-		template <typename tRef, typename tVal>
-		void write_ptr(tRef &ref, const tVal &val) { ref = val; }
+		template <typename tField, typename tVal>
+		void write_ptr(void *obj, tField &field, const tVal &val)
+		{
+			field = val;
+		}
 
 		bool need_collect() const
 		{

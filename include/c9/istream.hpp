@@ -113,7 +113,7 @@ namespace Channel9
 		{
 			for (IStream::iterator it = begin(); it != end(); it++)
 			{
-				gc_scan(&*it);
+				gc_scan(NULL, &*it);
 			}
 			CallableContext::scan();
 		}
@@ -128,7 +128,7 @@ namespace Channel9
 	template <>
 	inline void GCRef<IStream*>::scan()
 	{
-		gc_scan(m_val);
+		gc_scan(NULL, m_val);
 	}
 }
 

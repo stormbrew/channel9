@@ -97,7 +97,7 @@ namespace Channel9
 	{
 		for (size_t i = 0; i < from->m_count; i++)
 		{
-			gc_scan(from->m_data[i]);
+			gc_scan(from, from->m_data[i]);
 		}
 	}
 	INIT_SCAN_FUNC(TUPLE, &scan_tuple);

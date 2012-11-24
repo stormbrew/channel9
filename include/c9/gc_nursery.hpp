@@ -6,10 +6,6 @@
 
 namespace Channel9
 {
-	template <typename tPtr>
-	bool in_nursery(const tPtr *ptr);
-	bool in_nursery(const Value &val);
-
 	// Implements an object nursery for young objects. Really simple allocator, pretty much just shoves
 	// the data in and goes on its merry way. When it's time to collect it (by default when it has less
 	// than 1/10 available space), it just moves its entire active set into the main object pool.
@@ -19,6 +15,7 @@ namespace Channel9
 	{
 		struct Remembered
 		{
+			void *in_object;
 			uintptr_t *location;
 			uintptr_t val;
 		};
@@ -71,7 +68,7 @@ namespace Channel9
 			template <typename tPtr>
 			static Data *from_ptr(const tPtr *ptr)
 			{
-				assert(Channel9::in_nursery(ptr));
+				assert(is_nursery(ptr));
 				return (Data*)ptr - 1;
 			}
 
@@ -151,18 +148,7 @@ namespace Channel9
 		}
 
 		// notify the gc that an obj is pointed to, might mark it, might move it, might do something else. Returns true if it moved
-		bool mark(uintptr_t *from);
-
-		void scan(void *obj)
-		{
-			if (Channel9::in_nursery(obj))
-			{
-				Data *data = Data::from_ptr(obj);
-				GC::scan(obj, ValueType(data->m_type));
-			} else {
-				normal_pool.scan(obj);
-			}
-		}
+		bool mark(void *obj, uintptr_t *from);
 
 		// is this object valid? only to be used for debugging
 		template <typename tObj> bool validate(tObj * obj)
@@ -178,31 +164,26 @@ namespace Channel9
 		}
 
 		// tell the GC that obj will contain a reference to the object pointed to by ptr
-		template <typename tRef, typename tVal>
-		void write_ptr(tRef &ref, const tVal &val)
+		template <typename tField, typename tVal>
+		void write_ptr(void *obj, tField &field, const tVal &val)
 		{
 			assert(sizeof(val) == sizeof(uintptr_t));
-			if (!Channel9::in_nursery(&ref) && Channel9::in_nursery(val))
+			if ((!obj || !is_nursery(obj)) && is_nursery(val))
 			{
 				// TODO: What to do when this happens? Maybe it should be a deque anyways.
 				if (m_free < sizeof(Remembered))
 					throw std::runtime_error("No free space for remembered set! PANIC!");
 
-				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Write barrier, adding: %p(%s) <- %p(%s)\n", &ref, Channel9::in_nursery(&ref)? "yes":"no", *(void**)&val, Channel9::in_nursery(val)? "yes":"no");
+				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Write barrier, adding: %p(%s) <- %p(%s)\n", &field, obj && is_nursery(&obj)? "yes":"no", *(void**)&val, is_nursery(val)? "yes":"no");
 
 				m_free -= sizeof(Remembered);
 				Remembered *r = --m_remembered_set;
 				VALGRIND_MEMPOOL_ALLOC(m_data, r, sizeof(Remembered));
-				r->location = (uintptr_t*)&ref;
+				r->in_object = obj;
+				r->location = (uintptr_t*)&field;
 				r->val = *(uintptr_t*)&val;
 			}
-			normal_pool.write_ptr(ref, val);
-		}
-
-		template <typename tPtr>
-		bool in_nursery(const tPtr *ptr)
-		{
-			return ((uint8_t*)ptr >= m_data && (uint8_t*)ptr < (uint8_t*)m_remembered_set);
+			normal_pool.write_ptr(obj, field, val);
 		}
 
 		void collect();
@@ -230,10 +211,4 @@ namespace Channel9
 			m_roots.erase(root);
 		}
 	};
-
-	template <typename tPtr>
-	bool in_nursery(const tPtr *ptr)
-	{
-		return nursery_pool.in_nursery(ptr);
-	}
 }
