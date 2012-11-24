@@ -24,6 +24,27 @@ namespace Channel9
 		static const unsigned int SMALL = 4000;
 		static const unsigned int MEDIUM = 32700;
 
+		static const uint8_t GEN_NURSERY = 0;
+		static const uint8_t GEN_NORMAL = 1;
+		static const uint8_t GEN_TENURE = 2;
+		static const uint8_t GEN_MASK = 0x3;
+
+		// Before every object tracked by a GC there must be
+		// an 8-byte header with this structure in its first
+		// 4 bytes.
+		struct DataHeader
+		{
+			uint32_t m_bytes;      // the number of bytes after the data header
+			uint8_t  m_generation; // the generation this object is from
+			uint8_t  m_type;       // the ValueType of this object.
+		};
+
+		struct GenericData
+		{
+			DataHeader m_hdr;
+			uint64_t   m_flags; // flags specific to the collector.
+		};
+
 		// extra is how much to allocate, type is one of Channel9::ValueType, return the new location
 		// likely to call one of the more specific versions below
 		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false);

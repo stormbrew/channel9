@@ -21,7 +21,8 @@ namespace Channel9
 		struct Data
 		{
 			uint32_t m_count; //number of bytes of memory in this allocation
-			uint16_t m_type;
+			uint8_t m_generation;
+			uint8_t m_type;
 			uint16_t m_flags;
 
 			enum {
@@ -31,8 +32,9 @@ namespace Channel9
 			};
 			uint8_t  m_data[0]; //the actual data, 8 byte aligned
 
-			inline Data *init(uint32_t count, uint16_t type, bool pool, bool pin){
+			inline Data *init(uint32_t count, uint8_t type, bool pool, bool pin){
 				m_count = count;
+				m_generation = GEN_NORMAL;
 				m_type = type;
 				m_flags = (uint16_t)pool | ((uint16_t)pin << 12);
 				return this;

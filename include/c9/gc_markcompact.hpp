@@ -29,15 +29,17 @@ namespace Channel9
 		struct Data
 		{
 			uint32_t m_count;   //number of bytes of memory in this allocation
-			uint16_t m_type;
+			uint8_t m_generation; // the generation. Always NORMAL.
+			uint8_t m_type;
 			uint8_t  m_block_size; //so (this & ~((1<<blocksize)-1)) gives the pointer to the block header
 			unsigned m_mark   : 1; //is this marked
 			unsigned m_pinned : 1; //is this pinned in memory
 			unsigned m_padding : 6;//padding for 8 byte alignment
 			uint8_t  m_data[0]; //the actual data, 8 byte aligned
 
-			void init(uint32_t count, uint16_t type, uint8_t block_size, bool pinned){
+			void init(uint32_t count, uint8_t type, uint8_t block_size, bool pinned){
 				m_count  = count;
+				m_generation = GEN_NORMAL;
 				m_type   = type;
 				m_block_size = block_size;
 				m_mark   = false;
