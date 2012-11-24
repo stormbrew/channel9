@@ -53,14 +53,16 @@ namespace Channel9
 		struct Data
 		{
 			uint32_t m_size;
-			uint16_t m_type;
+			uint8_t m_generation;
+			uint8_t m_type;
 			uint16_t m_flags;
 			uint8_t m_data[0];
 
 			static const uint16_t FORWARD_FLAG = 0x1;
 
-			inline Data *init(uint32_t size, uint16_t type){
+			inline Data *init(uint32_t size, uint8_t type){
 				m_size = size;
+				m_generation = GEN_NURSERY;
 				m_type = type;
 				m_flags = 0;
 				return this;
