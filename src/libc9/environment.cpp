@@ -41,18 +41,18 @@ namespace Channel9
 	void Environment::scan()
 	{
 		if (m_context)
-			gc_mark(&m_context);
+			gc_mark(NULL, &m_context);
 
-		gc_scan(&m_ipos);
+		gc_scan(NULL, &m_ipos);
 
 		for (size_t i = 0; i < m_vspos; i++)
 		{
-			gc_scan(m_vstack[i]);
+			gc_scan(NULL, m_vstack[i]);
 		}
 
 		for (special_map::iterator it = m_specials.begin(); it != m_specials.end(); it++)
 		{
-			gc_scan(it->second);
+			gc_scan(NULL, it->second);
 		}
 
 		no_return_ctx.scan();

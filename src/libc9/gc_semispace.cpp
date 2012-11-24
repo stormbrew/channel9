@@ -167,13 +167,13 @@ namespace Channel9
 		m_in_gc = false;
 	}
 
-	bool GC::Semispace::mark(uintptr_t *from_ptr)
+	bool GC::Semispace::mark(void *obj, uintptr_t *from_ptr)
 	{
 		void *from = raw_tagged_ptr(*from_ptr);
 		Data * old = Data::ptr_for(from);
 
 		// we should never be marking an object that's in the nursery here.
-		assert(!in_nursery(from));
+		assert(!is_nursery(obj));
 
 		if(old->pool() == m_cur_pool){
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);

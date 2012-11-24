@@ -80,30 +80,30 @@ namespace Channel9
 
 	void scan_runnable(RunnableContext *ctx)
 	{
-		gc_scan(ctx->m_instructions);
-		gc_mark(&ctx->m_lexicalvars);
+		gc_scan(ctx, ctx->m_instructions);
+		gc_mark(ctx, &ctx->m_lexicalvars);
 		size_t i;
 		size_t count = ctx->m_instructions->frame_count();
 		for (i = 0; i < count; i++)
 		{
-			gc_scan(ctx->m_data[i]);
+			gc_scan(ctx, ctx->m_data[i]);
 		}
 	}
 	void scan_running(RunningContext *ctx)
 	{
-		gc_scan(ctx->m_instructions);
+		gc_scan(ctx, ctx->m_instructions);
 		if (ctx->m_caller)
-			gc_mark(&ctx->m_caller);
+			gc_mark(ctx, &ctx->m_caller);
 
 		// only scan the stack and lexical variables if the
 		// context is currently active
 		if (ctx->m_pos)
 		{
-			gc_mark(&ctx->m_lexicalvars);
+			gc_mark(ctx, &ctx->m_lexicalvars);
 			size_t i;
 			for (i = 0; i < ctx->m_stack_pos; i++)
 			{
-				gc_scan(ctx->m_data[i]);
+				gc_scan(ctx, ctx->m_data[i]);
 			}
 		}
 	}
