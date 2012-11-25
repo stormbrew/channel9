@@ -164,6 +164,18 @@ namespace Channel9
 		return nursery_pool.mark(in, (uintptr_t*)obj);
 	}
 
+	// safely write val to field in obj. If obj is NULL,
+	// the location is outside the control of the garbage
+	// collector.
+	template <typename tField, typename tVal>
+	void gc_write_ptr(void *obj, tField &field, const tVal &val)
+	{
+		nursery_pool.write_ptr(obj, field, val);
+		normal_pool.write_ptr(obj, field, val);
+		//tenure_pool.write_ptr(obj, field, val);
+		field = val;
+	}
+
 	void GC::scan(void *ptr, ValueType type)
 	{
 		TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Scan Obj %p, type %x\n", ptr, type);

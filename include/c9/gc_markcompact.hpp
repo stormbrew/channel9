@@ -282,7 +282,6 @@ namespace Channel9
 		template <typename tField, typename tVal>
 		void write_ptr(void *obj, tField &field, const tVal &val)
 		{
-			field = val;
 		}
 
 		bool need_collect() const

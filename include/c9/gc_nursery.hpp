@@ -183,7 +183,6 @@ namespace Channel9
 				r->location = (uintptr_t*)&field;
 				r->val = *(uintptr_t*)&val;
 			}
-			normal_pool.write_ptr(obj, field, val);
 		}
 
 		void collect();

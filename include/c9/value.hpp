@@ -141,6 +141,17 @@ namespace Channel9
 		return basic_type(val) == HEAP_TYPE && is_nursery(raw_tagged_ptr(val));
 	}
 
+	// use this instead of write_ptr if you're writing a reference,
+	// it checks if the value is a heap pointer before writing.
+	template <typename tRef>
+	inline void gc_write_value(void *obj, tRef &ref, const Value &val)
+	{
+		if (basic_type(val) == HEAP_TYPE)
+			gc_write_ptr(obj, ref, val);
+		else
+			ref = val;
+	}
+
 	std::string inspect(const Value &val);
 
 	template <typename tVal>

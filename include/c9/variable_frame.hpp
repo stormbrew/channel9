@@ -17,7 +17,7 @@ namespace Channel9
 
 		void link_frame(VariableFrame *parent)
 		{
-			nursery_pool.write_ptr(this, m_parent_frame, parent);
+			gc_write_ptr(this, m_parent_frame, parent);
 			m_parent_frame = parent;
 		}
 
@@ -30,7 +30,7 @@ namespace Channel9
 		const Value &lookup(size_t id, size_t depth) const;
 		void set(size_t id, const Value &val)
 		{
-			nursery_pool.write_ptr(this, m_lexicals[id], val);
+			gc_write_value(this, m_lexicals[id], val);
 		}
 		void set(size_t id, size_t depth, const Value &val);
 	};
