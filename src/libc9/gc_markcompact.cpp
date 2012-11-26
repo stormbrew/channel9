@@ -61,11 +61,11 @@ namespace Channel9
 		}
 	}
 
-	bool GC::Markcompact::mark(uintptr_t *from_ptr)
+	bool GC::Markcompact::mark(void *obj, uintptr_t *from_ptr)
 	{
 		void *from = raw_tagged_ptr(*from_ptr);
 		// we should never be marking an object that's in the nursery here.
-		assert(!in_nursery(from));
+		assert(!is_nursery(from));
 
 		Data * d = Data::ptr_for(from);
 		switch(m_gc_phase)

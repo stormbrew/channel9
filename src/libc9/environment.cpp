@@ -10,7 +10,7 @@
 namespace Channel9
 {
 	Environment::Environment()
-	 : GCRoot(value_pool), m_context(NULL), m_running(false),
+	 : GCRoot(nursery_pool), m_context(NULL), m_running(false),
 	   m_vstack(), m_vspos(0)
 	{}
 
@@ -41,18 +41,18 @@ namespace Channel9
 	void Environment::scan()
 	{
 		if (m_context)
-			gc_mark(&m_context);
+			gc_mark(NULL, &m_context);
 
-		gc_scan(&m_ipos);
+		gc_scan(NULL, &m_ipos);
 
 		for (size_t i = 0; i < m_vspos; i++)
 		{
-			gc_scan(m_vstack[i]);
+			gc_scan(NULL, m_vstack[i]);
 		}
 
 		for (special_map::iterator it = m_specials.begin(); it != m_specials.end(); it++)
 		{
-			gc_scan(it->second);
+			gc_scan(NULL, it->second);
 		}
 
 		no_return_ctx.scan();
@@ -184,14 +184,14 @@ namespace Channel9
 				case JMP:
 					CHECK_STACK(0, 0);
 
-					value_pool.safe_point();
+					nursery_pool.safe_point();
 
 					m_context->jump(ins.cache.machine_num);
 					break;
 				case JMP_IF:
 					CHECK_STACK(1, 0);
 
-					value_pool.safe_point();
+					nursery_pool.safe_point();
 
 					if (is_truthy(m_context->top()))
 						m_context->jump(ins.cache.machine_num);
@@ -200,7 +200,7 @@ namespace Channel9
 				case JMP_IF_NOT:
 					CHECK_STACK(1, 0);
 
-					value_pool.safe_point();
+					nursery_pool.safe_point();
 
 					if (!is_truthy(m_context->top()))
 						m_context->jump(ins.cache.machine_num);
@@ -290,7 +290,7 @@ namespace Channel9
 				case CHANNEL_SEND: {
 					CHECK_STACK(3, -1);
 
-					value_pool.safe_point();
+					nursery_pool.safe_point();
 
 					const Value &val = vstore(m_context->top()); m_context->pop();
 					const Value &ret = vstore(m_context->top()); m_context->pop();
@@ -306,7 +306,7 @@ namespace Channel9
 				case CHANNEL_CALL:{
 					CHECK_STACK(2, -1);
 
-					value_pool.safe_point();
+					nursery_pool.safe_point();
 
 					const Value &val = vstore(m_context->top()); m_context->pop();
 					const Value &channel = vstore(m_context->top()); m_context->pop();

@@ -98,11 +98,11 @@ namespace Channel9
 
 	std::string inspect(const Instruction &ins);
 
-	inline void gc_scan(Instruction *ins)
+	inline void gc_scan(void *obj, Instruction *ins)
 	{
-		gc_scan(ins->arg1);
-		gc_scan(ins->arg2);
-		gc_scan(ins->arg3);
+		gc_scan(obj, ins->arg1);
+		gc_scan(obj, ins->arg2);
+		gc_scan(obj, ins->arg3);
 	}
 }
 

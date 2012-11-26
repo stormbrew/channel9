@@ -69,7 +69,7 @@ namespace Channel9
 		size_t stack_count() const { return m_stack_pos - m_instructions->stack_offset(); }
 		void push(const Value &val)
 		{
-			value_pool.write_ptr(m_data[m_stack_pos++], val);
+			gc_write_value(this, m_data[m_stack_pos++], val);
 		}
 		void pop()
 		{
@@ -84,18 +84,18 @@ namespace Channel9
 
 		void set_framevar(size_t id, const Value &val)
 		{
-			value_pool.write_ptr(m_data[id], val);
+			gc_write_value(this, m_data[id], val);
 		}
 		void set_localvar(size_t id, const Value &val)
 		{
-			value_pool.write_ptr(m_data[m_instructions->local_offset() + id], val);
+			gc_write_value(this, m_data[m_instructions->local_offset() + id], val);
 		}
 		void set_lexicalvar(size_t id, const Value &val) { m_lexicalvars->set(id, val); }
 		void set_lexicalvar(size_t id, size_t depth, const Value &val) { m_lexicalvars->set(id, depth, val); }
 
 		void new_scope(VariableFrame *scope)
 		{
-			value_pool.write_ptr(m_lexicalvars, scope);
+			gc_write_ptr(this, m_lexicalvars, scope);
 		}
 
 		void debug_print_backtrace(size_t max = -1) const;
@@ -105,7 +105,7 @@ namespace Channel9
 	{
 		size_t frame_count = instructions->frame_count();
 
-		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*instructions->frame_count(), RUNNABLE_CONTEXT);
+		RunnableContext *ctx = nursery_pool.alloc<RunnableContext>(sizeof(Value)*instructions->frame_count(), RUNNABLE_CONTEXT);
 		ctx->m_instructions = instructions;
 		ctx->m_pos = &*instructions->begin();
 		ctx->m_lexicalvars = lexicalvars;
@@ -115,16 +115,16 @@ namespace Channel9
 	}
 	inline RunnableContext *new_context(const RunnableContext &copy)
 	{
-		value_pool.validate(&copy);
+		nursery_pool.validate(&copy);
 		size_t frame_count = copy.m_instructions->frame_count();
-		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
+		RunnableContext *ctx = nursery_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		return ctx;
 	}
 	inline RunnableContext *new_context(const Value &copy)
 	{
 		size_t frame_count = ptr<RunnableContext>(copy)->m_instructions->frame_count();
-		RunnableContext *ctx = value_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
+		RunnableContext *ctx = nursery_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		return ctx;
 	}
@@ -133,7 +133,7 @@ namespace Channel9
 		IStream *istream = ptr<RunnableContext>(copy)->m_instructions;
 		size_t frame_count = istream->frame_count();
 		size_t frame_extra = sizeof(Value)*(istream->frame_size());
-		RunningContext *ctx = value_pool.alloc<RunningContext>(frame_extra, RUNNING_CONTEXT);
+		RunningContext *ctx = nursery_pool.alloc<RunningContext>(frame_extra, RUNNING_CONTEXT);
 
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		std::fill(ctx->m_data + istream->local_offset(), ctx->m_data + istream->stack_offset(), Nil);

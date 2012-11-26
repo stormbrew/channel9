@@ -280,7 +280,7 @@ void FFIDefinition::scan()
 {
 	for (std::vector<FFIDefinition*>::const_iterator it = m_dependent_definitions.begin(); it != m_dependent_definitions.end(); it++)
 	{
-		gc_scan(*it);
+		gc_scan(NULL, *it);
 	}
 	CallableContext::scan();
 }
@@ -322,9 +322,9 @@ void FFIObject::send(Environment *env, const Value &val, const Value &ret)
 }
 void FFIObject::scan()
 {
-	gc_scan(m_definition);
+	gc_scan(NULL, m_definition);
 	if (m_outer)
-		gc_scan(m_outer);
+		gc_scan(NULL, m_outer);
 	CallableContext::scan();
 }
 std::string FFIObject::inspect() const
@@ -399,9 +399,9 @@ void FFICall::send(Environment *env, const Value &val, const Value &ret)
 }
 void FFICall::scan()
 {
-	gc_scan(m_args);
+	gc_scan(NULL, m_args);
 	if (m_return_def)
-		gc_scan(m_return_def);
+		gc_scan(NULL, m_return_def);
 	CallableContext::scan();
 }
 
