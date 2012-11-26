@@ -21,7 +21,8 @@ namespace Channel9
 		struct Data
 		{
 			uint32_t m_count; //number of bytes of memory in this allocation
-			uint16_t m_type;
+			uint8_t m_generation;
+			uint8_t m_type;
 			uint16_t m_flags;
 
 			enum {
@@ -31,8 +32,9 @@ namespace Channel9
 			};
 			uint8_t  m_data[0]; //the actual data, 8 byte aligned
 
-			inline Data *init(uint32_t count, uint16_t type, bool pool, bool pin){
+			inline Data *init(uint32_t count, uint8_t type, bool pool, bool pin){
 				m_count = count;
+				m_generation = GEN_NORMAL;
 				m_type = type;
 				m_flags = (uint16_t)pool | ((uint16_t)pin << 12);
 				return this;
@@ -215,7 +217,7 @@ namespace Channel9
 				return (Data::ptr_for(from)->pool() == m_cur_pool);
 		}
 
-		bool mark(uintptr_t *from_ptr);
+		bool mark(void *obj, uintptr_t *from_ptr);
 
 		void scan(void *p)
 		{
@@ -226,9 +228,10 @@ namespace Channel9
 		template <typename tObj>
 		void read_ptr(tObj * obj) { }
 
-		// tell the GC that obj will contain a reference to the object pointed to by ptr
-		template <typename tRef, typename tVal>
-		void write_ptr(tRef &ref, const tVal &val) { ref = val; }
+		template <typename tField, typename tVal>
+		void write_ptr(void *obj, tField &field, const tVal &val)
+		{
+		}
 
 		bool need_collect()
 		{

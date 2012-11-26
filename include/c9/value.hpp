@@ -85,7 +85,7 @@ namespace Channel9
 	template <typename tPtr>
 	tPtr *ptr(const Value &val)
 	{
-		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) assert(value_pool.validate((tPtr*)(val.raw & Value::POINTER_MASK)));
+		DO_DEBUG if (!is(val, CALLABLE_CONTEXT)) assert(nursery_pool.validate((tPtr*)(val.raw & Value::POINTER_MASK)));
 		return (tPtr*)(val.raw & Value::POINTER_MASK);
 	}
 
@@ -124,21 +124,32 @@ namespace Channel9
 	inline Value value(RunnableContext *ret_ctx) { return make_value_ptr(RUNNABLE_CONTEXT, ret_ctx); }
 	inline Value value(RunningContext *ret_ctx) { return make_value_ptr(RUNNING_CONTEXT, ret_ctx); }
 
-	void gc_scan(CallableContext *ctx);
-	inline void gc_scan(Value &from)
+	void gc_scan(void *obj, CallableContext *ctx);
+	inline void gc_scan(void *obj, Value &from)
 	{
 		ValueType t = basic_type(from);
 		if (unlikely(t == HEAP_TYPE))
 		{
-			value_pool.mark((uintptr_t*)&from);
+			nursery_pool.mark(obj, (uintptr_t*)&from);
 		} else if (unlikely(t == CALLABLE_CONTEXT)) {
-			gc_scan(ptr<CallableContext>(from));
+			gc_scan(obj, ptr<CallableContext>(from));
 		}
 	}
 
-	inline bool in_nursery(const Value &val)
+	inline bool is_nursery(const Value &val)
 	{
-		return basic_type(val) == HEAP_TYPE && in_nursery((uint8_t*)(val.raw & Value::POINTER_MASK));
+		return basic_type(val) == HEAP_TYPE && is_nursery(raw_tagged_ptr(val));
+	}
+
+	// use this instead of write_ptr if you're writing a reference,
+	// it checks if the value is a heap pointer before writing.
+	template <typename tRef>
+	inline void gc_write_value(void *obj, tRef &ref, const Value &val)
+	{
+		if (basic_type(val) == HEAP_TYPE)
+			gc_write_ptr(obj, ref, val);
+		else
+			ref = val;
 	}
 
 	std::string inspect(const Value &val);
@@ -151,15 +162,15 @@ namespace Channel9
 
 	public:
 		GCRef(const tVal &val)
-		 : GCRoot(value_pool), m_val(val)
+		 : GCRoot(nursery_pool), m_val(val)
 		{}
 		GCRef(const GCRef<tVal> &ref)
-		 : GCRoot(value_pool), m_val(ref.m_val)
+		 : GCRoot(nursery_pool), m_val(ref.m_val)
 		{}
 
 		void scan()
 		{
-			gc_mark(&m_val);
+			gc_mark(NULL, &m_val);
 		}
 
 		const tVal &operator*() const { return m_val; }
@@ -173,7 +184,7 @@ namespace Channel9
 	template <>
 	inline void GCRef<Value>::scan()
 	{
-		gc_scan(m_val);
+		gc_scan(NULL, m_val);
 	}
 
 	template <typename tVal>
