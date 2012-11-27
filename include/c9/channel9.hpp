@@ -15,8 +15,8 @@ namespace Channel9
 	struct RunningContext;
 	struct RunnableContext;
 	struct VariableFrame;
+	struct Message;
 	class IStream;
-	class Message;
 
 	enum ValueType
 	{
