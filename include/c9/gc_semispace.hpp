@@ -89,7 +89,7 @@ namespace Channel9
 			}
 		};
 
-		static const double   GC_GROWTH_LIMIT = 2.0;
+		static const uint64_t   GC_GROWTH_LIMIT = 2;
 		static const uint64_t CHUNK_SIZE = (2<<20) - sizeof(Chunk) - 8; // 2mb (-8 for the malloc header)
 
 		Chunk * m_pools[2]; //two sets of pools, each garbage collection swaps between them, active is stored in m_cur_pool
