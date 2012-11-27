@@ -216,7 +216,7 @@ namespace Channel9
 				TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Checking block %p:%p\n", &*c, b);
 				if(b->m_mark)
 				{
-					if(b->m_in_use < b->m_capacity*FRAG_LIMIT)
+					if(b->m_in_use < b->m_capacity*((double)FRAG_LIMIT/100))
 					{
 						for(Data * d = b->begin(); d != b->end(); d = d->next())
 						{
@@ -248,7 +248,7 @@ namespace Channel9
 		//clear unused pinned objects
 		if(m_pinned_block.m_mark)
 		{
-			if(m_pinned_block.m_in_use < m_pinned_block.m_capacity*FRAG_LIMIT)
+			if(m_pinned_block.m_in_use < m_pinned_block.m_capacity*((double)FRAG_LIMIT/100))
 			{
 				std::vector<Data*> new_pinned_objs;
 				for(std::vector<Data*>::iterator i = m_pinned_objs.begin(); i != m_pinned_objs.end(); ++i)
