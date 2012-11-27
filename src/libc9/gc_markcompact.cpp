@@ -298,7 +298,7 @@ namespace Channel9
 		//finishing up
 		forward.clear();
 
-		m_next_gc = std::max((1<<CHUNK_SIZE)*0.9, m_used * GC_GROWTH_LIMIT);
+		m_next_gc = std::max((1<<CHUNK_SIZE)*0.9, double(m_used) * GC_GROWTH_LIMIT);
 
 		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Sweeping CallableContext objects\n");
 
