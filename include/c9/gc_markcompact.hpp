@@ -66,8 +66,8 @@ namespace Channel9
 
 	private:
 
-		static const double   GC_GROWTH_LIMIT = 2.0;
-		static const double   FRAG_LIMIT = 0.8; //compact if the block is less than this full
+		static const uint64_t GC_GROWTH_LIMIT = 2;
+		static const uint64_t FRAG_LIMIT = 80; //compact if the block is less than this full. Expressed as integer percentage (80 is 80% full)
 		static const uint64_t CHUNK_SIZE = 20; //how much to allocate at a time
 		static const uint64_t BLOCK_SIZE = 15; //prefer block alignment over page alignment
 		static const uint64_t PAGE_SIZE = 12;  //linux defines 4kb pages, so that's what's used here as mmap guarantees page alignment
