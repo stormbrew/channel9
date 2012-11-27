@@ -51,7 +51,7 @@ add_definitions(
 if (DEFINED ENV{DEFAULT_COLLECTOR})
     set (DEFAULT_COLLECTOR $ENV{DEFAULT_COLLECTOR})
     message("Setting default collector to $ENV{DEFAULT_COLLECTOR}")
-elseif()
+else()
     set (DEFAULT_COLLECTOR "Markcompact")
     message("Defaulting to mark compact collector.")
 endif()
