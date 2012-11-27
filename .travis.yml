@@ -1,0 +1,15 @@
+language: cpp
+compiler:
+  - gcc
+  - clang
+before_script:
+  - "rvm use 1.8.7 && cmake . && make"
+script: travis/run-tests.sh
+notifications:
+  recipients:
+    - graham@stormbrew.ca
+  email:
+    on_success: change
+    on_failure: always
+rvm:
+  - 1.8.7

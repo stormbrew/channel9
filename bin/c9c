@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-$LOAD_PATH.unshift "lib" if $0 == "bin/c9c"
+$LOAD_PATH.unshift "ruby/lib" if $0 == "bin/c9c"
 
 require 'pp'
 require 'fileutils'
