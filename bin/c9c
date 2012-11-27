@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 $LOAD_PATH.unshift "ruby/lib" if $0 == "bin/c9c"
 
+require 'rubygems'
 require 'pp'
 require 'fileutils'
 require 'channel9'
