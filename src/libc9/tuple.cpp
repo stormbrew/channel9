@@ -27,7 +27,7 @@ namespace Channel9
 				const Tuple *self = ptr<Tuple>(oself);
 				ssize_t first = (ssize_t)msg.args()[0].machine_num,
 					last = (ssize_t)msg.args()[1].machine_num;
-				if (first >= 0 && last >= 0 && first <= last && first <= self->size() && last <= self->size())
+				if (first >= 0 && last >= 0 && first <= last && (size_t)first <= self->size() && (size_t)last <= self->size())
 				{
 					return channel_send(cenv, ctx, value(sub_tuple(self, first, last - first)), Nil);
 				}
