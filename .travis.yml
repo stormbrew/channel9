@@ -1,9 +1,11 @@
 language: cpp
 compiler:
   - gcc
-  - clang
 before_script:
-  - "rvm use 1.8.7 && cmake . && make"
+  - rvm use 1.8.7
+  - sudo apt-get install libffi-dev
+  - cmake .
+  - make
 script: travis/run-tests.sh
 notifications:
   recipients:
