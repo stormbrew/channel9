@@ -1,6 +1,7 @@
 language: cpp
 compiler:
   - gcc
+  - clang
 env:
   - DEFAULT_COLLECTOR=Markcompact
   - DEFAULT_COLLECTOR=Semispace
