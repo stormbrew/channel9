@@ -5,20 +5,31 @@
 
 namespace Channel9
 {
-	GC::Nursery nursery_pool;
-	GC::Normal normal_pool;
-	//GC::Tenure tenure_pool;
+	GC::Tenure tenure_pool;
+	GC::Nursery nursery_pool(8*1024*1024, GC::GEN_NURSERY, &tenure_pool);
+
 	scan_func *scan_types[0xff];
 
-	GCRoot::GCRoot(GC::Nursery &pool)
-	 : m_pool(pool)
+	std::set<GCRoot*> GC::m_roots;
+	uint8_t GC::collecting_generation = -1;
+
+	void GC::register_root(GCRoot *root)
 	{
-		m_pool.register_root(this);
+		m_roots.insert(root);
+	}
+	void GC::unregister_root(GCRoot *root)
+	{
+		m_roots.erase(root);
+	}
+
+	GCRoot::GCRoot()
+	{
+		GC::register_root(this);
 	}
 
 	GCRoot::~GCRoot()
 	{
-		m_pool.unregister_root(this);
+		GC::unregister_root(this);
 	}
 }
 
