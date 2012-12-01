@@ -20,7 +20,7 @@
 
 namespace Channel9
 {
-	class GC::Markcompact : protected GC
+	class GC::Markcompact : public GC
 	{
 		struct Block;
 		struct Chunk;
@@ -39,7 +39,7 @@ namespace Channel9
 
 			void init(uint32_t count, uint8_t type, uint8_t block_size, bool pinned){
 				m_count  = count;
-				m_generation = GEN_NORMAL;
+				m_generation = GEN_TENURE;
 				m_type   = type;
 				m_block_size = block_size;
 				m_mark   = false;
@@ -157,11 +157,8 @@ namespace Channel9
 		uint64_t m_dfs_unmarked;
 		uint64_t m_dfs_updated;
 
-		std::set<GCRoot*> m_roots;
 		std::vector<Data *> m_pinned_objs;
 		Block m_pinned_block;
-
-		void collect();
 
 		uint8_t *next_slow(size_t alloc_size, size_t size, uint16_t type, bool new_alloc, bool small);
 		uint8_t *next(size_t size, uint16_t type, bool new_alloc){ return next(size, type, new_alloc, (size <= SMALL)); }
@@ -231,6 +228,29 @@ namespace Channel9
 	public:
 		Markcompact();
 
+		// called by the next generation down to promote an
+		// already allocated object to the generation in question.
+		inline void *promote(void *obj, size_t size, ValueType type, bool pinned)
+		{
+			void *n = raw_alloc(size, type, pinned);
+			memcpy(n, obj, size);
+			return n;
+		}
+		// called by the next generation down to allocate an
+		// object is the current generation can't.
+		inline void *raw_alloc(size_t size, ValueType type, bool pinned)
+		{
+			if(pinned)
+				alloc_pinned<char>(size-1, type);
+
+			if(size <= SMALL)
+				return alloc_small<char>(size-1, type);
+			else if(size <= MEDIUM)
+				return alloc_med<char>(size-1, type);
+			else
+				return alloc_big<char>(size-1, type);
+		}
+
 		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
 		{
 			if(pinned)
@@ -284,18 +304,11 @@ namespace Channel9
 		{
 		}
 
+		void collect();
 		bool need_collect() const
 		{
 			return m_next_gc < m_used;
 		}
-		// now is a valid time to stop the world
-		void safe_point() {
-			if(unlikely(need_collect()))
-				collect();
-		}
-
-		void register_root(GCRoot *root);
-		void unregister_root(GCRoot *root);
 	};
 
 	template <typename tObj>

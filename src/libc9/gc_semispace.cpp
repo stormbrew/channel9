@@ -11,16 +11,6 @@
 
 namespace Channel9
 {
-
-	void GC::Semispace::register_root(GCRoot *root)
-	{
-		m_roots.insert(root);
-	}
-	void GC::Semispace::unregister_root(GCRoot *root)
-	{
-		m_roots.erase(root);
-	}
-
 	uint8_t *GC::Semispace::next_slow(size_t size, size_t alloc_size, uint16_t type)
 	{
 		Chunk * chunk = m_cur_chunk;
@@ -173,7 +163,7 @@ namespace Channel9
 		Data * old = Data::ptr_for(from);
 
 		// we should never be marking an object that's in the nursery here.
-		assert(!is_nursery(obj));
+		assert(is_tenure(obj));
 
 		if(old->pool() == m_cur_pool){
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
