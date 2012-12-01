@@ -87,6 +87,8 @@ namespace Channel9
 
 	struct Message
 	{
+		const static ValueType gc_type_id = MESSAGE;
+
 		union {
 			uint64_t m_id;
 			struct {
@@ -127,7 +129,7 @@ namespace Channel9
 	inline Message *new_message(uint64_t message_id, size_t sysargs = 0, size_t args = 0)
 	{
 		size_t count = sysargs + args;
-		Message *msg = nursery_pool.alloc<Message>(sizeof(Value)*count, MESSAGE);
+		Message *msg = gc_alloc<Message>(sizeof(Value)*count);
 		msg->m_id = message_id;
 		msg->m_sysarg_count = sysargs;
 		msg->m_arg_count = args;
@@ -166,7 +168,7 @@ namespace Channel9
 	inline Message *new_message(const Message &other)
 	{
 		size_t size = sizeof(Message) + sizeof(Value)*other.total_count();
-		Message *msg = nursery_pool.alloc<Message>(sizeof(Value)*other.total_count(), MESSAGE);
+		Message *msg = gc_alloc<Message>(sizeof(Value)*other.total_count());
 		memcpy(msg, &other, size);
 		return msg;
 	}

@@ -20,7 +20,7 @@
 
 namespace Channel9
 {
-	class GC::Markcompact : protected GC
+	class GC::Markcompact : public GC
 	{
 		struct Block;
 		struct Chunk;
@@ -39,7 +39,7 @@ namespace Channel9
 
 			void init(uint32_t count, uint8_t type, uint8_t block_size, bool pinned){
 				m_count  = count;
-				m_generation = GEN_NORMAL;
+				m_generation = GEN_TENURE;
 				m_type   = type;
 				m_block_size = block_size;
 				m_mark   = false;
@@ -157,11 +157,8 @@ namespace Channel9
 		uint64_t m_dfs_unmarked;
 		uint64_t m_dfs_updated;
 
-		std::set<GCRoot*> m_roots;
 		std::vector<Data *> m_pinned_objs;
 		Block m_pinned_block;
-
-		void collect();
 
 		uint8_t *next_slow(size_t alloc_size, size_t size, uint16_t type, bool new_alloc, bool small);
 		uint8_t *next(size_t size, uint16_t type, bool new_alloc){ return next(size, type, new_alloc, (size <= SMALL)); }
@@ -231,33 +228,29 @@ namespace Channel9
 	public:
 		Markcompact();
 
-		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
+		// called by the next generation down to promote an
+		// already allocated object to the generation in question.
+		inline void *promote(void *obj, size_t size, ValueType type, bool pinned)
+		{
+			void *n = raw_alloc(size, type, pinned);
+			memcpy(n, obj, size);
+			return n;
+		}
+		// called by the next generation down to allocate an
+		// object is the current generation can't.
+		inline void *raw_alloc(size_t size, ValueType type, bool pinned)
 		{
 			if(pinned)
-				alloc_pinned<tObj>(extra, type);
+				alloc_pinned(size, type);
 
-			size_t size = sizeof(tObj) + extra;
 			if(size <= SMALL)
-				return alloc_small<tObj>(extra, type);
+				return next(size, type, true, true);
 			else if(size <= MEDIUM)
-				return alloc_med<tObj>(extra, type);
+				return next(size, type, true, false);
 			else
-				return alloc_big<tObj>(extra, type);
+				return alloc_pinned(size, type);
 		}
-
-		template <typename tObj> tObj *alloc_small(size_t extra, uint16_t type)
-		{
-			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type, true, true));
-		}
-		template <typename tObj> tObj *alloc_med(size_t extra, uint16_t type)
-		{
-			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type, true, false));
-		}
-		template <typename tObj> tObj *alloc_big(size_t extra, uint16_t type)
-		{ //treat big objects as pinned objects for now. Don't want to move them anyway, and putting them in the block/chunk system means odd block sizes
-			return alloc_pinned<tObj>(extra, type);
-		}
-		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type);
+		void *alloc_pinned(size_t extra, uint16_t type);
 
 		template <typename tObj>
 		bool validate(tObj * from)
@@ -284,24 +277,15 @@ namespace Channel9
 		{
 		}
 
+		void collect();
 		bool need_collect() const
 		{
 			return m_next_gc < m_used;
 		}
-		// now is a valid time to stop the world
-		void safe_point() {
-			if(unlikely(need_collect()))
-				collect();
-		}
-
-		void register_root(GCRoot *root);
-		void unregister_root(GCRoot *root);
 	};
 
-	template <typename tObj>
-	tObj *GC::Markcompact::alloc_pinned(size_t extra, uint16_t type)
+	inline void *GC::Markcompact::alloc_pinned(size_t size, uint16_t type)
 	{
-		size_t size = sizeof(tObj) + extra;
 		size += (8 - size % 8) % 8; //8 byte align
 
 		Data * data = (Data*) malloc(size + sizeof(Data));
@@ -312,7 +296,7 @@ namespace Channel9
 		m_used += size;
 		m_data_blocks++;
 
-		return reinterpret_cast<tObj*>(data->m_data);
+		return data->m_data;
 	}
 
 }

@@ -11,6 +11,8 @@ namespace Channel9
 {
 	struct VariableFrame
 	{
+		const static ValueType gc_type_id = VARIABLE_FRAME;
+
 		IStream *m_instructions;
 		VariableFrame *m_parent_frame;
 		Value m_lexicals[0];
@@ -38,7 +40,7 @@ namespace Channel9
 	inline VariableFrame *new_variable_frame(IStream *instructions)
 	{
 		size_t lexical_count = instructions->lexical_count();
-		VariableFrame *frame = nursery_pool.alloc<VariableFrame>(lexical_count * sizeof(Value), VARIABLE_FRAME);
+		VariableFrame *frame = gc_alloc<VariableFrame>(lexical_count * sizeof(Value));
 		frame->m_instructions = instructions;
 		frame->m_parent_frame = NULL;
 		for (size_t i = 0; i < lexical_count; i++)

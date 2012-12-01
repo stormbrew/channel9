@@ -24,17 +24,6 @@ namespace Channel9
 		static const unsigned int SMALL = 4000;
 		static const unsigned int MEDIUM = 32700;
 
-		// extra is how much to allocate, type is one of Channel9::ValueType, return the new location
-		// likely to call one of the more specific versions below
-		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false);
-
-		//potentially faster versions to be called only if the size is known at compile time
-		template <typename tObj> tObj *alloc_small (size_t extra, uint16_t type);
-		template <typename tObj> tObj *alloc_med   (size_t extra, uint16_t type);
-		template <typename tObj> tObj *alloc_big   (size_t extra, uint16_t type);
-		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type);
-
-
 		// notify the gc that an object is pointed to by the pointer in from which is
 		// in object obj.
 		// might mark it, might move it, might do something else. Returns true if it moved
@@ -53,10 +42,9 @@ namespace Channel9
 		template <typename tField, typename tVal>
 		void write_ptr(void *obj, tField &field, const tVal &val);
 
-		void safe_point(); // now is a valid time to stop the world
+		static std::set<GCRoot*> m_roots;
 
-		void register_root(GCRoot *root);
-		void unregister_root(GCRoot *root);
+		static uint8_t collecting_generation;
 
 	protected:
 		// scans a garbage collected object of type. Calls
@@ -66,9 +54,8 @@ namespace Channel9
 
 	public:
 		static const uint8_t GEN_NURSERY = 0;
-		static const uint8_t GEN_NORMAL = 1;
-		static const uint8_t GEN_TENURE = 2;
-		static const uint8_t GEN_MASK = 0x3;
+		static const uint8_t GEN_TENURE  = 2;
+		static const uint8_t GEN_MASK    = 0x3;
 
 		struct GenericData
 		{
@@ -88,36 +75,43 @@ namespace Channel9
 		class Markcompact;
 
 		class Nursery;
-		//class Tenure;
 
-		typedef COLLECTOR_CLASS Normal;
+		typedef COLLECTOR_CLASS Tenure;
+
+		// called by the next generation down to promote an
+		// already allocated object to the generation in question.
+		virtual void *promote(void *obj, size_t size, ValueType type, bool pinned) = 0;
+		// called by the next generation down to allocate an
+		// object is the current generation can't.
+		virtual void *raw_alloc(size_t size, ValueType type, bool pinned) = 0;
 
 		// Scans a garbage collected object at ptr. Assumes
 		// it's prefixed by a valid GenericData struct.
 		inline void scan(void *ptr);
+
+		static inline void safe_point();
+
+		static void register_root(GCRoot *root);
+		static void unregister_root(GCRoot *root);
+
+		template <typename tObj>
+		friend bool gc_mark(void *in, tObj **obj);
 	};
 
 	extern GC::Nursery nursery_pool;
-	extern GC::Normal normal_pool;
-	//extern GC::Tenure tenure_pool;
+	extern GC::Tenure tenure_pool;
 
 	// Base class for GC root objects. Should inherit privately.
 	class GCRoot
 	{
-	private:
-		GC::Nursery &m_pool;
-
 	protected:
-		GCRoot(GC::Nursery &pool);
-
-		GC::Nursery &pool() const { return m_pool; }
+		GCRoot();
 
 	public:
 		virtual void scan() = 0;
 
 		virtual ~GCRoot();
 	};
-
 	// returns the generic object header of a garbage collected
 	// pointer.
 	inline GC::GenericData &header_of(const void *ptr)
@@ -135,10 +129,6 @@ namespace Channel9
 	inline bool is_nursery(const void *ptr)
 	{
 		return is_generation(ptr, GC::GEN_NURSERY);
-	}
-	inline bool is_normal(const void *ptr)
-	{
-		return is_generation(ptr, GC::GEN_NORMAL);
 	}
 	inline bool is_tenure(const void *ptr)
 	{
@@ -158,10 +148,33 @@ namespace Channel9
 
 namespace Channel9
 {
+	inline void *gc_alloc(size_t size, ValueType type, bool pinned = false)
+	{
+		// note that this is a call to a virtual function,
+		// but it should not be invoked as such in an optimized
+		// build since the type is known.
+		return nursery_pool.raw_alloc(size, type, pinned);
+	}
+
+	template <typename tObj>
+	tObj *gc_alloc(size_t extra, bool pinned = false)
+	{
+		return reinterpret_cast<tObj*>(gc_alloc(sizeof(tObj) + extra, tObj::gc_type_id, pinned));
+	}
+
 	template <typename tObj>
 	bool gc_mark(void *in, tObj **obj)
 	{
-		return nursery_pool.mark(in, (uintptr_t*)obj);
+		switch (GC::collecting_generation)
+		{
+		case GC::GEN_NURSERY:
+			return nursery_pool.mark(in, (uintptr_t*)obj);
+		case GC::GEN_TENURE:
+			return tenure_pool.mark(in, (uintptr_t*)obj);
+		default:
+			assert(false && "Mark without collecting.");
+			return false;
+		}
 	}
 
 	// safely write val to field in obj. If obj is NULL,
@@ -171,8 +184,7 @@ namespace Channel9
 	void gc_write_ptr(void *obj, tField &field, const tVal &val)
 	{
 		nursery_pool.write_ptr(obj, field, val);
-		normal_pool.write_ptr(obj, field, val);
-		//tenure_pool.write_ptr(obj, field, val);
+		tenure_pool.write_ptr(obj, field, val);
 		field = val;
 	}
 
@@ -186,6 +198,20 @@ namespace Channel9
 	{
 		assert(sizeof(GenericData) == 8);
 		scan(ptr, (ValueType)header_of(ptr).m_type);
+	}
+
+	inline void GC::safe_point()
+	{
+		bool nursery = nursery_pool.need_collect(),
+			 tenure = tenure_pool.need_collect();
+
+		nursery = nursery || tenure;
+
+		collecting_generation = GEN_NURSERY;
+		if (nursery) nursery_pool.collect();
+		collecting_generation = GEN_TENURE;
+		if (tenure) tenure_pool.collect();
+		collecting_generation = -1;
 	}
 }
 

@@ -16,6 +16,8 @@ namespace Channel9
 {
 	struct RunnableContext
 	{
+		const static ValueType gc_type_id = RUNNABLE_CONTEXT;
+
 		IStream *m_instructions;
 		const Instruction *m_pos;
 		VariableFrame *m_lexicalvars;
@@ -39,6 +41,8 @@ namespace Channel9
 
 	struct RunningContext
 	{
+		const static ValueType gc_type_id = RUNNING_CONTEXT;
+
 		IStream *m_instructions;
 		const Instruction *m_pos;
 		VariableFrame *m_lexicalvars;
@@ -105,7 +109,7 @@ namespace Channel9
 	{
 		size_t frame_count = instructions->frame_count();
 
-		RunnableContext *ctx = nursery_pool.alloc<RunnableContext>(sizeof(Value)*instructions->frame_count(), RUNNABLE_CONTEXT);
+		RunnableContext *ctx = gc_alloc<RunnableContext>(sizeof(Value)*instructions->frame_count());
 		ctx->m_instructions = instructions;
 		ctx->m_pos = &*instructions->begin();
 		ctx->m_lexicalvars = lexicalvars;
@@ -117,14 +121,14 @@ namespace Channel9
 	{
 		nursery_pool.validate(&copy);
 		size_t frame_count = copy.m_instructions->frame_count();
-		RunnableContext *ctx = nursery_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
+		RunnableContext *ctx = gc_alloc<RunnableContext>(sizeof(Value)*(frame_count));
 		memcpy(ctx, &copy, sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		return ctx;
 	}
 	inline RunnableContext *new_context(const Value &copy)
 	{
 		size_t frame_count = ptr<RunnableContext>(copy)->m_instructions->frame_count();
-		RunnableContext *ctx = nursery_pool.alloc<RunnableContext>(sizeof(Value)*(frame_count), RUNNABLE_CONTEXT);
+		RunnableContext *ctx = gc_alloc<RunnableContext>(sizeof(Value)*(frame_count));
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		return ctx;
 	}
@@ -133,7 +137,7 @@ namespace Channel9
 		IStream *istream = ptr<RunnableContext>(copy)->m_instructions;
 		size_t frame_count = istream->frame_count();
 		size_t frame_extra = sizeof(Value)*(istream->frame_size());
-		RunningContext *ctx = nursery_pool.alloc<RunningContext>(frame_extra, RUNNING_CONTEXT);
+		RunningContext *ctx = gc_alloc<RunningContext>(frame_extra);
 
 		memcpy(ctx, ptr<RunnableContext>(copy), sizeof(RunnableContext) + sizeof(Value)*frame_count);
 		std::fill(ctx->m_data + istream->local_offset(), ctx->m_data + istream->stack_offset(), Nil);
