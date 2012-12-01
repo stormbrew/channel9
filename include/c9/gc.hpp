@@ -158,6 +158,20 @@ namespace Channel9
 
 namespace Channel9
 {
+	inline void *gc_alloc(size_t size, ValueType type, bool pinned = false)
+	{
+		// note that this is a call to a virtual function,
+		// but it should not be invoked as such in an optimized
+		// build since the type is known.
+		return nursery_pool.raw_alloc(size, type, pinned);
+	}
+
+	template <typename tObj>
+	tObj *gc_alloc(size_t extra, bool pinned = false)
+	{
+		return reinterpret_cast<tObj*>(gc_alloc(sizeof(tObj) + extra, tObj::gc_type_id, pinned));
+	}
+
 	template <typename tObj>
 	bool gc_mark(void *in, tObj **obj)
 	{
