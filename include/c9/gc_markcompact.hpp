@@ -241,43 +241,16 @@ namespace Channel9
 		inline void *raw_alloc(size_t size, ValueType type, bool pinned)
 		{
 			if(pinned)
-				alloc_pinned<char>(size-1, type);
+				alloc_pinned(size, type);
 
 			if(size <= SMALL)
-				return alloc_small<char>(size-1, type);
+				return next(size, type, true, true);
 			else if(size <= MEDIUM)
-				return alloc_med<char>(size-1, type);
+				return next(size, type, true, false);
 			else
-				return alloc_big<char>(size-1, type);
+				return alloc_pinned(size, type);
 		}
-
-		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
-		{
-			if(pinned)
-				alloc_pinned<tObj>(extra, type);
-
-			size_t size = sizeof(tObj) + extra;
-			if(size <= SMALL)
-				return alloc_small<tObj>(extra, type);
-			else if(size <= MEDIUM)
-				return alloc_med<tObj>(extra, type);
-			else
-				return alloc_big<tObj>(extra, type);
-		}
-
-		template <typename tObj> tObj *alloc_small(size_t extra, uint16_t type)
-		{
-			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type, true, true));
-		}
-		template <typename tObj> tObj *alloc_med(size_t extra, uint16_t type)
-		{
-			return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type, true, false));
-		}
-		template <typename tObj> tObj *alloc_big(size_t extra, uint16_t type)
-		{ //treat big objects as pinned objects for now. Don't want to move them anyway, and putting them in the block/chunk system means odd block sizes
-			return alloc_pinned<tObj>(extra, type);
-		}
-		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type);
+		void *alloc_pinned(size_t extra, uint16_t type);
 
 		template <typename tObj>
 		bool validate(tObj * from)
@@ -311,10 +284,8 @@ namespace Channel9
 		}
 	};
 
-	template <typename tObj>
-	tObj *GC::Markcompact::alloc_pinned(size_t extra, uint16_t type)
+	inline void *GC::Markcompact::alloc_pinned(size_t size, uint16_t type)
 	{
-		size_t size = sizeof(tObj) + extra;
 		size += (8 - size % 8) % 8; //8 byte align
 
 		Data * data = (Data*) malloc(size + sizeof(Data));
@@ -325,7 +296,7 @@ namespace Channel9
 		m_used += size;
 		m_data_blocks++;
 
-		return reinterpret_cast<tObj*>(data->m_data);
+		return data->m_data;
 	}
 
 }

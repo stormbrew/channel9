@@ -180,20 +180,7 @@ namespace Channel9
 			m_cur_chunk = m_pools[m_cur_pool];
 		}
 
-		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
-		{
-			if(pinned)
-				return alloc_pinned<tObj>(extra, type);
-			else
-				return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type));
-		}
-
-		template <typename tObj> tObj *alloc_small(size_t extra, uint16_t type){ return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type)); }
-		template <typename tObj> tObj *alloc_med  (size_t extra, uint16_t type){ return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type)); }
-		template <typename tObj> tObj *alloc_big  (size_t extra, uint16_t type){ return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type)); }
-
-		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type){
-			size_t size = sizeof(tObj) + extra;
+		void *alloc_pinned(size_t size, uint16_t type){
 			size = ceil_power2(size, 3); //8 byte align
 
 			Data * data = (Data*) malloc(size + sizeof(Data));
@@ -203,13 +190,13 @@ namespace Channel9
 			m_used += size;
 			m_data_blocks++;
 
-			return reinterpret_cast<tObj*>(data->m_data);
+			return data->m_data;
 		}
 
 		void *raw_alloc(size_t size, ValueType type, bool pinned)
 		{
 			if(pinned)
-				return alloc_pinned<char>(size, (uint16_t)type);
+				return alloc_pinned(size, (uint16_t)type);
 			else
 				return next(size, (uint16_t)type);
 		}
