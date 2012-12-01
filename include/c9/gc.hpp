@@ -24,16 +24,6 @@ namespace Channel9
 		static const unsigned int SMALL = 4000;
 		static const unsigned int MEDIUM = 32700;
 
-		// extra is how much to allocate, type is one of Channel9::ValueType, return the new location
-		// likely to call one of the more specific versions below
-		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false);
-
-		//potentially faster versions to be called only if the size is known at compile time
-		template <typename tObj> tObj *alloc_small (size_t extra, uint16_t type);
-		template <typename tObj> tObj *alloc_med   (size_t extra, uint16_t type);
-		template <typename tObj> tObj *alloc_big   (size_t extra, uint16_t type);
-		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type);
-
 		// notify the gc that an object is pointed to by the pointer in from which is
 		// in object obj.
 		// might mark it, might move it, might do something else. Returns true if it moved

@@ -83,7 +83,21 @@ namespace Channel9
 		uint8_t m_generation;
 		GC *m_next;
 
-		void *inner_alloc(size_t object_size, ValueType type, bool pinned)
+	public:
+		Nursery(size_t size, unsigned gen, GC *next)
+		 : m_size(size),
+		   m_free(size),
+		   m_min_free(size/4),
+		   m_data_blocks(0),
+		   m_generation(gen),
+		   m_next(next)
+		{
+			m_data = m_next_pos = (uint8_t*)malloc(size);
+			VALGRIND_CREATE_MEMPOOL(m_data, 0, false)
+			m_remembered_end = m_remembered_set = (Remembered*)(m_data + size);
+		}
+
+		inline void *raw_alloc(size_t object_size, ValueType type, bool pinned)
 		{
 			size_t data_size   = sizeof(Data) + object_size;
 			if (!pinned && data_size < m_free)
@@ -102,64 +116,13 @@ namespace Channel9
 				return m_next->raw_alloc(object_size, type, pinned);
 			}
 		}
-
-	public:
-		Nursery(size_t size, unsigned gen, GC *next)
-		 : m_size(size),
-		   m_free(size),
-		   m_min_free(size/4),
-		   m_data_blocks(0),
-		   m_generation(gen),
-		   m_next(next)
-		{
-			m_data = m_next_pos = (uint8_t*)malloc(size);
-			VALGRIND_CREATE_MEMPOOL(m_data, 0, false)
-			m_remembered_end = m_remembered_set = (Remembered*)(m_data + size);
-		}
-
-		// extra is how much to allocate, type is one of Channel9::ValueType, return the new location
-		// likely to call one of the more specific versions below
-		template <typename tObj>
-		tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
-		{
-			return (tObj*)inner_alloc(sizeof(tObj) + extra, (ValueType)type, pinned);
-		}
-
-		//potentially faster versions to be called only if the size is known at compile time
-		template <typename tObj>
-		tObj *alloc_small(size_t extra, uint16_t type)
-		{
-			return alloc<tObj>(extra, type);
-		}
-		template <typename tObj>
-		tObj *alloc_med(size_t extra, uint16_t type)
-		{
-			return (tObj*)m_next->raw_alloc(sizeof(tObj)+extra, (ValueType)type, false);
-		}
-		template <typename tObj>
-		tObj *alloc_big(size_t extra, uint16_t type)
-		{
-			return (tObj*)m_next->raw_alloc(sizeof(tObj)+extra, (ValueType)type, false);
-		}
-		template <typename tObj>
-		tObj *alloc_pinned(size_t extra, uint16_t type)
-		{
-			return (tObj*)m_next->raw_alloc(sizeof(tObj)+extra, (ValueType)type, false);
-		}
-
 		// called by the next generation down to promote an
 		// already allocated object to the generation in question.
 		inline void *promote(void *obj, size_t size, ValueType type, bool pinned)
 		{
-			void *n = inner_alloc(size, type, pinned);
+			void *n = raw_alloc(size, type, pinned);
 			memcpy(n, obj, size);
 			return n;
-		}
-		// called by the next generation down to allocate an
-		// object is the current generation can't.
-		inline void *raw_alloc(size_t size, ValueType type, bool pinned)
-		{
-			return inner_alloc(size, type, pinned);
 		}
 
 		// notify the gc that an obj is pointed to, might mark it, might move it, might do something else. Returns true if it moved
