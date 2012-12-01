@@ -130,7 +130,7 @@ namespace Channel9
 		ValueType t = basic_type(from);
 		if (unlikely(t == HEAP_TYPE))
 		{
-			nursery_pool.mark(obj, (uintptr_t*)&from);
+			gc_mark(obj, (void**)&from);
 		} else if (unlikely(t == CALLABLE_CONTEXT)) {
 			gc_scan(obj, ptr<CallableContext>(from));
 		}
@@ -139,6 +139,14 @@ namespace Channel9
 	inline bool is_nursery(const Value &val)
 	{
 		return basic_type(val) == HEAP_TYPE && is_nursery(raw_tagged_ptr(val));
+	}
+	inline bool is_tenure(const Value &val)
+	{
+		return basic_type(val) == HEAP_TYPE && is_tenure(raw_tagged_ptr(val));
+	}
+	inline bool is_generation(const Value &val, uint8_t generation)
+	{
+		return basic_type(val) == HEAP_TYPE && is_generation(raw_tagged_ptr(val), generation);
 	}
 
 	// use this instead of write_ptr if you're writing a reference,
@@ -162,10 +170,10 @@ namespace Channel9
 
 	public:
 		GCRef(const tVal &val)
-		 : GCRoot(nursery_pool), m_val(val)
+		 : m_val(val)
 		{}
 		GCRef(const GCRef<tVal> &ref)
-		 : GCRoot(nursery_pool), m_val(ref.m_val)
+		 : m_val(ref.m_val)
 		{}
 
 		void scan()

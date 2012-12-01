@@ -65,7 +65,7 @@ namespace Channel9
 	{
 		void *from = raw_tagged_ptr(*from_ptr);
 		// we should never be marking an object that's in the nursery here.
-		assert(!is_nursery(from));
+		assert(is_tenure(from));
 
 		Data * d = Data::ptr_for(from);
 		switch(m_gc_phase)
@@ -128,15 +128,6 @@ namespace Channel9
 			assert(false && "Markcompact::mark should only be called when marking or updating");
 			return false;
 		}
-	}
-
-	void GC::Markcompact::register_root(GCRoot *root)
-	{
-		m_roots.insert(root);
-	}
-	void GC::Markcompact::unregister_root(GCRoot *root)
-	{
-		m_roots.erase(root);
 	}
 
 	void GC::Markcompact::collect()

@@ -15,7 +15,7 @@
 
 namespace Channel9
 {
-	class GC::Semispace : protected GC
+	class GC::Semispace : public GC
 	{
 	public:
 		struct Data
@@ -34,7 +34,7 @@ namespace Channel9
 
 			inline Data *init(uint32_t count, uint8_t type, bool pool, bool pin){
 				m_count = count;
-				m_generation = GEN_NORMAL;
+				m_generation = GEN_TENURE;
 				m_type = type;
 				m_flags = (uint16_t)pool | ((uint16_t)pin << 12);
 				return this;
@@ -101,10 +101,8 @@ namespace Channel9
 		uint64_t m_data_blocks; //how many data allocations are in the current pool
 		uint64_t m_next_gc;  //garbage collect when m_next_gc < m_used
 
-		std::set<GCRoot*> m_roots;
 		std::vector<Data *> m_pinned_objs;
 
-		void collect();
 		void scan(Data * d)
 		{
 			assert((d->forward()) == 0);
@@ -182,20 +180,7 @@ namespace Channel9
 			m_cur_chunk = m_pools[m_cur_pool];
 		}
 
-		template <typename tObj> tObj *alloc(size_t extra, uint16_t type, bool pinned = false)
-		{
-			if(pinned)
-				return alloc_pinned<tObj>(extra, type);
-			else
-				return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type));
-		}
-
-		template <typename tObj> tObj *alloc_small(size_t extra, uint16_t type){ return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type)); }
-		template <typename tObj> tObj *alloc_med  (size_t extra, uint16_t type){ return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type)); }
-		template <typename tObj> tObj *alloc_big  (size_t extra, uint16_t type){ return reinterpret_cast<tObj*>(next(sizeof(tObj) + extra, type)); }
-
-		template <typename tObj> tObj *alloc_pinned(size_t extra, uint16_t type){
-			size_t size = sizeof(tObj) + extra;
+		void *alloc_pinned(size_t size, uint16_t type){
 			size = ceil_power2(size, 3); //8 byte align
 
 			Data * data = (Data*) malloc(size + sizeof(Data));
@@ -205,7 +190,22 @@ namespace Channel9
 			m_used += size;
 			m_data_blocks++;
 
-			return reinterpret_cast<tObj*>(data->m_data);
+			return data->m_data;
+		}
+
+		void *raw_alloc(size_t size, ValueType type, bool pinned)
+		{
+			if(pinned)
+				return alloc_pinned(size, (uint16_t)type);
+			else
+				return next(size, (uint16_t)type);
+		}
+		// already allocated object to the generation in question.
+		inline void *promote(void *obj, size_t size, ValueType type, bool pinned)
+		{
+			void *n = raw_alloc(size, type, pinned);
+			memcpy(n, obj, size);
+			return n;
 		}
 
 		template <typename tObj>
@@ -233,19 +233,11 @@ namespace Channel9
 		{
 		}
 
+		void collect();
 		bool need_collect()
 		{
 			return m_next_gc < m_used;
 		}
-
-		// now is a valid time to stop the world
-		void safe_point() {
-			if(need_collect())
-				collect();
-		}
-
-		void register_root(GCRoot *root);
-		void unregister_root(GCRoot *root);
 	};
 }
 

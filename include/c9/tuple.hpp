@@ -11,6 +11,8 @@ namespace Channel9
 {
 	struct Tuple
 	{
+		const static ValueType gc_type_id = TUPLE;
+
 		size_t m_count;
 		Value m_data[0];
 
@@ -74,7 +76,7 @@ namespace Channel9
 
 	inline Tuple *new_tuple(size_t len)
 	{
-		Tuple *ret = nursery_pool.alloc<Tuple>(sizeof(Value)*len, TUPLE);
+		Tuple *ret = gc_alloc<Tuple>(sizeof(Value)*len);
 		ret->m_count = len;
 
 		return ret;
