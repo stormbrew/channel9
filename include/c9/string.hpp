@@ -11,6 +11,8 @@ namespace Channel9
 {
 	struct String
 	{
+		const static ValueType gc_type_id = STRING;
+
 		size_t m_count;
 		char m_data[0];
 
@@ -86,7 +88,7 @@ namespace Channel9
 
 	inline String *new_string(size_t len)
 	{
-		String *ret = nursery_pool.alloc<String>(len + 1, STRING);
+		String *ret = gc_alloc<String>(len + 1);
 		ret->m_count = len;
 
 		return ret;
