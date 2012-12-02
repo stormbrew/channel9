@@ -163,7 +163,7 @@ namespace Channel9
 		Data * old = Data::ptr_for(from);
 
 		// we should never be marking an object that's in the nursery here.
-		assert(is_tenure(obj));
+		assert(is_tenure(from));
 
 		if(old->pool() == m_cur_pool){
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Move %p, type %X already moved\n", from, old->m_type);
