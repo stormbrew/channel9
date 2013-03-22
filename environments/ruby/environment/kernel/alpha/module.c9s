@@ -1,0 +1,121 @@
+lexical RubyModule = (lexical name) {
+	lexical instance_methods = $BasicHash($prime_gen)
+	lexical constants = $BasicHash($prime_gen)
+	lexical included = []
+	lexical inner_obj = $RubyObject($Module)
+
+	lexical self = (@msg) -> return {
+		local msg_id
+		local msg_type
+		bytecode(msg) {
+			message_split_id
+			local_set "msg_type"
+			local_set "msg_id"
+		}
+
+		if (msg_type == @@'ruby_sys') {
+			switch (msg_id)
+			case (@'lookup') {
+				local meth_name = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				
+				local meth = instance_methods.get(meth_name)
+				if (meth) {
+					return <- meth
+				} else {
+					return <- undef
+				}
+			} case (@'name') {
+				return <- name
+			} case (@'add_constant') {
+				local const_name
+				local const_val
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "const_name"
+					local_set "const_val"
+				}
+				return <- constants.set(const_name, const_val)
+			} case (@'get_constant') {
+				local const_name = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				return <- constants.get(const_name)
+			} case (@'get_constant_scoped') {
+				local const_name
+				local next
+				local next_mod
+				local next_scope
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "const_name"
+					local_set "next"
+				}
+				if (next) {
+					bytecode(next) {
+						tuple_unpack 2 0 0
+						local_set "next_mod"
+						local_set "next_scope"
+					}
+				}
+				local const = constants.get(const_name)
+				if (const) {
+					return <- const
+				} else if (next) {
+					return <- next_mod.ruby_sys:get_constant_scoped(const_name, next_scope)
+				}
+				return <- nil
+			} case (@'add_method') {
+				local meth_name
+				local meth
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "meth_name"
+					local_set "meth"
+				}
+				return <- instance_methods.set(meth_name, meth)
+			} case (@'include') {
+				local mod = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				included = included.push(mod)
+				return <- mod
+			} case (@'alias_method') {
+				local new_name
+				local old_name
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "new_name"
+					local_set "old_name"
+				}
+				local old_meth = self.ruby_sys:lookup(old_name)
+				if (old_meth) {
+					return <- instance_methods.set(new_name, old_meth)
+				} else {
+					return <- nil
+				}
+			} case (@"scope_name") {
+				if (self == $Object) {
+					return <- ""
+				} else {
+					return <- name + "::"
+				}
+			}
+		}
+		bytecode(inner_obj, return, msg) {
+			channel_send
+		}
+	}
+	inner_obj.ruby_sys:wrap(self)
+	self
+}
+
+$Class.ruby_sys:rebind_super($Module)
+$set_special_channel('RubyModule', RubyModule)

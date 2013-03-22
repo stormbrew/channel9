@@ -1,0 +1,1 @@
+load "simple_tests/002.puts.rb"
