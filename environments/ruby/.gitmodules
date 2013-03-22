@@ -1,9 +1,0 @@
-[submodule "rubyspec"]
-	path = rubyspec
-	url = git://github.com/rubyspec/rubyspec.git
-[submodule "mspec"]
-	path = mspec
-	url = git://github.com/rubyspec/mspec.git
-[submodule "environment/lib"]
-	path = environment/lib
-	url = git://github.com/stormbrew/c9.rb-stdlib.git
