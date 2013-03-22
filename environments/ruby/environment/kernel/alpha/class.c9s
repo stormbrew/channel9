@@ -1,0 +1,293 @@
+lexical prim_id_seq = 0
+lexical prim_map = $BasicHash($prime_gen)
+lexical prim_attr_map = $BasicHash($prime_gen)
+lexical method_missing_lookup_msg = bytecode() {
+	push @"method_missing"
+	message_new "ruby_sys:lookup" 0 1
+}
+
+lexical RubyClass = (lexical name, lexical super) {
+	lexical instance_methods = $BasicHash($prime_gen)
+	lexical constants = $BasicHash($prime_gen)
+	lexical included = []
+	lexical inner_obj = nil
+	
+	lexical self = (@msg) -> return {
+		local msg_id
+		local msg_type
+		bytecode(msg) {
+			message_split_id
+			local_set "msg_type"
+			local_set "msg_id"
+		}
+		switch (msg_type)
+		case (@@'ruby_sys') {
+			switch (msg_id)
+			case (@'lookup') {
+				local meth_name = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				local meth = instance_methods.get(meth_name)
+				if (meth) {
+					// use a message send instead of a return so we can come back
+					// here to continue the lookup
+					meth -> return : return
+				}
+
+				if (included.length > 0) {
+					local i = 0
+					local total = included.length
+					while (i < total) {
+						local res = included.at(i).ruby_sys:lookup(meth_name)
+						if (res) { res -> return : return }
+						i += 1
+					}
+				}
+
+				if (super) {
+					// forward on to the superclass for it to figure out.
+					bytecode(super, return, msg) {
+						channel_send
+					}
+				}
+
+				return <- undef
+			} case (@'make_singleton') {
+				local singleton = inner_obj.ruby_sys:singleton()
+				if (singleton) {
+					return <- singleton
+				} else {
+					if (super) {
+						// the superclass of a singleton for a class is its parent class' singleton
+						inner_obj.ruby_sys:set_singleton($RubyClass("Class:" + name, super.ruby_sys:make_singleton))
+					} else {
+						// if the class doesn't have a super, that means it's Object, whose singleton's
+						// parent class is Class.
+						inner_obj.ruby_sys:set_singleton($RubyClass("Class:" + name, $Class))
+					}
+				}
+			} case (@'allocate') {
+				if (self == $Class) {
+					local class_name
+					local superclass
+					bytecode(msg) {
+						message_unpack 2 0 0
+						local_set "class_name"
+						local_set "superclass"
+					}
+					return <- $RubyClass(class_name, superclass)
+				} else if (self == $Module) {
+					local module_name = bytecode(msg) {
+						message_unpack 1 0 0
+						swap
+						pop
+					}
+					return <- $RubyModule(module_name)
+				} else {
+					return <- $RubyObject(self)
+				}
+			} case (@'superclass') {
+				return <- super
+			} case (@'name') {
+				return <- name
+			} case (@'rebind_super') {
+				return <- super = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+			} case (@'include') {
+				local mod = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				included = included.push(mod)
+				return <- mod
+			} case (@'add_method') {
+				local meth_name
+				local meth
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "meth_name"
+					local_set "meth"
+				}
+				return <- instance_methods.set(meth_name, meth)
+			} case (@'alias_method') {
+				local new_name
+				local old_name
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "new_name"
+					local_set "old_name"
+				}
+				local old_meth = self.ruby_sys:lookup(old_name)
+				if (old_meth) {
+					return <- instance_methods.set(new_name, old_meth)
+				} else {
+					return <- nil
+				}
+			} case (@'add_constant') {
+				local const_name
+				local const_val
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "const_name"
+					local_set "const_val"
+				}
+				return <- constants.set(const_name, const_val)
+			} case (@'get_constant') {
+				local const_name = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				return <- constants.get(const_name)
+			} case (@'get_constant_scoped') {
+				local const_name
+				local next
+				local next_mod
+				local next_scope
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "const_name"
+					local_set "next"
+				}
+				if (next) {
+					bytecode(next) {
+						tuple_unpack 2 0 0
+						local_set "next_mod"
+						local_set "next_scope"
+					}
+				}
+				local const = constants.get(const_name)
+				if (const) {
+					return <- const
+				} else if (next) {
+					return <- next_mod.ruby_sys:get_constant_scoped(const_name, next_scope)
+				}
+				return <- nil
+			} case (@"scope_name") {
+				if (self == $Object) {
+					return <- ""
+				} else {
+					return <- name + "::"
+				}
+			}
+		} case (@@'c9') {
+			if (msg_id == @'primitive_call') {
+				local instance
+				local imsg_id
+				local imsg
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "instance"
+					message_id
+					local_set "imsg_id"
+					local_set "imsg"
+				}
+
+				switch (imsg_id)
+				case (@'ruby_sys:class') {
+					return <- self
+				} case (@'ruby_sys:object_id') {
+					local id = prim_map.get(instance, undef)
+					if (id != undef) {
+						return <- id
+					} else {
+						prim_id_seq += 2
+						prim_map.set(instance, prim_id_seq)
+						return <- prim_id_seq
+					}
+				} case (@'ruby_sys:ivar_get') {
+					local attr = bytecode(imsg) {
+						message_unpack 1 0 0
+						swap
+						pop
+					}
+					local vars = prim_attr_map.get(instance)
+					if (vars) {
+						return <- vars.get(attr)
+					} else {
+						return <- nil
+					}
+				} case (@'ruby_sys:ivar_set') {
+					local attr
+					local val
+					bytecode(imsg) {
+						message_unpack 2 0 0
+						local_set "attr"
+						local_set "val"
+					}
+					local vars = prim_attr_map.get(instance)
+					if (vars == undef) {
+						vars = $BasicHash($prime_gen)
+						prim_attr_map.set(instance, vars)
+					}
+					return <- vars.set(attr, val)
+				} case (@'ruby_sys:singleton') {
+					return <- nil
+				} case (@'ruby_sys:instance_eval') {
+					bytecode(imsg) {
+						message_sys_unpack 1
+						swap
+						pop
+						local_get "return"
+						local_get "instance"
+						push nil
+						push nil
+						local_get "imsg"
+						message_unpack 1 0 0
+						swap
+						pop
+						message_new "call" 4 0
+						local_get "imsg"
+						message_unpack 1 1 0
+						pop
+						swap
+						pop
+						message_splat
+						channel_send
+					}
+				}
+				local lookup_msg = bytecode(imsg_id) {
+					message_new "ruby_sys:lookup" 0 1
+				}
+				local meth = (lookup_msg -> self : local lookup_cont)
+				if (meth) {
+					bytecode(meth, return, imsg, instance, lookup_cont) {
+						message_sys_prefix 2
+						channel_send
+					}
+				} else if (meth = (method_missing_lookup_msg -> self : local lookup_cont)) {
+					bytecode(meth, return, imsg, instance, lookup_cont) {
+						message_sys_prefix 2
+						message_forward "method_missing"
+						channel_send
+					}
+				} else {
+					$unwinder.no_primitive_message_handler(name, imsg.name())
+				}
+			}
+		}
+		// "Class call to " + name + "." + msg_name + " forwarded to object" -> $stdout
+		// forward to the normal object for this class.
+		bytecode(inner_obj, return, msg) {
+			channel_send
+		}
+	}
+	if ($Class) {
+		inner_obj = $RubyObject($Class)
+	} else {
+		inner_obj = $RubyObject(self)
+	}
+	inner_obj.ruby_sys:wrap(self)
+	self
+}
+
+$set_special_channel('RubyClass', RubyClass)
+$set_special_channel('Class', RubyClass('Class', nil))
+$set_special_channel('Object', RubyClass('Object', nil))
+$set_special_channel('Module', RubyClass('Module', $Object))
