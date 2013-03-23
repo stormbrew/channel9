@@ -1,0 +1,130 @@
+lexical id_seq = 2148425000
+lexical method_missing_lookup_msg = bytecode() {
+	push @"method_missing"
+	message_new "ruby_sys:lookup" 0 1
+}
+
+lexical RubyObject = (lexical klass, lexical ivars) {
+	lexical singleton = klass
+	// TODO: make the generator be shared among all instances
+	// of the same class so they all start with appropriately
+	// sized hashes.
+	if (ivars == nil) {
+		ivars = $BasicHash($prime_gen)
+	}
+	lexical id = nil
+
+	lexical self = (@msg) -> return {
+		local msg_id
+		local msg_type
+		bytecode(msg) {
+			message_split_id
+			local_set "msg_type"
+			local_set "msg_id"
+		}
+		if (msg_type == @@'ruby_sys') {
+			switch (msg_id)
+			case (@'ivar_get') {
+				local ivar_name = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				return <- ivars.get(ivar_name, nil)
+			} case (@'ivar_set') {
+				local ivar_name
+				local ivar_val
+				bytecode(msg) {
+					message_unpack 2 0 0
+					local_set "ivar_name"
+					local_set "ivar_val"
+				}
+				return <- ivars.set(ivar_name, ivar_val)
+			} case (@'object_id') {
+				if (id) {
+					return <- id
+				} else {
+					return <- id = (id_seq += 2) // even numbers are for objects
+				}
+			} case (@'class') {
+				return <- klass
+			} case (@'send') {
+				return <- msg.unforward() -> self
+
+			} case (@'wrap') {
+				// re-identify self as being the wrapping object.
+				bytecode(msg) {
+					message_unpack 1 0 0
+					lexical_set 0 "self"
+				}
+				return <- self
+			} case (@'singleton') {
+				if (singleton == klass) {
+					return <- nil
+				} else {
+					return <- singleton
+				}
+			} case (@'make_singleton') {
+				if (singleton == klass) {
+					return <- (singleton = $RubyClass(self.to_s, klass))
+				} else {
+					return <- singleton
+				}
+			} case (@'set_singleton') {
+				singleton = bytecode(msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				return <- singleton
+			} case (@'instance_eval') {
+				bytecode(msg) {
+					message_sys_unpack 1
+					swap
+					pop
+					local_get "return"
+					lexical_get 0 "self"
+					push nil
+					push nil
+					local_get "msg"
+					message_unpack 1 0 0
+					swap
+					pop
+					message_new "call" 4 0
+					local_get "msg"
+					message_unpack 1 1 0
+					pop
+					swap
+					pop
+					message_splat
+					channel_send
+				}
+			} case (@'dup') {
+				return <- RubyObject(klass, ivars.dup)
+			}
+		}
+
+		local lookup_msg = bytecode(msg_id) {
+			message_new 'ruby_sys:lookup' 0 1
+		}
+
+		local meth = (lookup_msg -> singleton : local lookup_cont)
+		if (meth) {
+			// build a new message
+			bytecode(meth, return, msg, self, lookup_cont) {
+				message_sys_prefix 2
+				channel_send
+			}
+		} else if (meth = (method_missing_lookup_msg -> singleton : lookup_cont)) {
+			local fwd_msg = bytecode(meth, return, msg, self, lookup_cont) {
+				message_sys_prefix 2
+				message_forward "method_missing"
+				channel_send
+			}
+		} else {
+			$unwinder.no_message_handler(klass.ruby_sys:name, msg.name)
+		}
+	}
+}
+
+$set_special_channel('RubyObject', RubyObject)
