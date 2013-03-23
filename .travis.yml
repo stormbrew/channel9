@@ -5,7 +5,11 @@ compiler:
 env:
   - DEFAULT_COLLECTOR=Markcompact
   - DEFAULT_COLLECTOR=Semispace
+  - RUBY_VERSION=1.8.7
+  - RUBY_VERSION=1.9.3
+  - RUBY_VERSION=2.0.0
 before_script:
+  - sh -c 'rvm use ${RUBY_VERSION}'
   - sudo apt-get install libffi-dev
   - cmake .
   - make
@@ -16,7 +20,3 @@ notifications:
   email:
     on_success: change
     on_failure: always
-rvm:
-  - 1.8.7
-  - 1.9.3
-  - 2.0.0
