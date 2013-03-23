@@ -1,0 +1,72 @@
+lexical prime_gen = () -> cont {
+	41 -> cont : cont
+	191 -> cont : cont
+	401 -> cont : cont
+	809 -> cont : cont
+	1607 -> cont : cont
+	3209 -> cont : cont
+	7321 -> cont : cont
+
+	// give up and just generate triples (to keep factors of 2 out, rather than 3)
+	local n = 7321
+	while (true) { n += 1 -> cont : cont }
+}
+$set_special_channel('prime_gen', prime_gen)
+
+lexical Hash = (lexical table_size_seq, lexical table, lexical table_size, lexical next) {
+	if (table == nil)
+	{
+		table_size = (nil -> table_size_seq : table_size_seq)
+		table = []
+		next = nil
+	}
+
+	lexical get = (index, default) -> return {
+		local hash = index.hash() % table_size
+		if (hash < table.length()) {
+			local item = table.at(hash)
+
+			if (item) {
+				if (item.at(0) == index) { return <- item.at(1) }
+				if (next) { return <- next.get(index) }
+			}
+		}
+		return <- default
+	}
+	lexical set = (index, val) -> return {
+		local hash = index.hash() % table_size
+		if (hash < table.length()) {
+			local item = table.at(hash)
+			if (item) {
+				if (item.at(0) != index) {
+					if (next == nil) {
+						next = Hash(table_size_seq)
+					}
+					return <- next.set(index, val)
+				}
+			}
+		}
+		table = table.replace(hash, [index,val])
+		return <- val
+	}
+	lexical dup = () {
+		return <- Hash(table_size_seq, table, table_size, next)
+	}
+
+	(@msg) -> return {
+		local id = bytecode(msg) {
+			message_split_id
+			pop
+		}
+		switch (id)
+		case (@'get') {
+			return <- msg -> get
+		} case (@'set') {
+			return <- msg -> set
+		} case (@'dup') {
+			return <- msg -> dup
+		}
+	}
+}
+
+$set_special_channel('BasicHash', Hash)

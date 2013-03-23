@@ -1,0 +1,256 @@
+$set_special_channel('Kernel', $Module.ruby_sys:allocate("Kernel"))
+$set_special_channel('Channel9', $Module.ruby_sys:allocate("Channel9"))
+
+$Object.ruby_sys:include($Kernel)
+
+$Object.ruby_sys:add_constant("Object", $Object)
+$Object.ruby_sys:add_constant("Class", $Class)
+$Object.ruby_sys:add_constant("Module", $Module)
+$Object.ruby_sys:add_constant("Kernel", $Kernel)
+$Object.ruby_sys:add_constant("Channel9", $Channel9)
+
+$set_special_channel("Kernel", $Kernel)
+$set_special_channel("Channel9", $Channel9)
+
+lexical make_basic_class = (cname) {
+	local class = $Class.ruby_sys:allocate(cname, $Object)
+	$Object.ruby_sys:add_constant(cname, class)
+	$set_special_channel(cname, class)
+	class
+}
+lexical make_primitive_class = (cname, prim_name) {
+	local class = make_basic_class(cname)
+	$set_special_channel("Channel9::Primitive::" + prim_name, class)
+	class
+}
+make_basic_class("Proc")
+make_basic_class("Regexp")
+make_basic_class("Hash")
+make_basic_class("Range")
+make_basic_class("String")
+make_basic_class("Array")
+make_primitive_class("Fixnum", "Number")
+make_primitive_class("Float", "Float")
+make_primitive_class("Symbol", "String")
+make_primitive_class("StaticTuple", "Tuple")
+make_primitive_class("Table", "Table")
+make_primitive_class("Message", "Message")
+make_primitive_class("TrueClass", "TrueC")
+make_primitive_class("FalseClass", "FalseC")
+make_primitive_class("NilClass", "NilC")
+make_primitive_class("UndefClass", "UndefC")
+
+$Kernel.ruby_sys:add_method(@"to_s", (@msg) {
+	local self = bytecode(msg) {
+		message_sys_unpack 1
+		swap
+		pop
+	}
+	"<" + self.ruby_sys:object_id.to_string_primitive + ":" + self.ruby_sys:class.ruby_sys:name + ">"
+})
+$Kernel.ruby_sys:add_method(@"initialize", () {nil})
+$Kernel.ruby_sys:add_method(@"==", (@msg) {
+	bytecode(msg) {
+		message_sys_unpack 1
+		swap
+		message_unpack 1 0 0
+		swap
+		pop
+		is_eq
+	}
+})
+$Kernel.ruby_sys:alias_method(@"equal?", @"==")
+$Kernel.ruby_sys:alias_method(@"eql?", @"==")
+
+$Class.ruby_sys:add_method(@"allocate", (@msg) {
+	local self = bytecode(msg) {
+		message_sys_unpack 1
+		swap
+		pop
+	}
+	self.ruby_sys:allocate()
+})
+$Class.ruby_sys:add_method(@"new", (@msg) {
+	local self
+	local nmsg = bytecode(msg) {
+		message_unpack 0 1 0 # tuple -> msg
+		swap # msg -> tuple
+		message_sys_unpack 3 # self -> super -> proc -> msg -> tuple
+		local_set "self" # super -> proc -> msg -> tuple
+		pop # proc -> msg -> tuple
+		message_new "initialize" 1 0 # imsg -> msg -> tuple
+		swap # msg -> imsg -> tuple
+		pop # imsg -> tuple
+		swap # tuple -> imsg
+		message_splat # imsg
+	}
+	local obj = self.allocate()
+	nmsg -> obj
+	obj
+})
+
+$Object.ruby_sys:make_singleton()
+
+$set_special_channel("global_self", $Object.ruby_sys:allocate())
+$set_special_channel("globals", $BasicHash($prime_gen))
+
+lexical unwinders = [nil]
+lexical unwinder = (@msg) -> return {
+	if (msg) {
+		local real_msg = bytecode(msg) {
+		message_check
+		}
+		if (real_msg) {
+			local id
+			real_msg = bytecode(real_msg, return) {
+				message_sys_prefix 1
+				message_id
+				local_set "id"
+			}
+			local next_unwinder = unwinders
+			while (next_unwinder) {
+				local cur
+				bytecode(next_unwinder) {
+					tuple_unpack 2 0 0
+					swap
+					local_set "next_unwinder"
+					local_set "cur"
+				}
+				if (id != @'query') {
+					// if this is a real unwind, change the global unwinders.
+					unwinders = next_unwinder
+				}
+				real_msg -> cur
+			}
+			if (id == @'raise') {
+				local exc = bytecode(real_msg) {
+					message_unpack 1 0 0
+					swap
+					pop
+				}
+				$Channel9.uncaught_exception(exc)
+				$exit <- 1
+			} else if (id == @'query') {
+				return <- false
+			} else {
+				"Abort: Uncaught unwind." -> $stdout
+				$exit <- 1
+			}
+		} else {
+			local old = unwinders.at(0)
+			unwinders = [msg,unwinders]
+			return <- old
+		}
+	} else {
+		local old = unwinders.at(0)
+		unwinders = unwinders.at(1)
+		return <- old
+	}
+}
+$set_special_channel("unwinder", unwinder)
+
+$set_special_channel("long_return_catcher", (lexical proc) {
+	(@msg) -> return {
+		lexical normal_return = return
+		local handler = (@handler_msg) -> unwind_return {
+			local id
+			local val
+			# TODO: Only do the local return if the frame matches.
+			# The expected frame is the one passed in here as the first argument
+			# and then popped.
+			bytecode(handler_msg) {
+				message_id
+				local_set "id"
+				message_unpack 2 0 0
+				pop
+				local_set "val"
+			}
+			if (id == @'long_return') {
+				normal_return <- val
+			}
+			unwind_return <- false
+		}
+		handler -> unwinder
+		local ret = (msg -> proc)
+		nil -> unwinder
+		return <- ret
+	}
+})
+frame make_msg = (@msg) { msg }
+
+$Kernel.ruby_sys:add_method(@"throw", (tag, val) {
+	tag = bytecode(tag) {
+		string_coerce "to_s_prim"
+		pop
+	}
+
+	// find out if we can even handle this throw by doing a
+	// query unwind.
+	local msg = make_msg.ruby_sys:throw(tag, val)
+	local safe = unwinder.query(msg)
+	if (safe) {
+		unwinder.ruby_sys:throw(tag, val)
+	} else {
+		$Object.raise($Object.const_get("ArgumentError"), "No catch handler for " + tag)
+	}
+})
+$Kernel.ruby_sys:add_method(@"catch", (@msg) -> return {
+	local proc
+	lexical catch_tag
+	bytecode(msg) {
+		message_unpack 1 0 0
+		string_coerce "to_s_prim"
+		pop
+		lexical_set 0 "catch_tag"
+		message_sys_unpack 3
+		pop
+		pop
+		local_set "proc"
+	}
+	if (proc == undef)
+	{
+		$Object.raise($Object.const_get("LocalJumpError"), "No proc provided to catch.")
+	}
+	lexical catch_return = return
+	local handler = (@handler_msg) -> handler_return {
+		local id
+		local tag
+		local val
+		local source
+		bytecode(handler_msg) {
+			message_id
+			local_set "id"
+			message_unpack 2 0 0
+			local_set "tag"
+			local_set "val"
+			message_sys_unpack 1
+			local_set "source"
+		}
+		if (id == @'ruby_sys:throw') {
+			if (tag == catch_tag) {
+				catch_return <- val
+			}
+		} else if (id == @'query') {
+			// if it's a query, re-extract the relevant info
+			// from the inner message object and return back
+			// to the source if it's the right handler.
+			bytecode(tag) {
+				message_id
+				local_set "id"
+				message_unpack 2 0 0
+				local_set "tag"
+				local_set "val"
+			}
+			if (id == @'ruby_sys:throw') {
+				if (tag == catch_tag) {
+					source <- true
+				}
+			}
+		}
+		handler_return <- false
+	}
+	handler -> unwinder
+	local ret = (msg -> proc)
+	nil -> unwinder
+	return <- ret
+})

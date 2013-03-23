@@ -1,0 +1,1 @@
+These tests are intended to test functionality needed in order to even begin to run mspec, and thus the rubyspec suite. They're in, roughly, implementation order, which also happens to be some variation of difficulty level. Expected output is presented in the same name, but with .out as the extension rather than .rb.
