@@ -28,7 +28,7 @@ Dir["#{dir}/*.rb"].sort.each do |test|
     total_c9_time += c9_time
 
     stime = Time.now
-    expected = `ruby #{test} 2>/dev/null`
+    expected = `rvm 1.8.7 do ruby #{test} 2>/dev/null`
     rb_time = Time.now - stime
     total_rb_time += rb_time
 
