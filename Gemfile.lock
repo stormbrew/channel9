@@ -1,0 +1,20 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    blankslate (2.1.2.4)
+    json (1.7.7)
+    parslet (1.2.3)
+      blankslate (~> 2.0)
+    rake (10.0.3)
+    ruby_parser (2.3.1)
+      sexp_processor (~> 3.0)
+    sexp_processor (3.2.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  json
+  parslet (= 1.2.3)
+  rake
+  ruby_parser (= 2.3.1)
