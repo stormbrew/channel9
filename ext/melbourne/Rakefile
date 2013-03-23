@@ -1,0 +1,84 @@
+require 'rake/loaders/makefile'
+
+# Special rule for putting .o files in the implementation-specific
+# subdirectory so this single extension can be built for both MRI
+# and Rubinius
+
+rule ".o" do |t|
+  source = t.prerequisites.first
+
+  report_command "CXX #{source}"
+  qsh "#{$CXX} -c -o #{t.name} #{$CXXFLAGS} #{File.expand_path(source)}"
+end
+
+def set_ext_dir(dir)
+  Dir.mkdir(dir) unless File.exists?(dir)
+  @ext_dir = dir
+end
+
+def ext_dir
+  @ext_dir
+end
+
+def source_files
+  sources("grammar.cpp")
+end
+
+# Setup project files
+def add_objects(files, dir)
+  source_files.zip(objects(dir)).each do |source, obj|
+    file obj => source
+    file obj => __FILE__ # depend on the Rakefile, it might change
+    files << source << obj
+  end
+end
+
+project_files = common_headers + headers
+
+# This is a horrid hack. It is temporary until we replace Rake
+# as the build system.
+case Rake.application.top_level_tasks
+when ["build:rbx"]
+  puts "Building Melbourne for Rubinius"
+  add_rbx_capi
+  set_ext_dir "rbx"
+when ["build:mri"]
+  puts "Building Melbourne for MRI"
+  add_mri_capi
+  set_ext_dir "ruby"
+  add_link_dir RbConfig::CONFIG["libdir"]
+
+  if RbConfig::CONFIG["ENABLE_SHARED"] == "yes"
+    add_ldflag RbConfig::CONFIG["LIBRUBYARG"]
+  end
+end
+
+add_objects project_files, ext_dir
+
+# Build the Melbourne extension against Rubinius
+directory "rbx"
+melbourne_rbx = "rbx/melbourne.#{$DLEXT}"
+
+file melbourne_rbx => project_files
+
+# Build the Melbourne extension against MRI
+directory "ruby"
+melbourne_mri = "ruby/melbourne.#{$DLEXT}"
+
+file melbourne_mri => project_files
+
+graph_dependencies source_files
+
+import dependency_file
+
+# Build tasks
+namespace :build do
+  desc "Build Melbourne for Rubinius"
+  task :rbx => melbourne_rbx
+
+  desc "Build Melbourne for MRI"
+  task :mri => melbourne_mri
+end
+
+desc "Build Melbourne for both Rubinius and MRI"
+task :build => %w[build:mri build:rbx]
