@@ -14,7 +14,7 @@ add_definitions( -D__STDC_FORMAT_MACROS )
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
-set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall -Werror -frtti -Wno-unused-but-set-variable -Wno-strict-aliasing")
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall -Werror -frtti -Wno-unknown-warning-option -Wno-unused-but-set-variable -Wno-strict-aliasing")
 if(NOT ${CMAKE_CXX_COMPILER} MATCHES "clang")
     set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} --param inline-unit-growth=100000 --param large-function-growth=100000 --param max-inline-insns-single=100000")
 endif()
@@ -69,6 +69,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 include_directories(include)
 
+add_custom_target(bundle-install
+    COMMAND ${RUBY_EXECUTABLE} -rubygems -C${CMAKE_SOURCE_DIR} -S bundle install
+    DEPENDS ${CMAKE_SOURCE_DIR}/Gemfile ${CMAKE_SOURCE_DIR}/Gemfile.lock
+)
+
 add_subdirectory(src/libc9)
 add_subdirectory(src/jsoncpp)
 add_subdirectory(src/c9)
@@ -80,7 +85,7 @@ function(add_c9script SRC DST COMMON_PATH TARGET_PREFIX) # extra args are script
             COMMAND ${RUBY_EXECUTABLE} -rubygems -I${CMAKE_SOURCE_DIR}/ruby/lib ${CMAKE_SOURCE_DIR}/bin/c9c ${SRC}/${COMMON_PATH}/${FILE} ${DST}/${COMMON_PATH}/${FILE}.c9b
             DEPENDS ${SRC}/${COMMON_PATH}/${FILE}
         )
-        add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE}.c9b)
+        add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE}.c9b bundle-install)
     endforeach()
 endfunction()
 
