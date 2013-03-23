@@ -1,25 +1,48 @@
 Channel9
 --------
 
-What sets it apart from most VMs is that its central construct is
-not objects (as in Ruby's VMs), or strings (as in TCL), or hashes
-(as in python/perl/etc). The central primitive of channel9 is
-continuations (called Channels in the VM's terms).
+Channel9 is a multilanguage VM designed for dynamic languages to be built on.
+What separates it from most other similar endeavors is the flexibility of the
+runtime in terms of execution flow. The VM allows the language implementation
+to save execution state through continuations in order to allow it to control
+its threading model, error model, etc.
 
-A channel is a position in code with associated state, including
-stack and local variables. With this, you can do some very interesting
-things.
+Moreover it does not require a linear stack at all, so it's a good basis to
+experiment with execution models in general. Although it is a stack-based VM,
+the stack is local only to the executing method.
+
+For more information, please check out the documentation in the doc dir (TODO: when
+there is some...).
+
+Dependencies
+------------
+
+You need to have the following things installed and available to build
+and run channel9:
+
+ * CMake (apt-get install cmake)
+ * GCC or clang (apt-get install build-essentials)
+ * libffi (apt-get install libffi-dev)
+ * Ruby (apt-get install ruby or get RVM)
+ * The bundler gem for ruby (gem install bundler)
+
+If you want to run the channel9.rb test suite you will probably also want
+to have an rvm install, since it uses rvm to ensure that it's testing against
+the correct version of ruby (1.8.7).
 
 Building
 --------
 
-You will need to have cmake, relatively modern gcc, and a ruby install
-in order to build Channel9. You can follow the following steps to build it:
+You will need to have cmake, relatively modern gcc, and a ruby install with
+bundler in order to build Channel9. You can follow the following steps to build
+it:
 
 	> git clone git://github.com/stormbrew/channel9.git
-	> mkdir channel9.build
-	> cd channel9.build
-	> cmake ../channel9
+	> cd channel9
+	> bundle install
+	> mkdir build
+	> cd build
+	> cmake ..
 	> make
 
 Running
@@ -28,22 +51,15 @@ Running
 Assuming that was successful, you can use the generated bin/c9 exe to
 run some bytecode files:
 
-	> bin/c9 ../channel9/samples/gcd.c9b
+	> bin/c9 ../samples/gcd.c9b
 
 Channel9.rb
 -----------
 
-To also build the work in progress ruby VM on top of Channel9, you can
-do the following:
+The work in progress ruby VM should also have build, you can
+do the following to try it out:
 
-	> pushd ../channel9/environments
-	> git clone git://github.com/stormbrew/channel9.rb.git
-	> popd
-	> make
-
-At which point you can run ruby scripts like so:
-
-	> bin/c9 ../channel9/environments/channel9.rb/simple_tests/001.math.rb
+	> bin/c9 ../environments/channel9.rb/simple_tests/001.math.rb
 
 Debugging
 ---------
