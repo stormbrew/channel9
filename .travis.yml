@@ -6,7 +6,6 @@ env:
   - DEFAULT_COLLECTOR=Markcompact
   - DEFAULT_COLLECTOR=Semispace
 before_script:
-  - rvm use 1.8.7
   - sudo apt-get install libffi-dev
   - cmake .
   - make
@@ -19,3 +18,5 @@ notifications:
     on_failure: always
 rvm:
   - 1.8.7
+  - 1.9.3
+  - 2.0.0
