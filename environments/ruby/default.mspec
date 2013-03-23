@@ -41,7 +41,7 @@ class MSpecScript
   set :optional, [get(:ffi)]
 
   # The default implementation to run the specs
-  set :target, '../channel9.build/bin/c9.rb'
+  set :target, 'c9.rb'
 
   set :tags_patterns, [
                         [%r(language/),     'rubyspec/tags/1.8/language/'],
