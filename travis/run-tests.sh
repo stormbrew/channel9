@@ -9,4 +9,5 @@ bin/c9c sample/c9script/gcd.c9s
 c9 sample/c9script/gcd.c9b
 
 cd environments/ruby
-bin/simple_test_runner.rb simple_tests
+# TODO: Make this rake spec when we can do tags.
+rake spec:simple
