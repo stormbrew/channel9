@@ -8,6 +8,7 @@ project (channel9)
 set (channel9_VERSION_MAJOR 1)
 set (channel9_VERSION_MINOR 0)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 find_package(Ruby REQUIRED)
 
 add_definitions( -D__STDC_FORMAT_MACROS )
