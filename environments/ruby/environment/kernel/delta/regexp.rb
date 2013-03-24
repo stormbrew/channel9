@@ -141,7 +141,7 @@ class Regexp
       res = res + s.substr(pos, s.length-1) if pos < s.length
       return String.new(res)
     else
-      return s
+      return String.new(s)
     end
   end
 end
