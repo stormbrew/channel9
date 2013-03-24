@@ -11,6 +11,7 @@
 
 #include "rb_glob.hpp"
 #include "rb_loader.hpp"
+#include "rb_regexp.hpp"
 
 using namespace Channel9;
 
@@ -175,6 +176,7 @@ extern "C" int Channel9_environment_initialize(Channel9::Environment *env, const
 	env->set_special_channel("set_special_channel", Channel9::value(new SetSpecialChannel));
 	env->set_special_channel("initial_load_path", Channel9::value(new_tuple(initial_paths, initial_paths + 3)));
 	env->set_special_channel("loader", Channel9::value(new LoaderChannel(path)));
+	env->set_special_channel("regexp", Channel9::value(new RegexpChannel()));
 
 	setup_basic_ffi_functions(env);
 
