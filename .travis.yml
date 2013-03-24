@@ -13,6 +13,7 @@ env:
 before_script:
   - rvm use ${RUBY_VERSION}
   - sudo apt-get install libffi-dev
+  - sudo apt-get install libonig-dev
   - cmake .
   - make
 script: travis/run-tests.sh
