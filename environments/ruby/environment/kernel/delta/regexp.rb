@@ -110,4 +110,38 @@ class Regexp
     end
     MatchData.new(self, s, results)
   end
+
+  def c9_gsub(s, replacement, &block)
+    replacements = []
+    s = s.to_s_prim
+    replacement = replacement.to_s_prim if replacement
+    pos = 0
+    while true
+      err, errstr, results = @matcher.match(s, pos)
+      if errstr
+        raise errstr # TODO: raise the right error type.
+      end
+
+      if results.nil?
+        break
+      end
+      with = replacement || block.call(String.new(s.substr(results.at(0).at(0), results.at(0).at(1)-1))).to_s_prim
+      replacements.push([results.at(0), with])
+      pos = results.at(0).at(1)
+    end
+
+    if replacements.length > 0
+      res = "".to_s_prim
+      pos = 0
+      replacements.each do |replacement|
+        range, with = replacement
+        res = res + s.substr(pos, range.at(0)-1) + with
+        pos = range.at(1)
+      end
+      res = res + s.substr(pos, s.length-1) if pos < s.length
+      return String.new(res)
+    else
+      return s
+    end
+  end
 end
