@@ -44,11 +44,11 @@ class MSpecScript
   set :target, 'c9.rb'
 
   set :tags_patterns, [
-                        [%r(language/),     'rubyspec/tags/1.8/language/'],
-                        [%r(core/),         'rubyspec/tags/1.8/core/'],
-                        [%r(command_line/), 'rubyspec/tags/1.8/command_line/'],
-                        [%r(library/),      'rubyspec/tags/1.8/library/'],
-                        [/_spec.rb$/,       'rubyspec/_tags.txt']
+                        [%r(rubyspec/language/),     'tags/1.8/language/'],
+                        [%r(rubyspec/core/),         'tags/1.8/core/'],
+                        [%r(rubyspec/command_line/), 'tags/1.8/command_line/'],
+                        [%r(rubyspec/library/),      'tags/1.8/library/'],
+                        [/_spec.rb$/,       '_tags.txt']
                       ]
 
   # Enable features
