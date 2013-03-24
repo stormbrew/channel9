@@ -6,6 +6,7 @@ add_library(rb SHARED
     src/rb.cpp
     src/rb_glob.cpp
     src/rb_loader.cpp
+    src/rb_regexp.cpp
 )
 target_link_libraries(rb libc9 ${RUBY_LIBRARY})
 
