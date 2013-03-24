@@ -29,13 +29,13 @@ class MatchData
   end
 
   def pre_match
-    String.new(@str.substr(0, match.at(0).at(0)))
+    String.new(@str.substr(0, @matches.at(0).at(0)))
   end
   def post_match
-    String.new(@str.substr(match.at(0).at(1), -1))
+    String.new(@str.substr(@matches.at(0).at(1), -1))
   end
   def to_s
-    String.new(@str.substr(match.at(0).at(0), match.at(0).at(1)-1))
+    String.new(@str.substr(@matches.at(0).at(0), @matches.at(0).at(1)-1))
   end
 
   def length
