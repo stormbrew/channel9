@@ -23,6 +23,7 @@ and run channel9:
  * CMake (apt-get install cmake)
  * GCC or clang (apt-get install build-essentials)
  * libffi (apt-get install libffi-dev)
+ * libonig (apt-get install libonig-dev)
  * Ruby (apt-get install ruby or get RVM)
  * The bundler gem for ruby (gem install bundler)
 
