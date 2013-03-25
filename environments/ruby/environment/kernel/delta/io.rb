@@ -7,10 +7,10 @@ class IO
     raise NotImplementedError, "IO#write not implemented."
   end
   def print(*args)
-    write(*args)
+    write(args.join(""))
   end
   def <<(*args)
-    write(*args)
+    write(args.join(""))
   end
 
   def puts(*args)
@@ -18,15 +18,25 @@ class IO
       if (arg.kind_of?(::Channel9::Tuple) || arg.kind_of?(::StaticTuple) || arg.kind_of?(::Array))
         puts(*arg)
       elsif (arg.nil?)
-        print(:"nil\n")
+        write(:"nil\n")
       else
-        print arg,:"\n"
+        write(arg.to_s_prim + :"\n")
       end
     }
   end
 
+  def gets(*args)
+    raise NotImplementedError, "IO#gets not implemented."
+  end
+
   def read
     raise NotImplementedError, "IO#read not implemented."
+  end
+
+  def each_line
+    while l = gets
+      yield l
+    end
   end
 
   def flush
