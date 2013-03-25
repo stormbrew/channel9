@@ -135,7 +135,10 @@ class Regexp
       pos = 0
       replacements.each do |replacement|
         range, with = replacement
-        res = res + s.substr(pos, range.at(0)-1) + with
+        if pos != range.at(0) # if the next match is right here don't bother copying it.
+          res = res + s.substr(pos, range.at(0)-1)
+        end
+        res += with
         pos = range.at(1)
       end
       res = res + s.substr(pos, s.length-1) if pos < s.length
