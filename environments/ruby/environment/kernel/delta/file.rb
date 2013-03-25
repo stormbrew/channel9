@@ -1,4 +1,78 @@
 class File < IO
+  def self.new(filename, mode = "r", opt = nil)
+    f = allocate
+    f.initialize(filename, mode, opt)
+    f
+  end
+
+  def self.open(filename, mode = "r", opt = nil, &block)
+    f = new(filename, mode, opt)
+    if block
+      begin
+        return block.call(f)
+      ensure
+        f.close
+      end
+    end
+    f
+  end
+
+  def initialize(filename, mode = "r", opt = nil)
+    @file_ptr = $__c9_ffi_fopen.fopen(filename.to_s_prim, mode.to_s_prim)
+    if @file_ptr == 0
+      raise "Error opening #{filename}"
+    end
+  end
+
+  def close
+    if @file_ptr
+      $__c9_ffi_fclose.fclose(@file_ptr)
+      @file_ptr = nil
+    end
+  end
+
+  def write(s)
+    s = s.to_s_prim
+    $__c9_ffi_fwrite.fwrite(s, 1, s.length, @file_ptr)
+  end
+
+  def c9_make_buffer
+    # yes this is slow and ugly. TODO: Add a real buffer object we
+    # can use for this stuff!
+    buffer = :"          "
+    buffer = buffer + buffer + buffer + buffer + buffer
+    buffer = buffer + buffer + buffer + buffer + buffer
+    buffer
+  end
+
+  def gets
+    newline_matcher = %r{\n}
+    str = "".to_s_prim
+    while true
+      buffer = c9_make_buffer
+      s = $__c9_ffi_fgets.fgets(buffer, buffer.length, @file_ptr)
+      if s != 0
+        # didn't hit eof, so figure out how much we actually read. If there's
+        # a \n in the result, that's the line done. If not, the buffer wasn't large enough
+        # so go again until we find the end of the line.
+        if match = newline_matcher.match(buffer)
+          str += buffer.substr(0, match.begin(0))
+          return String.new(str)
+        else
+          # cut off the nil character it will have placed at the end.
+          str += buffer.substr(0, buffer.length-1)
+          # and then let it loop to add more
+        end
+      elsif str.length > 0
+        # if we hit EOF but have already buffered some string, return that.
+        return String.new(str)
+      else
+        # otherwise we're at EOF and should return nil.
+        return nil
+      end
+    end
+  end
+
   def self.join(*components)
     components.join('/')
   end
