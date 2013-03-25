@@ -110,6 +110,36 @@ void setup_basic_ffi_functions(Environment *env)
 
 	env->set_special_channel("ffi_write", Channel9::value(write_call));
 
+	FFIDefinition *fopen_args = new FFIDefinition("fopen args");
+	fopen_args->add_pointer(); // filename
+	fopen_args->add_pointer(); // mode string
+	FFICall *fopen_call = new FFICall("fopen", ffi_fn(fopen), ffi_type_map<intptr_t>(), fopen_args);
+
+	FFIDefinition *fwrite_args = new FFIDefinition("fwrite args");
+	fwrite_args->add_pointer(); // string
+	fwrite_args->add(ffi_type_map<size_t>()); // size
+	fwrite_args->add(ffi_type_map<size_t>()); // members
+	fwrite_args->add(ffi_type_map<intptr_t>()); // FILE*
+	FFICall *fwrite_call = new FFICall("fwrite", ffi_fn(fwrite), ffi_type_map<size_t>(), fwrite_args);
+
+	// TODO: This needs to be made to pass an actual buffer object of some sort rather than a String
+	// object that it then writes to. This is going to cause all sorts of problems down the road, but
+	// isn't relevant right now. Sorry future me, remember that this project is mostly for fun.
+	FFIDefinition *fgets_args = new FFIDefinition("fgets args");
+	fgets_args->add_pointer(); // string buffer
+	fgets_args->add(ffi_type_map<int>());
+	fgets_args->add(ffi_type_map<intptr_t>()); // FILE*
+	FFICall *fgets_call = new FFICall("fgets", ffi_fn(fgets), ffi_type_map<intptr_t>(), fgets_args);
+
+	FFIDefinition *fclose_args = new FFIDefinition("fclose args");
+	fclose_args->add(ffi_type_map<intptr_t>()); // FILE*
+	FFICall *fclose_call = new FFICall("fclose", ffi_fn(fclose), ffi_type_map<int>(), fclose_args);
+
+	env->set_special_channel("ffi_fopen", Channel9::value(fopen_call));
+	env->set_special_channel("ffi_fgets", Channel9::value(fgets_call));
+	env->set_special_channel("ffi_fwrite", Channel9::value(fwrite_call));
+	env->set_special_channel("ffi_fclose", Channel9::value(fclose_call));
+
 	FFIDefinition *time_t_holder = new FFIDefinition("time_t holder");
 	time_t_holder->add("time", ffi_type_map<time_t>());
 	FFIDefinition *time_now_args = new FFIDefinition("time_now_args");
