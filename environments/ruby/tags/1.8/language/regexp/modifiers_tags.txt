@@ -1,0 +1,6 @@
+fails:Regexps with modifers supports /o (once)
+fails:Regexps with modifers invokes substitutions for /o only once
+fails:Regexps with modifers does not do thread synchronization for /o
+fails:Regexps with modifers supports modifier combinations
+fails:Regexps with modifers supports (?imx-imx) (inline modifiers)
+fails:Regexps with modifers supports (?imx-imx:expr) (scoped inline modifiers)

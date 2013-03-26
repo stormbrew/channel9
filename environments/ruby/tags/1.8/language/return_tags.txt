@@ -1,0 +1,5 @@
+fails:The return keyword in a Thread raises a ThreadError if used to exit a thread
+fails:The return keyword when passed a splat calls 'to_ary' on the splatted value first
+fails:The return keyword within a block raises a LocalJumpError if there is no lexicaly enclosing method
+fails:The return keyword within define_method goes through the method via a closure
+fails:The return keyword within define_method stops at the method when the return is used directly

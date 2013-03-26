@@ -1,0 +1,5 @@
+fails:module has the right name
+fails:module gets a name when assigned to a constant
+fails:module allows for reopening a module subclass
+fails:module reopens a module included into Object
+fails:An anonymous module returns an empty string for its name

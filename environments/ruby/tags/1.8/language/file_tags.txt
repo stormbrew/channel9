@@ -1,0 +1,10 @@
+fails:The __FILE__ pseudo-variable raises a SyntaxError if assigned to
+fails:The __FILE__ pseudo-variable equals (eval) inside an eval
+fails:The __FILE__ pseudo-variable equals the absolute path of a file loaded by an absolute path
+fails:The __FILE__ pseudo-variable equals the relative path of a file loaded by a relative path
+fails:The __FILE__ pseudo-variable equals the absolute path of a file loaded by an absolute path
+fails:The __FILE__ pseudo-variable equals the relative path of a file loaded by a relative path
+fails:The __FILE__ pseudo-variable equals the absolute path of a file loaded by an absolute path
+fails:The __FILE__ pseudo-variable equals the relative path of a file loaded by a relative path
+fails:The __FILE__ pseudo-variable equals the absolute path of a file loaded by an absolute path
+fails:The __FILE__ pseudo-variable equals the relative path of a file loaded by a relative path

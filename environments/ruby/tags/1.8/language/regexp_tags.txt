@@ -1,0 +1,7 @@
+fails:Literal Regexps matches against $_ (last input) in a conditional if no explicit matchee provided
+fails:Literal Regexps caches the Regexp object
+fails:Literal Regexps throws SyntaxError for malformed literals
+fails:Literal Regexps disallows first part of paired delimiters to be used as non-paired delimiters
+fails:Literal Regexps disallows alphabets as non-paired delimiter with %r
+fails:Literal Regexps disallows spaces after %r and delimiter
+fails:Literal Regexps allows unescaped / to be used with %r
