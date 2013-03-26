@@ -147,4 +147,33 @@ class Regexp
       return String.new(s)
     end
   end
+
+  def self.escape(str)
+    str.gsub(%r{[\t\n\v\f\r\ \#\$\(\)\*\+\-\.\?\[\\\]\^\{\|\}]}) do |match|
+      case match
+      when "\t" then "\\t"
+      when "\n" then "\\n"
+      when "\v" then "\\v"
+      when "\f" then "\\f"
+      when "\r" then "\\r"
+      when "\ " then "\\ "
+      when "\#" then "\\#"
+      when "\$" then "\\$"
+      when "\(" then "\\("
+      when "\)" then "\\)"
+      when "\*" then "\\*"
+      when "\+" then "\\+"
+      when "\-" then "\\-"
+      when "\." then "\\."
+      when "\?" then "\\?"
+      when "\[" then "\\["
+      when "\\" then "\\\\"
+      when "\]" then "\\]"
+      when "\^" then "\\^"
+      when "\{" then "\\{"
+      when "\|" then "\\|"
+      when "\}" then "\\}"
+      end
+    end
+  end
 end
