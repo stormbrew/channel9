@@ -1,0 +1,215 @@
+fails:The defined? keyword for literals returns 'self' for self
+fails:The defined? keyword for literals returns 'nil' for nil
+fails:The defined? keyword for literals returns 'true' for true
+fails:The defined? keyword for literals returns 'false' for false
+fails:The defined? keyword when called with a method name without a receiver returns 'method' if the method is defined
+fails:The defined? keyword when called with a method name without a receiver returns nil if the method is not defined
+fails:The defined? keyword when called with a method name having a module as receiver returns 'method' if the method is defined
+fails:The defined? keyword when called with a method name having a module as receiver returns nil if the method is private
+fails:The defined? keyword when called with a method name having a module as receiver returns nil if the method is protected
+fails:The defined? keyword when called with a method name having a module as receiver returns nil if the method is not defined
+fails:The defined? keyword when called with a method name having a module as receiver returns nil if the class is not defined
+fails:The defined? keyword when called with a method name having a local variable as receiver returns 'method' if the method is defined
+fails:The defined? keyword when called with a method name having a local variable as receiver returns nil if the method is not defined
+fails:The defined? keyword when called with a method name having a local variable as receiver returns nil if the variable does not exist
+fails:The defined? keyword when called with a method name having an instance variable as receiver returns 'method' if the method is defined
+fails:The defined? keyword when called with a method name having an instance variable as receiver returns nil if the method is not defined
+fails:The defined? keyword when called with a method name having a global variable as receiver returns 'method' if the method is defined
+fails:The defined? keyword when called with a method name having a global variable as receiver returns nil if the method is not defined
+fails:The defined? keyword when called with a method name having a class variable as receiver returns 'method' if the method is defined
+fails:The defined? keyword when called with a method name having a class variable as receiver returns nil if the method is not defined
+fails:The defined? keyword when called with a method name having a class variable as receiver returns nil if the variable does not exist
+fails:The defined? keyword when called with a method name having a method call as a receiver returns nil if evaluating the receiver raises an exception
+fails:The defined? keyword when called with a method name having a method call as a receiver returns nil if the method is not defined on the object the receiver returns
+fails:The defined? keyword when called with a method name having a method call as a receiver returns 'method' if the method is defined on the object the receiver returns
+fails:The defined? keyword for an expression returns 'assignment' for assigning a local variable
+fails:The defined? keyword for an expression returns 'assignment' for assigning an instance variable
+fails:The defined? keyword for an expression returns 'assignment' for assigning a global variable
+fails:The defined? keyword for an expression returns 'assignment' for assigning a class variable
+fails:The defined? keyword for an expression returns 'assignment' for assigning multiple variables
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '%='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '/='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '-='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '+='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '*='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '|='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '&='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '^='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '~='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '<<='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '>>='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '||='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '&&='
+fails:The defined? keyword for an expression returns 'assignment' for an expression with '**='
+fails:The defined? keyword for an expression returns nil for an expression with == and an undefined method
+fails:The defined? keyword for an expression returns nil for an expression with != and an undefined method
+fails:The defined? keyword for an expression returns nil for an expression with !~ and an undefined method
+fails:The defined? keyword for an expression returns 'method' for an expression with '=='
+fails:The defined? keyword for an expression returns 'expression' for an expression with '!='
+fails:The defined? keyword for an expression returns 'expression' for an expression with '!~'
+fails:The defined? keyword for an expression returns 'expression' when passed a String
+fails:The defined? keyword for an expression returns 'expression' when passed a Fixnum literal
+fails:The defined? keyword for an expression returns 'expression' when passed a Bignum literal
+fails:The defined? keyword for an expression returns 'expression' when passed a Float literal
+fails:The defined? keyword for an expression returns 'expression' when passed a Range literal
+fails:The defined? keyword for an expression returns 'expression' when passed a Regexp literal
+fails:The defined? keyword for an expression returns 'expression' when passed an Array literal
+fails:The defined? keyword for an expression returns 'expression' when passed a Hash literal
+fails:The defined? keyword for an expression returns 'expression' when passed a Symbol literal
+fails:The defined? keyword for an expression with logical connectives returns nil for an expression with '!' and an undefined method
+fails:The defined? keyword for an expression with logical connectives returns nil for an expression with '!' and an unset class variable
+fails:The defined? keyword for an expression with logical connectives returns nil for an expression with 'not' and an undefined method
+fails:The defined? keyword for an expression with logical connectives returns nil for an expression with 'not' and an unset class variable
+fails:The defined? keyword for an expression with logical connectives does not propagate an exception raised by a method in a 'not' expression
+fails:The defined? keyword for an expression with logical connectives returns 'expression' for an expression with '&&/and' and an unset global variable
+fails:The defined? keyword for an expression with logical connectives returns 'expression' for an expression with '&&/and' and an unset instance variable
+fails:The defined? keyword for an expression with logical connectives returns 'expression' for an expression '&&/and' regardless of its truth value
+fails:The defined? keyword for an expression with logical connectives returns 'expression' for an expression with '||/or' and an unset global variable
+fails:The defined? keyword for an expression with logical connectives returns 'expression' for an expression with '||/or' and an unset instance variable
+fails:The defined? keyword for an expression with logical connectives returns 'expression' for an expression '||/or' regardless of its truth value
+fails:The defined? keyword for an expression with logical connectives returns 'expression' for an expression with '!' and an unset global variable
+fails:The defined? keyword for an expression with logical connectives returns 'expression' for an expression with '!' and an unset instance variable
+fails:The defined? keyword for an expression with logical connectives calls a method in a 'not' expression and returns 'expression'
+fails:The defined? keyword for an expression with logical connectives returns 'expression' for an expression with 'not' and an unset global variable
+fails:The defined? keyword for an expression with logical connectives returns 'expression' for an expression with 'not' and an unset instance variable
+fails:The defined? keyword for an expression with logical connectives returns nil for an expression with '&&/and' and an undefined method
+fails:The defined? keyword for an expression with logical connectives returns nil for an expression with '&&/and' and an unset class variable
+fails:The defined? keyword for an expression with logical connectives does not propagate an exception raised by a method in an '&&' expression
+fails:The defined? keyword for an expression with logical connectives calls a method in an '&&' expression and returns 'expression'
+fails:The defined? keyword for an expression with logical connectives does not propagate an exception raised by a method in an 'and' expression
+fails:The defined? keyword for an expression with logical connectives calls a method in an 'and' expression and returns 'expression'
+fails:The defined? keyword for an expression with logical connectives returns nil for an expression with '||/or' and an undefined method
+fails:The defined? keyword for an expression with logical connectives returns nil for an expression with '||/or' and an unset class variable
+fails:The defined? keyword for an expression with logical connectives does not propagate an exception raised by a method in an '||' expression
+fails:The defined? keyword for an expression with logical connectives calls a method in an '||' expression and returns 'expression'
+fails:The defined? keyword for an expression with logical connectives does not propagate an exception raised by a method in an 'or' expression
+fails:The defined? keyword for an expression with logical connectives calls a method in an 'or' expression and returns 'expression'
+fails:The defined? keyword for an expression with a dynamic String returns 'expression' when the String contains a literal
+fails:The defined? keyword for an expression with a dynamic String returns 'expression' when the String contains a call to a defined method
+fails:The defined? keyword for an expression with a dynamic String returns nil when the String contains a call to an undefined method
+fails:The defined? keyword for an expression with a dynamic String calls the method in the String
+fails:The defined? keyword for an expression with a dynamic String returns nil if any of the interpolated method calls are undefined
+fails:The defined? keyword for an expression with a dynamic String returns nil and stops processing if any of the interpolated method calls are undefined
+fails:The defined? keyword for an expression with a dynamic Regexp returns 'expression' when the Regexp contains a literal
+fails:The defined? keyword for an expression with a dynamic Regexp returns 'expression' when the Regexp contains a call to a defined method
+fails:The defined? keyword for an expression with a dynamic Regexp returns nil when the Regexp contains a call to an undefined method
+fails:The defined? keyword for an expression with a dynamic Regexp calls the method in the Regexp
+fails:The defined? keyword for an expression with a dynamic Regexp returns nil if any of the interpolated method calls are undefined
+fails:The defined? keyword for an expression with a dynamic Regexp returns nil and stops processing if any of the interpolated method calls are undefined
+fails:The defined? keyword for variables returns 'local-variable' when called with the name of a local variable
+fails:The defined? keyword for variables returns nil for an instance variable that has not been read
+fails:The defined? keyword for variables returns nil for an instance variable that has been read but not assigned to
+fails:The defined? keyword for variables returns 'instance-variable' for an instance variable that has been assigned
+fails:The defined? keyword for variables returns nil for a global variable that has not been read
+fails:The defined? keyword for variables returns nil for a global variable that has been read but not assigned to
+fails:The defined? keyword for variables returns 'global-variable' for $!
+fails:The defined? keyword for variables returns 'global-variable for $~
+fails:The defined? keyword for variables returns 'global-variable' for a global variable that has been assigned
+fails:The defined? keyword for variables returns nil for a class variable that has not been read
+fails:The defined? keyword for variables returns 'class variable' when called with the name of a class variable
+fails:The defined? keyword for variables returns 'local-variable(in-block)' when called with the name of a block local
+fails:The defined? keyword for variables when a String does not match a Regexp returns 'global-variable' for $~
+fails:The defined? keyword for variables when a String does not match a Regexp returns nil for $&
+fails:The defined? keyword for variables when a String does not match a Regexp returns nil for $`
+fails:The defined? keyword for variables when a String does not match a Regexp returns nil for $'
+fails:The defined? keyword for variables when a String does not match a Regexp returns nil for $+
+fails:The defined? keyword for variables when a String does not match a Regexp returns nil for $1-$9
+fails:The defined? keyword for variables when a String matches a Regexp returns 'global-variable' for $~
+fails:The defined? keyword for variables when a String matches a Regexp returns 'global-variable' for $&
+fails:The defined? keyword for variables when a String matches a Regexp returns 'global-variable' for $`
+fails:The defined? keyword for variables when a String matches a Regexp returns 'global-variable' for $'
+fails:The defined? keyword for variables when a String matches a Regexp returns 'global-variable' for $+
+fails:The defined? keyword for variables when a String matches a Regexp returns 'global-variable' for the capture references
+fails:The defined? keyword for variables when a String matches a Regexp returns nil for non-captures
+fails:The defined? keyword for variables when a Regexp does not match a String returns 'global-variable' for $~
+fails:The defined? keyword for variables when a Regexp does not match a String returns nil for $&
+fails:The defined? keyword for variables when a Regexp does not match a String returns nil for $`
+fails:The defined? keyword for variables when a Regexp does not match a String returns nil for $'
+fails:The defined? keyword for variables when a Regexp does not match a String returns nil for $+
+fails:The defined? keyword for variables when a Regexp does not match a String returns nil for $1-$9
+fails:The defined? keyword for variables when a Regexp matches a String returns 'global-variable' for $~
+fails:The defined? keyword for variables when a Regexp matches a String returns 'global-variable' for $&
+fails:The defined? keyword for variables when a Regexp matches a String returns 'global-variable' for $`
+fails:The defined? keyword for variables when a Regexp matches a String returns 'global-variable' for $'
+fails:The defined? keyword for variables when a Regexp matches a String returns 'global-variable' for $+
+fails:The defined? keyword for variables when a Regexp matches a String returns 'global-variable' for the capture references
+fails:The defined? keyword for variables when a Regexp matches a String returns nil for non-captures
+fails:The defined? keyword for a simple constant returns 'constant' when the constant is defined
+fails:The defined? keyword for a simple constant returns nil when the constant is not defined
+fails:The defined? keyword for a simple constant does not call Object.const_missing if the constant is not defined
+fails:The defined? keyword for a simple constant returns 'constant' for an included module
+fails:The defined? keyword for a simple constant returns 'constant' for a constant defined in an included module
+fails:The defined? keyword for a top-level constant returns 'constant' when passed the name of a top-level constant
+fails:The defined? keyword for a top-level constant retuns nil if the constant is not defined
+fails:The defined? keyword for a top-level constant does not call Object.const_missing if the constant is not defined
+fails:The defined? keyword for a scoped constant returns 'constant' when the scoped constant is defined
+fails:The defined? keyword for a scoped constant returns nil when the scoped constant is not defined
+fails:The defined? keyword for a scoped constant calls .const_missing if the parent to the constant is not defined
+fails:The defined? keyword for a scoped constant calls .const_missing for the parent and uses the return constant for scope
+fails:The defined? keyword for a scoped constant does not call .const_missing if the constant is not defined
+fails:The defined? keyword for a scoped constant returns nil when an undefined constant is scoped to a defined constant
+fails:The defined? keyword for a scoped constant returns nil when the undefined constant is scoped to an undefined constant
+fails:The defined? keyword for a scoped constant return 'constant' if the scoped-scoped constant is defined
+fails:The defined? keyword for a scoped constant when the scope chain has undefined constants calls .const_missing for each constant in the scope chain and returns nil if any are not defined
+fails:The defined? keyword for a scoped constant when the scope chain has undefined constants calls .const_missing and returns 'constant' if all constants are defined
+fails:The defined? keyword for a top-level scoped constant returns 'constant' when the scoped constant is defined
+fails:The defined? keyword for a top-level scoped constant returns nil when the scoped constant is not defined
+fails:The defined? keyword for a top-level scoped constant calls .const_missing if the constant is not defined
+fails:The defined? keyword for a top-level scoped constant calls .const_missing and uses the return constant for scope
+fails:The defined? keyword for a top-level scoped constant returns nil when an undefined constant is scoped to a defined constant
+fails:The defined? keyword for a top-level scoped constant returns nil when the undefined constant is scoped to an undefined constant
+fails:The defined? keyword for a top-level scoped constant return 'constant' if the scoped-scoped constant is defined
+fails:The defined? keyword for a top-level scoped constant when the scope chain has undefined constants calls .const_missing for each constant in the scope chain and returns nil if any are not defined
+fails:The defined? keyword for a top-level scoped constant when the scope chain has undefined constants calls .const_missing and returns 'constant' if all constants are defined
+fails:The defined? keyword for a self-send method call scoped constant returns nil if the constant is not defined in the scope of the method's value
+fails:The defined? keyword for a self-send method call scoped constant returns 'constant' if the constant is defined in the scope of the method's value
+fails:The defined? keyword for a self-send method call scoped constant returns nil if the last constant is not defined in the scope chain
+fails:The defined? keyword for a self-send method call scoped constant returns nil if the middle constant is not defined in the scope chain
+fails:The defined? keyword for a self-send method call scoped constant returns 'constant' if all the constants in the scope chain are defined
+fails:The defined? keyword for a receiver method call scoped constant returns nil if the constant is not defined in the scope of the method's value
+fails:The defined? keyword for a receiver method call scoped constant returns 'constant' if the constant is defined in the scope of the method's value
+fails:The defined? keyword for a receiver method call scoped constant returns nil if the last constant is not defined in the scope chain
+fails:The defined? keyword for a receiver method call scoped constant returns nil if the middle constant is not defined in the scope chain
+fails:The defined? keyword for a receiver method call scoped constant returns 'constant' if all the constants in the scope chain are defined
+fails:The defined? keyword for a module method call scoped constant returns nil if the constant is not defined in the scope of the method's value
+fails:The defined? keyword for a module method call scoped constant returns 'constant' if the constant scoped by the method's value is defined
+fails:The defined? keyword for a module method call scoped constant returns nil if the last constant in the scope chain is not defined
+fails:The defined? keyword for a module method call scoped constant returns nil if the middle constant in the scope chain is not defined
+fails:The defined? keyword for a module method call scoped constant returns 'constant' if all the constants in the scope chain are defined
+fails:The defined? keyword for a module method call scoped constant returns nil if the outer scope constant in the receiver is not defined
+fails:The defined? keyword for a module method call scoped constant returns nil if the scoped constant in the receiver is not defined
+fails:The defined? keyword for a module method call scoped constant returns 'constant' if all the constants in the receiver are defined
+fails:The defined? keyword for a module method call scoped constant returns 'constant' if all the constants in the receiver and scope chain are defined
+fails:The defined? keyword for a variable scoped constant returns nil if the scoped constant is not defined
+fails:The defined? keyword for a variable scoped constant returns 'constant' if the constant is defined in the scope of the variable reference
+fails:The defined? keyword for a variable scoped constant returns nil if the scoped constant is not defined
+fails:The defined? keyword for a variable scoped constant returns 'constant' if the constant is defined in the scope of the variable reference
+fails:The defined? keyword for a variable scoped constant returns nil if the scoped constant is not defined
+fails:The defined? keyword for a variable scoped constant returns 'constant' if the constant is defined in the scope of the variable reference
+fails:The defined? keyword for a variable scoped constant returns nil if the scoped constant is not defined
+fails:The defined? keyword for a variable scoped constant returns 'constant' if the constant is defined in the scope of the variable reference
+fails:The defined? keyword for a self:: scoped constant returns 'constant' for a constant explicitly scoped to self:: when set
+fails:The defined? keyword for a self:: scoped constant returns 'constant' for a constant explicitly scoped to self:: in subclass's metaclass
+fails:The defined? keyword for yield returns nil if no block is passed to a method not taking a block parameter
+fails:The defined? keyword for yield returns nil if no block is passed to a method taking a block parameter
+fails:The defined? keyword for yield returns 'yield' if a block is passed to a method not taking a block parameter
+fails:The defined? keyword for yield returns 'yield' if a block is passed to a method taking a block parameter
+fails:The defined? keyword for super returns nil when a superclass undef's the method
+fails:The defined? keyword for super for a method taking no arguments returns nil when no superclass method exists
+fails:The defined? keyword for super for a method taking no arguments returns nil from a block when no superclass method exists
+fails:The defined? keyword for super for a method taking no arguments returns nil from a #define_method when no superclass method exists
+fails:The defined? keyword for super for a method taking no arguments returns nil from a block in a #define_method when no superclass method exists
+fails:The defined? keyword for super for a method taking no arguments returns 'super' when a superclass method exists
+fails:The defined? keyword for super for a method taking no arguments returns 'super' from a block when a superclass method exists
+fails:The defined? keyword for super for a method taking no arguments returns 'super' from a #define_method when a superclass method exists
+fails:The defined? keyword for super for a method taking no arguments returns 'super' from a block in a #define_method when a superclass method exists
+fails:The defined? keyword for super for a method taking no arguments returns 'super' when the method exists in a supermodule
+fails:The defined? keyword for super for a method taking arguments returns nil when no superclass method exists
+fails:The defined? keyword for super for a method taking arguments returns nil from a block when no superclass method exists
+fails:The defined? keyword for super for a method taking arguments returns nil from a #define_method when no superclass method exists
+fails:The defined? keyword for super for a method taking arguments returns nil from a block in a #define_method when no superclass method exists
+fails:The defined? keyword for super for a method taking arguments returns 'super' when a superclass method exists
+fails:The defined? keyword for super for a method taking arguments returns 'super' from a block when a superclass method exists
+fails:The defined? keyword for super for a method taking arguments returns 'super' from a #define_method when a superclass method exists
+fails:The defined? keyword for super for a method taking arguments returns 'super' from a block in a #define_method when a superclass method exists
+fails:The defined? keyword for super within an included module's method returns 'super' when a superclass method exists in the including hierarchy

@@ -1,0 +1,4 @@
+fails:Ruby character strings interpolate class variables just with the # character
+fails:Ruby character strings call #to_s when the object is not a String
+fails:Ruby character strings call #to_s as a private method
+fails:Ruby character strings uses an internal representation when #to_s doesn't return a String

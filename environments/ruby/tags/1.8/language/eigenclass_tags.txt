@@ -1,0 +1,34 @@
+fails:self in an eigenclass body (class << obj) is TrueClass for true
+fails:self in an eigenclass body (class << obj) is FalseClass for false
+fails:self in an eigenclass body (class << obj) is NilClass for nil
+fails:self in an eigenclass body (class << obj) raises a TypeError for Fixnum's
+fails:self in an eigenclass body (class << obj) raises a TypeError for symbols
+fails:self in an eigenclass body (class << obj) is a singleton Class instance
+fails:A constant on an eigenclass is not defined on the object's class
+fails:A constant on an eigenclass cannot be accessed via object::CONST
+fails:A constant on an eigenclass raises a NameError for anonymous_module::CONST
+fails:A constant on an eigenclass appears in the eigenclass constant list
+fails:A constant on an eigenclass does not appear in the object's class constant list
+fails:A constant on an eigenclass is preserved when the object is cloned
+fails:Defining instance methods on an eigenclass define public methods
+fails:Instance methods of an eigenclass includes ones of the object's class
+fails:Instance methods of an eigenclass does not include class methods of the object's class
+fails:Instance methods of an eigenclass includes instance methods of Object
+fails:Instance methods of an eigenclass does not include class methods of Object
+fails:Instance methods of an eigenclass includes instance methods of Class, for a class
+fails:Instance methods of an eigenclass does not include class methods of Class, for a class
+fails:Instance methods of an eigenclass does not include instance methods of the metaclass of Class, for a class
+fails:Instance methods of an eigenclass does not include class methods of the metaclass of Class, for a class
+fails:Instance methods of an eigenclass includes instance methods of the metaclass of Class, for a metaclass
+fails:Instance methods of an eigenclass does not include class methods of the metaclass of Class, for a metaclass
+fails:Class methods of an eigenclass includes ones of the object's class
+fails:Class methods of an eigenclass does not include instance methods of the object's class
+fails:Class methods of an eigenclass includes instance methods of Class
+fails:Class methods of an eigenclass does not include class mtehods of Class
+fails:Class methods of an eigenclass includes instance methods of Class, for a class
+fails:Class methods of an eigenclass includes class methods of Class, for a class
+fails:Class methods of an eigenclass includes instance methods of the metaclass of Class, for a class
+fails:Class methods of an eigenclass does not include class methods of the metaclass of Class, for a class
+fails:Class methods of an eigenclass includes instance methods of the metaclass of Class, for a metaclass
+fails:Instantiating an eigenclass raises a TypeError when new is called
+fails:Instantiating an eigenclass raises a TypeError when allocate is called

@@ -1,0 +1,4 @@
+fails:The retry statement re-executes the closest block
+fails:The retry keyword inside a begin block's rescue block causes the begin block to be executed again
+fails:The retry statement raises a LocalJumpError if used outside of a block
+fails:The retry statement re-executes the entire enumeration
