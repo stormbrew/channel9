@@ -39,6 +39,7 @@ load_c9 'kernel/delta/regexp.rb.c9b'
 
 load_c9 'kernel/delta/signal.rb.c9b'
 load_c9 'kernel/delta/thread.rb.c9b'
+load_c9 'kernel/delta/process.rb.c9b'
 
 $0 = $__c9_argv.at(0)
 
