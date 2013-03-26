@@ -10,7 +10,7 @@ namespace "spec" do
 
   desc "Run rubyspec language specs"
   task :language do
-    sh "time mspec/bin/mspec -f specdoc :language"
+    sh "time mspec/bin/mspec ci -f specdoc :language"
   end
 end
 task :spec => ["spec:simple", "spec:language"]

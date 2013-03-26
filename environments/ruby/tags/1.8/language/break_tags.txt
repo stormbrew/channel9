@@ -1,0 +1,40 @@
+fails:The break statement in a block returns nil to method invoking the method yielding to the block when not passed an argument
+fails:The break statement in a block returns a value to the method invoking the method yielding to the block
+fails:The break statement in a captured block when the invocation of the scope creating the block is still active raises a LocalJumpError when invoking the block from the scope creating the block
+fails:The break statement in a captured block when the invocation of the scope creating the block is still active raises a LocalJumpError when invoking the block from a method
+fails:The break statement in a captured block when the invocation of the scope creating the block is still active raises a LocalJumpError when yielding to the block
+fails:The break statement in a captured block from a scope that has returned raises a LocalJumpError when calling the block from a method
+fails:The break statement in a captured block from a scope that has returned raises a LocalJumpError when yielding to the block
+fails:The break statement in a lambda when the invocation of the scope creating the lambda is still active returns nil when not passed an argument
+fails:The break statement in a lambda when the invocation of the scope creating the lambda is still active returns a value to the scope creating and calling the lambda
+fails:The break statement in a lambda when the invocation of the scope creating the lambda is still active returns a value to the method scope below invoking the lambda
+fails:The break statement in a lambda when the invocation of the scope creating the lambda is still active returns a value to a block scope invoking the lambda in a method below
+fails:The break statement in a lambda when the invocation of the scope creating the lambda is still active raises a LocalJumpError when yielding to a lambda passed as a block argument
+fails:The break statement in a lambda created at the toplevel returns a value when invoking from the toplevel
+fails:The break statement in a lambda created at the toplevel returns a value when invoking from a method
+fails:The break statement in a lambda created at the toplevel returns a value when invoking from a block
+fails:The break statement in a lambda from a scope that has returned returns a value to the method scope invoking the lambda
+fails:The break statement in a lambda from a scope that has returned returns a value to the block scope invoking the lambda in a method
+fails:The break statement in a lambda from a scope that has returned raises a LocalJumpError when yielding to a lambda passed as a block argument
+fails:Executing break from within a block returns from the invoking singleton method
+fails:Executing break from within a block returns from the invoking method with the argument to break
+fails:Executing break from within a block returns from the original invoking method even in case of chained calls
+fails:Breaking out of a loop with a value assigns objects
+fails:Breaking out of a loop with a value assigns splatted objects
+fails:Breaking out of a loop with a value assigns nil objects when the splatted object is nil, an empty array or contains a nil object
+fails:Breaking out of a loop with a value assigns an empty array when the splatted array contains an empty array
+fails:Breaking out of a loop with a value assigns the splatted object if it doesn't respont to to_ary
+fails:Breaking out of a loop with a value assigns to a splatted reference
+fails:Breaking out of a loop with a value assigns arrays into another array to a splatted reference
+fails:Breaking out of a loop with a value assings splatted objects to a splatted reference
+fails:Breaking out of a loop with a value assigns arrays with nil objects to a splatted reference
+fails:Breaking out of a loop with a value assigns an array containing an array to splatted reference when the object is an splatted array
+fails:Breaking out of a loop with a value assigns splatted objects to a splatted reference from a splatted loop
+fails:Breaking out of a loop with a value assigns arrays with a nil object to a splatted reference from a splatted loop
+fails:Breaking out of a loop with a value assigns an empty array to a splatted reference when the splatted array from a splatted loop contains an empty array
+fails:Breaking out of a loop with a value assigns objects to multiple block variables
+fails:Breaking out of a loop with a value assigns splatted objects to multiple block variables
+fails:Breaking out of a loop with a value assigns nil to variables when the splatted value is an empty array
+fails:Breaking out of a loop with a value stops any loop type at the correct spot
+fails:Breaking out of a loop with a value stops a yielded method at the correct spot
+fails:The break statement raises a LocalJumpError if used not within block or while/for loop

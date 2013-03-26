@@ -1,0 +1,5 @@
+fails:The __LINE__ pseudo-variable raises a SyntaxError if assigned to
+fails:The __LINE__ pseudo-variable equals the line number of the text in a loaded file
+fails:The __LINE__ pseudo-variable equals the line number of the text in a loaded file
+fails:The __LINE__ pseudo-variable equals the line number of the text in a loaded file
+fails:The __LINE__ pseudo-variable equals the line number of the text in a loaded file

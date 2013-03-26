@@ -1,0 +1,10 @@
+fails:The 'case'-construct evaluates the body of the when clause whose array expression includes the case target expression
+fails:The 'case'-construct evaluates the body of the when clause in left-to-right order if it's an array expression
+fails:The 'case'-construct does not test with equality when given classes
+fails:The 'case'-construct takes lists of values
+fails:The 'case'-construct expands arrays to lists of values
+fails:The 'case'-construct takes an expanded array in addition to a list of values
+fails:The 'case'-construct raises a SyntaxError when 'else' is used when no 'when' is given
+fails:The 'case'-construct raises a SyntaxError when 'else' is used before a 'when' was given
+fails:The 'case'-construct with no target expression evaluates multiple conditional expressions as a boolean disjunction
+fails:The 'case'-construct with no target expression evaluates true as only 'true' when true is the first clause

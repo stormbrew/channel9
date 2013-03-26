@@ -1,0 +1,5 @@
+fails:A block with mismatched arguments raises ArgumentError if argument is passed, but the block takes none
+fails:A block with an anonymous 'rest' arg ignores all of the arguments passed to yield
+fails:A block whose arguments are splatted captures the array passed to the block in an array
+fails:A block with multiple arguments tries to use #to_ary to convert a single incoming value
+fails:A block with multiple arguments raises a TypeError if the #to_ary value isn't an Array
