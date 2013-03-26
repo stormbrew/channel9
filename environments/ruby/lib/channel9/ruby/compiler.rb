@@ -2024,7 +2024,7 @@ module Channel9
 
       def transform_defined(val)
         case val[0]
-        when :const
+        when :const, :colon3
           done_label = builder.make_label("defined.const.done")
           transform(val)
           builder.dup_top
