@@ -23,7 +23,7 @@ class StaticTuple
   end
 
   def at(pos)
-    if (pos < 0)
+    if (length > 0 && pos < 0)
       at(length + pos)
     else
       nil # asked for an out of range item.
