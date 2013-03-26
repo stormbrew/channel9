@@ -132,7 +132,7 @@ class Array
       yield @tuple.at(i), i
       i += 1
     end
-  end    
+  end
   def length
     return 0 if @tuple.nil?
     return @tuple.length
