@@ -1235,6 +1235,13 @@ module Channel9
         builder.pop
       end
 
+      def transform_valias(first, second)
+        # TODO: Implement this properly.
+        # It's for aliasing globals (alias $X $Y makes $Y accessible through $X)
+        # Used in lib/English.rb.
+        builder.push(nil)
+      end
+
       def transform_cdecl(name, val = nil)
         bare_name = const_self(name)
         if (val.nil?)
