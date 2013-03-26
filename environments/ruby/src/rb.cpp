@@ -194,6 +194,10 @@ void setup_basic_ffi_functions(Environment *env)
 	env->set_special_channel("ffi_chdir", Channel9::value(chdir_call));
 	env->set_special_channel("ffi_mkdir", Channel9::value(mkdir_call));
 
+	FFIDefinition *empty_args = new FFIDefinition("empty args");
+	FFICall *getpid_call = new FFICall("getpid", ffi_fn(getpid), ffi_type_map<pid_t>(), empty_args);
+	env->set_special_channel("ffi_getpid", Channel9::value(getpid_call));
+
 	env->set_special_channel("glob", Channel9::value(new GlobChannel));
 }
 
