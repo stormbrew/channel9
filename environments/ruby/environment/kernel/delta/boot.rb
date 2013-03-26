@@ -49,6 +49,10 @@ end
 
 Channel9.setup_environment('c9', $__c9_argv.front_pop)
 
+def include(mod)
+  __c9_make_singleton__.include(mod)
+end
+
 if $__c9_trace_loaded
   __c9_debugger__ :trace_enable
 end
