@@ -39,4 +39,10 @@ class String
       self
     end
   end
+  def chomp
+    sub(%r{\n$}, '')
+  end
+  def chomp!
+    @str = chomp.to_s_prim
+  end
 end
