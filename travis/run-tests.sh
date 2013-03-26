@@ -10,4 +10,4 @@ c9 sample/c9script/gcd.c9b
 
 cd environments/ruby
 # TODO: Make this rake spec when we can do tags.
-rake spec:simple
+rake spec
