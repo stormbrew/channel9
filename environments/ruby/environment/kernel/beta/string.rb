@@ -50,6 +50,9 @@ class String
   def to_s
     self
   end
+  def to_str
+    self
+  end
   def to_i
     @str.to_num_primitive
   end
