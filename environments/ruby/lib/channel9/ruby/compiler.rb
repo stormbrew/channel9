@@ -490,6 +490,8 @@ module Channel9
           # for some reason, a single splat as the argument to when puts
           # an embedded when as the when. This untangles that mess. Not sure why
           # it's like that, though.
+          # Later: To disambiguate from a normal array, a splat argument is always
+          # prefixed with a when.
           comparisons = comparisons.dup
           comparisons[1] = comparisons[1][1]
         end
@@ -501,10 +503,13 @@ module Channel9
         end
 
         comparisons.each do |cmp|
+          # TODO: This is wrong all wrong this whole function is wrong.
+          # whens in subclauses mean splats. This is not dealing with them properly
+          # at all, but it causes bytecode errors to try to compile them properly.
+          next if cmp.first == :when
           if (@state[:if_case])
             transform(cmp)
             builder.jmp_if(found_label)
-            builder.jmp(next_label)
           else
             builder.dup_top # value from enclosing case.
             transform(cmp)
@@ -513,9 +518,9 @@ module Channel9
             builder.channel_call
             builder.pop
             builder.jmp_if(found_label)
-            builder.jmp(next_label)
           end
         end
+        builder.jmp(next_label)
         builder.set_label(found_label)
         builder.pop if (!@state[:if_case])# value not needed anymore
         if (body.nil?)

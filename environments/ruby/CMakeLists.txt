@@ -69,6 +69,7 @@ add_compiled_ruby(${CMAKE_CURRENT_SOURCE_DIR}/environment ${LIBRARY_OUTPUT_PATH}
 	message.rb
 	module.rb
 	object.rb
+	process.rb
 	range.rb
 	regexp.rb
 	signal.rb
