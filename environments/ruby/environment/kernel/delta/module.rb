@@ -45,7 +45,14 @@ class Module
   end
 
   def module_function(*names)
-    # TODO: Implement.
+    names.each do |name|
+      id = name.to_sym.to_message_id
+      if (m = __c9_lookup__(id))
+        __c9_make_singleton__.__c9_add_method__(id, m)
+      else
+        raise "Unknown method #{name}"
+      end
+    end
   end
 
   def public_class_method(*names)
