@@ -1,0 +1,53 @@
+fails:Predefined global $~ is set to contain the MatchData object of the last match if successful
+fails:Predefined global $~ is set to nil if the last match was unsuccessful
+fails:Predefined global $~ is set at the method-scoped level rather than block-scoped
+fails:Predefined global $~ raises an error if assigned an object not nil or instanceof MatchData
+fails:Predefined global $& is equivalent to MatchData#[0] on the last match $~
+fails:Predefined global $` is equivalent to MatchData#pre_match on the last match $~
+fails:Predefined global $' is equivalent to MatchData#post_match on the last match $~
+fails:Predefined global $+ is equivalent to $~.captures.last
+fails:Predefined globals $1..N are equivalent to $~[N]
+fails:Predefined global $stdout is the same as $defout
+fails:Predefined global $stdout is the same as $DEFAULT_OUTPUT from 'English' library
+fails:Predefined global $stdout raises TypeError error if assigned to nil
+fails:Predefined global $stdout raises TypeError error if assigned to object that doesn't respond to #write
+fails:Predefined global $_ is set to the last line read by e.g. StringIO#gets
+fails:Predefined global $_ is set at the method-scoped level rather than block-scoped
+fails:Execution variable $: does not include '.' when the taint check level > 1
+fails:Execution variable $: is the same object as $LOAD_PATH and $-I
+fails:Execution variable $: is read-only
+fails:Global variable $" is an alias for $LOADED_FEATURES
+fails:Global variable $" is read-only
+fails:Global variable $< is read-only
+fails:Global variable $FILENAME is read-only
+fails:Global variable $? is read-only
+fails:Global variable $-a is read-only
+fails:Global variable $-l is read-only
+fails:Global variable $-p is read-only
+fails:The predefined standard objects includes a hash-like object ENV
+fails:The predefined standard object nil raises a SyntaxError if assigned to
+fails:The predefined standard object true raises a SyntaxError if assigned to
+fails:The predefined standard object false raises a SyntaxError if assigned to
+fails:The self pseudo-variable raises a SyntaxError if assigned to
+fails:The predefined global constants includes TRUE
+fails:The predefined global constants includes FALSE
+fails:The predefined global constants includes NIL
+fails:The predefined global constants includes PLATFORM
+fails:Processing RUBYOPT adds the -I path to $LOAD_PATH
+fails:Processing RUBYOPT sets $DEBUG to true for '-d'
+fails:Processing RUBYOPT sets $VERBOSE to true for '-w'
+fails:Processing RUBYOPT sets $VERBOSE to true for '-W'
+fails:Processing RUBYOPT sets $VERBOSE to nil for '-W0'
+fails:Processing RUBYOPT sets $VERBOSE to false for '-W1'
+fails:Processing RUBYOPT sets $VERBOSE to true for '-W2'
+fails:Processing RUBYOPT sets $KCODE to 'NONE' with '-K'
+fails:Processing RUBYOPT sets $KCODE to 'NONE' with '-Ka'
+fails:Processing RUBYOPT sets $KCODE to 'NONE' with '-KA'
+fails:Processing RUBYOPT sets $KCODE to 'NONE' with '-Kn'
+fails:Processing RUBYOPT sets $KCODE to 'NONE' with '-KN'
+fails:Processing RUBYOPT sets $KCODE to 'EUC' with '-Ke'
+fails:Processing RUBYOPT sets $KCODE to 'EUC' with '-KE'
+fails:Processing RUBYOPT sets $KCODE to 'UTF8' with '-Ku'
+fails:Processing RUBYOPT sets $KCODE to 'UTF8' with '-KU'
+fails:Processing RUBYOPT sets $KCODE to 'SJIS' with '-Ks'
+fails:Processing RUBYOPT sets $KCODE to 'SJIS' with '-KS'

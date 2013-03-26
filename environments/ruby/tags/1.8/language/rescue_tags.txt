@@ -1,0 +1,2 @@
+fails:The rescue keyword can rescue multiple raised exceptions with a single rescue block
+fails:The rescue keyword can rescue a splatted list of exceptions

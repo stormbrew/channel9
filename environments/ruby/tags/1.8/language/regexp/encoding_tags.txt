@@ -1,0 +1,9 @@
+fails:Regexps with encoding modifiers supports /e (EUC encoding)
+fails:Regexps with encoding modifiers supports /e (EUC encoding) with interpolation
+fails:Regexps with encoding modifiers supports /e (EUC encoding) with interpolation and /o
+fails:Regexps with encoding modifiers supports /n (Normal encoding) with interpolation
+fails:Regexps with encoding modifiers supports /n (Normal encoding) with interpolation and /o
+fails:Regexps with encoding modifiers supports /s (SJIS encoding) with interpolation
+fails:Regexps with encoding modifiers supports /s (SJIS encoding) with interpolation and /o
+fails:Regexps with encoding modifiers supports /u (UTF8 encoding)
+fails:Regexps with encoding modifiers supports /u (UTF8 encoding) with interpolation

@@ -1,0 +1,4 @@
+fails:Hash literal {} should return an empty hash
+fails:Hash literal {} should return a new hash populated with the given elements
+fails:Hash literal freezes string keys on initialization
+fails:Hash literal checks duplicated keys on initialization

@@ -1,0 +1,3 @@
+fails:Regexps with repetition supports * (0 or more of previous subexpression)
+fails:Regexps with repetition supports *? (0 or more of previous subexpression - lazy)
+fails:Regexps with repetition supports ? (0 or 1 of previous subexpression)
