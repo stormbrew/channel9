@@ -1,0 +1,4 @@
+fails:The super keyword calls the correct method when the method visibility is modified
+fails:The super keyword raises an error error when super method does not exist
+fails:The super keyword supers up appropriate name even if used for multiple method names
+fails:The super keyword can be used with implicit arguments from a method defined with define_method

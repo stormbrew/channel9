@@ -11,6 +11,9 @@ class Symbol
   def to_s
     String.new(self)
   end
+  def to_str
+    String.new(self)
+  end
   def to_proc
     proc { |obj, *args| obj.send(self, *args) }
   end

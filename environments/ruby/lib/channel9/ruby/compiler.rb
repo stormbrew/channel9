@@ -1235,6 +1235,13 @@ module Channel9
         builder.pop
       end
 
+      def transform_valias(first, second)
+        # TODO: Implement this properly.
+        # It's for aliasing globals (alias $X $Y makes $Y accessible through $X)
+        # Used in lib/English.rb.
+        builder.push(nil)
+      end
+
       def transform_cdecl(name, val = nil)
         bare_name = const_self(name)
         if (val.nil?)
@@ -2024,7 +2031,7 @@ module Channel9
 
       def transform_defined(val)
         case val[0]
-        when :const
+        when :const, :colon3
           done_label = builder.make_label("defined.const.done")
           transform(val)
           builder.dup_top

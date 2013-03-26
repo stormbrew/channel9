@@ -2,7 +2,7 @@ class String
   def initialize(str)
     @str = str.to_s_prim
   end
-  
+
   def split(by)
     @str.split(by.to_s_prim).to_a.collect {|i| i.to_s }
   end
@@ -50,18 +50,15 @@ class String
   def to_s
     self
   end
+  def to_str
+    self
+  end
   def to_i
     @str.to_num_primitive
   end
 
   def ljust(i, pad)
     self # TODO: Make not stub
-  end
-  def sub(at, with)
-    self # TODO: Make not a stub
-  end
-  def chomp
-    self # TODO: Make not a stub
   end
 
   def +(other)

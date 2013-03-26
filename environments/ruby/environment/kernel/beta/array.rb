@@ -93,6 +93,23 @@ class Array
     r
   end
 
+  def c9_inner_flatten(level, from, to)
+    if !level || level > 0
+      from.each do |i|
+        if (i.respond_to? :each)
+          c9_inner_flatten(level ? level - 1 : nil, i, to)
+        else
+          to << i
+        end
+      end
+    end
+    to
+  end
+
+  def flatten(level = nil)
+    c9_inner_flatten(level, self, [])
+  end
+
   def each
     return if @tuple.nil? #only meaningful in debug output for initialize.
     i = 0
@@ -101,13 +118,21 @@ class Array
       i += 1
     end
   end
+  def reverse_each
+    return if @tuple.nil? or @tuple.length == 0
+    i = @tuple.length
+    while (i > 0)
+      i -= 1
+      yield @tuple.at(i)
+    end
+  end
   def each_with_index
     i = 0
     while (i < @tuple.length)
       yield @tuple.at(i), i
       i += 1
     end
-  end    
+  end
   def length
     return 0 if @tuple.nil?
     return @tuple.length

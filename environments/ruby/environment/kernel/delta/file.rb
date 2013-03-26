@@ -105,7 +105,11 @@ class File < IO
   def self.dirname(path)
     path_parts = path.split("/")
     path_parts.pop
-    path_parts.join("/")
+    if path_parts.length > 0
+      path_parts.join("/")
+    else
+      "."
+    end
   end
 
   def self.exist?(name)

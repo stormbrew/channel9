@@ -76,7 +76,8 @@ describe "Regexps with anchors" do
     /(\A)/.match("foo").to_a.should == ["", ""]
   end
 
-  it 'supports \Z (string end anchor, including before trailing \n)' do
+  it 'supports \Z (string end anchor, including before trailing newline)' do
+    raise "boom"
     # Basic matching
     /foo\Z/.match("foo").to_a.should == ["foo"]
     /foo\Z/.match("foo\n").to_a.should == ["foo"]
