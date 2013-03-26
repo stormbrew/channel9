@@ -186,7 +186,13 @@ void setup_basic_ffi_functions(Environment *env)
 	chdir_args->add_pointer();
 	FFICall *chdir_call = new FFICall("chdir", ffi_fn(chdir), &ffi_type_sint, chdir_args);
 
+	FFIDefinition *mkdir_args = new FFIDefinition("mkdir args");
+	mkdir_args->add_pointer();
+	mkdir_args->add(ffi_type_map<mode_t>());
+	FFICall *mkdir_call = new FFICall("mkdir", ffi_fn(mkdir), &ffi_type_sint, mkdir_args);
+
 	env->set_special_channel("ffi_chdir", Channel9::value(chdir_call));
+	env->set_special_channel("ffi_mkdir", Channel9::value(mkdir_call));
 
 	env->set_special_channel("glob", Channel9::value(new GlobChannel));
 }
