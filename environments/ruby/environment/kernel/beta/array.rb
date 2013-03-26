@@ -118,6 +118,14 @@ class Array
       i += 1
     end
   end
+  def reverse_each
+    return if @tuple.nil? or @tuple.length == 0
+    i = @tuple.length
+    while (i > 0)
+      i -= 1
+      yield @tuple.at(i)
+    end
+  end
   def each_with_index
     i = 0
     while (i < @tuple.length)
