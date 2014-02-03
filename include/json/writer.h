@@ -172,7 +172,7 @@ namespace Json {
    std::string JSON_API valueToString( LargestUInt value );
    std::string JSON_API valueToString( double value );
    std::string JSON_API valueToString( bool value );
-   std::string JSON_API valueToQuotedString( const char *value );
+   std::string JSON_API valueToQuotedString( const std::string& value );
 
    /// \brief Output using the StyledStreamWriter.
    /// \see Json::operator>>()
