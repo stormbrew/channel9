@@ -481,7 +481,11 @@ namespace Json {
          LargestUInt uint_;
          double real_;
          bool bool_;
-         char *string_;
+         struct
+         {
+            UInt length_;
+            char *string_;
+         };
 # ifdef JSON_VALUE_USE_INTERNAL_MAP
          ValueInternalArray *array_;
          ValueInternalMap *map_;

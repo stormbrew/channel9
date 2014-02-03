@@ -53,11 +53,10 @@ codePointToUTF8(unsigned int cp)
 }
 
 
-/// Returns true if ch is a control character (in range [0,32[).
-static inline bool 
-isControlCharacter(char ch)
+/// Returns true if ch needs to be escaped
+static bool isCharacterToEscape(char ch)
 {
-   return ch > 0 && ch <= 0x1F;
+   return ( ch >= 0 && ch <= 0x1F ) || ( ch == '\"' ) || ( ch == '\\' );
 }
 
 
