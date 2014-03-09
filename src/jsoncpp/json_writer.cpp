@@ -120,7 +120,7 @@ std::string valueToString( bool value )
 std::string valueToQuotedString( const std::string& string_value )
 {
    const char* value = string_value.c_str();
-   unsigned int length = string_value.length();
+   size_t length = string_value.length();
    // Not sure how to handle unicode...
    if (!containsCharacterToEscape( value , length ))
    {
@@ -138,7 +138,7 @@ std::string valueToQuotedString( const std::string& string_value )
    result.reserve(maxsize); // to avoid lots of mallocs
    result += "\"";
    const char* c = value;
-   for (int i = 0; i < length; i++, c++)
+   for (size_t i = 0; i < length; i++, c++)
    {
       switch(*c)
       {
