@@ -253,6 +253,7 @@ Value::Value( ValueType type )
       value_.real_ = 0.0;
       break;
    case stringValue:
+      value_.length_ = 0;
       value_.string_ = 0;
       break;
 #ifndef JSON_VALUE_USE_INTERNAL_MAP
@@ -340,7 +341,8 @@ Value::Value( const char *value )
    , itemIsUsed_( 0 )
 #endif
 {
-   value_.string_ = duplicateStringValue( value );
+   value_.length_ = (unsigned int) strlen( value );
+   value_.string_ = duplicateStringValue( value, value_.length_ );
 }
 
 
@@ -353,8 +355,8 @@ Value::Value( const char *beginValue,
    , itemIsUsed_( 0 )
 #endif
 {
-   value_.string_ = duplicateStringValue( beginValue, 
-                                          (unsigned int)(endValue - beginValue) );
+   value_.length_ = UInt(endValue - beginValue);
+   value_.string_ = duplicateStringValue( beginValue, value_.length_ );
 }
 
 
@@ -366,9 +368,8 @@ Value::Value( const std::string &value )
    , itemIsUsed_( 0 )
 #endif
 {
-   value_.string_ = duplicateStringValue( value.c_str(), 
-                                          (unsigned int)value.length() );
-
+   value_.length_ = (UInt)value.length();
+   value_.string_ = duplicateStringValue( value.c_str(), value_.length_ );
 }
 
 Value::Value( const StaticString &value )
@@ -379,6 +380,7 @@ Value::Value( const StaticString &value )
    , itemIsUsed_( 0 )
 #endif
 {
+   value_.length_ = (UInt)strlen( value.c_str() );
    value_.string_ = const_cast<char *>( value.c_str() );
 }
 
@@ -392,7 +394,8 @@ Value::Value( const CppTL::ConstString &value )
    , itemIsUsed_( 0 )
 #endif
 {
-   value_.string_ = duplicateStringValue( value, value.length() );
+   value_.length_ = value.length();
+   value_.string_ = duplicateStringValue( value, value_.length_ );
 }
 # endif
 
@@ -426,11 +429,15 @@ Value::Value( const Value &other )
    case stringValue:
       if ( other.value_.string_ )
       {
-         value_.string_ = duplicateStringValue( other.value_.string_ );
+         value_.length_ = other.value_.length_;
+         value_.string_ = duplicateStringValue( other.value_.string_, value_.length_ );
          allocated_ = true;
       }
       else
+      {
+         value_.length_ = 0;
          value_.string_ = 0;
+      }
       break;
 #ifndef JSON_VALUE_USE_INTERNAL_MAP
    case arrayValue:
@@ -473,7 +480,10 @@ Value::~Value()
       break;
    case stringValue:
       if ( allocated_ )
+      {
          releaseStringValue( value_.string_ );
+         value_.length_ = 0;
+      }
       break;
 #ifndef JSON_VALUE_USE_INTERNAL_MAP
    case arrayValue:
@@ -553,10 +563,26 @@ Value::operator <( const Value &other ) const
    case booleanValue:
       return value_.bool_ < other.value_.bool_;
    case stringValue:
-      return ( value_.string_ == 0  &&  other.value_.string_ )
-             || ( other.value_.string_  
-                  &&  value_.string_  
-                  && strcmp( value_.string_, other.value_.string_ ) < 0 );
+      if ( value_.string_ == 0  &&  other.value_.string_ )
+      {
+         return true;
+      }
+      if ( other.value_.string_ && value_.string_ )
+      {
+         // memcmp the strings up to the minimum length and check
+         // for length differences if they are the same
+         unsigned int minlength = std::min(value_.length_, other.value_.length_);
+         int cmp = memcmp( value_.string_, other.value_.string_, minlength);
+         if (cmp == 0)
+         {
+            return (value_.length_ < other.value_.length_);
+         }
+         else
+         {
+            return (cmp < 0);
+         }
+      }
+      return false;
 #ifndef JSON_VALUE_USE_INTERNAL_MAP
    case arrayValue:
    case objectValue:
@@ -619,10 +645,17 @@ Value::operator ==( const Value &other ) const
    case booleanValue:
       return value_.bool_ == other.value_.bool_;
    case stringValue:
-      return ( value_.string_ == other.value_.string_ )
-             || ( other.value_.string_  
-                  &&  value_.string_  
-                  && strcmp( value_.string_, other.value_.string_ ) == 0 );
+      if ( value_.string_ == other.value_.string_ )
+      {
+         return true;
+      }
+      // if the length is the same, do memcheck
+      if ( other.value_.string_ &&  value_.string_
+           && other.value_.length_ == value_.length_ )
+      {
+         return ( memcmp( value_.string_, other.value_.string_, value_.length_ ) == 0 );
+      }
+      return false;
 #ifndef JSON_VALUE_USE_INTERNAL_MAP
    case arrayValue:
    case objectValue:
@@ -662,7 +695,7 @@ Value::asString() const
    case nullValue:
       return "";
    case stringValue:
-      return value_.string_ ? value_.string_ : "";
+      return value_.string_ ? std::string( value_.string_, value_.length_ ) : "";
    case booleanValue:
       return value_.bool_ ? "true" : "false";
    case intValue:
@@ -681,7 +714,7 @@ Value::asString() const
 CppTL::ConstString 
 Value::asConstString() const
 {
-   return CppTL::ConstString( asString().c_str() );
+   return CppTL::ConstString( asString() );
 }
 # endif
 
