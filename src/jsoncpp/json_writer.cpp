@@ -21,11 +21,11 @@
 
 namespace Json {
 
-static bool containsControlCharacter( const char* str )
+static bool containsCharacterToEscape( const char* str, unsigned int length )
 {
-   while ( *str ) 
+   for (unsigned int i=0; i < length; ++i)
    {
-      if ( isControlCharacter( *(str++) ) )
+      if ( isCharacterToEscape( *(str+i) ) )
          return true;
    }
    return false;
@@ -117,19 +117,28 @@ std::string valueToString( bool value )
    return value ? "true" : "false";
 }
 
-std::string valueToQuotedString( const char *value )
+std::string valueToQuotedString( const std::string& string_value )
 {
+   const char* value = string_value.c_str();
+   size_t length = string_value.length();
    // Not sure how to handle unicode...
-   if (strpbrk(value, "\"\\\b\f\n\r\t") == NULL && !containsControlCharacter( value ))
-      return std::string("\"") + value + "\"";
+   if (!containsCharacterToEscape( value , length ))
+   {
+      std::string result("\"");
+      result.reserve(length+3); // to avoid lots of mallocs
+      result.append(std::string(value, length));
+      result.append("\"");
+      return result;
+   }
    // We have to walk value and escape any special characters.
    // Appending to std::string is not efficient, but this should be rare.
    // (Note: forward slashes are *not* rare, but I am not escaping them.)
-   std::string::size_type maxsize = strlen(value)*2 + 3; // allescaped+quotes+NULL
+   std::string::size_type maxsize = length*2 + 3; // allescaped+quotes+NULL
    std::string result;
    result.reserve(maxsize); // to avoid lots of mallocs
    result += "\"";
-   for (const char* c=value; *c != 0; ++c)
+   const char* c = value;
+   for (size_t i = 0; i < length; i++, c++)
    {
       switch(*c)
       {
@@ -163,7 +172,7 @@ std::string valueToQuotedString( const char *value )
             // Should add a flag to allow this compatibility mode and prevent this 
             // sequence from occurring.
          default:
-            if ( isControlCharacter( *c ) )
+            if ( isCharacterToEscape( *c ) )
             {
                std::ostringstream oss;
                oss << "\\u" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << static_cast<int>(*c);
@@ -231,7 +240,7 @@ FastWriter::writeValue( const Value &value )
       document_ += valueToString( value.asDouble() );
       break;
    case stringValue:
-      document_ += valueToQuotedString( value.asCString() );
+      document_ += valueToQuotedString( value.asString() );
       break;
    case booleanValue:
       document_ += valueToString( value.asBool() );
@@ -260,7 +269,7 @@ FastWriter::writeValue( const Value &value )
             const std::string &name = *it;
             if ( it != members.begin() )
                document_ += ",";
-            document_ += valueToQuotedString( name.c_str() );
+            document_ += valueToQuotedString( name );
             document_ += yamlCompatiblityEnabled_ ? ": " 
                                                   : ":";
             writeValue( value[name] );
@@ -314,7 +323,7 @@ StyledWriter::writeValue( const Value &value )
       pushValue( valueToString( value.asDouble() ) );
       break;
    case stringValue:
-      pushValue( valueToQuotedString( value.asCString() ) );
+      pushValue( valueToQuotedString( value.asString() ) );
       break;
    case booleanValue:
       pushValue( valueToString( value.asBool() ) );
@@ -337,7 +346,7 @@ StyledWriter::writeValue( const Value &value )
                const std::string &name = *it;
                const Value &childValue = value[name];
                writeCommentBeforeValue( childValue );
-               writeWithIndent( valueToQuotedString( name.c_str() ) );
+               writeWithIndent( valueToQuotedString( name ) );
                document_ += " : ";
                writeValue( childValue );
                if ( ++it == members.end() )
@@ -567,7 +576,7 @@ StyledStreamWriter::write( std::ostream &out, const Value &root )
    writeCommentBeforeValue( root );
    writeValue( root );
    writeCommentAfterValueOnSameLine( root );
-   *document_ << "\n";
+   // *document_ << "\n";
    document_ = NULL; // Forget the stream, for safety.
 }
 
@@ -590,7 +599,7 @@ StyledStreamWriter::writeValue( const Value &value )
       pushValue( valueToString( value.asDouble() ) );
       break;
    case stringValue:
-      pushValue( valueToQuotedString( value.asCString() ) );
+      pushValue( valueToQuotedString( value.asString() ) );
       break;
    case booleanValue:
       pushValue( valueToString( value.asBool() ) );
@@ -613,7 +622,7 @@ StyledStreamWriter::writeValue( const Value &value )
                const std::string &name = *it;
                const Value &childValue = value[name];
                writeCommentBeforeValue( childValue );
-               writeWithIndent( valueToQuotedString( name.c_str() ) );
+               writeWithIndent( valueToQuotedString( name ) );
                *document_ << " : ";
                writeValue( childValue );
                if ( ++it == members.end() )

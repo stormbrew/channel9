@@ -23,3 +23,6 @@ pkg
 *.so
 ext/Makefile
 
+build
+sample/c9script/*.c9b
+*.sublime-*
