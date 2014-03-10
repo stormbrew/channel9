@@ -135,7 +135,7 @@ namespace Channel9
 		m_gc_phase = Marking;
 
 		//switch pools
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Start GC, %"PRIu64" bytes used in %"PRIu64" data blocks, Begin Marking DFS\n", m_used, m_data_blocks);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Start GC, %" PRIu64 " bytes used in %" PRIu64 " data blocks, Begin Marking DFS\n", m_used, m_data_blocks);
 
 		m_used = 0;
 		m_data_blocks = 0;
@@ -166,7 +166,7 @@ namespace Channel9
 			scan(d);
 		}
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Marked %"PRIu64" objects, Begin Compacting\n", m_dfs_marked);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Marked %" PRIu64 " objects, Begin Compacting\n", m_dfs_marked);
 
 		m_gc_phase = Compacting;
 
@@ -257,7 +257,7 @@ namespace Channel9
 
 		m_gc_phase = Updating;
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done compacting, %"PRIu64" Data/%"PRIu64" bytes moved, %"PRIu64" Blocks/%"PRIu64" bytes left fragmented, Begin Updating DFS\n", moved_blocks, moved_bytes, skipped, fragmented);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done compacting, %" PRIu64 " Data/%" PRIu64 " bytes moved, %" PRIu64 " Blocks/%" PRIu64 " bytes left fragmented, Begin Updating DFS\n", moved_blocks, moved_bytes, skipped, fragmented);
 
 		for(std::set<GCRoot*>::iterator it = m_roots.begin(); it != m_roots.end(); it++)
 		{
@@ -271,7 +271,7 @@ namespace Channel9
 			scan(d);
 		}
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updated %"PRIu64" pointers, unmarked %"PRIu64" objects, cleaning up\n", m_dfs_updated, m_dfs_unmarked);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updated %" PRIu64 " pointers, unmarked %" PRIu64 " objects, cleaning up\n", m_dfs_updated, m_dfs_unmarked);
 
 		assert(m_dfs_marked == m_dfs_unmarked);
 
@@ -295,7 +295,7 @@ namespace Channel9
 
 		CallableContext::sweep();
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %"PRIu64" bytes used in %"PRIu64" data blocks\n", m_used, m_data_blocks);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Done GC, %" PRIu64 " bytes used in %" PRIu64 " data blocks\n", m_used, m_data_blocks);
 
 		m_gc_phase = Running;
 	}

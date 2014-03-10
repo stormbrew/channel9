@@ -13,7 +13,7 @@ find_package(Ruby REQUIRED)
 
 add_definitions( -D__STDC_FORMAT_MACROS )
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -g")
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall -Werror -frtti -Wno-unknown-warning-option -Wno-unused-but-set-variable -Wno-strict-aliasing")
 if(NOT ${CMAKE_CXX_COMPILER} MATCHES "clang")
