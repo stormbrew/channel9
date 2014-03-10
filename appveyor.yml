@@ -1,0 +1,11 @@
+install:
+  - cinst ruby.devkit
+platform:
+  - x64
+configuration:
+  - Debug
+  - Release
+before_build: |
+  cmake .
+  gem install bundler
+  bundle install
