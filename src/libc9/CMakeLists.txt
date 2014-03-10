@@ -1,7 +1,7 @@
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBFFI REQUIRED libffi)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBFFI_CFLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBFFI_CFLAGS} -I${CMAKE_SOURCE_DIR}/src/pegtl/include")
 
 add_library (libc9 SHARED
     callable_context.cpp
@@ -17,6 +17,7 @@ add_library (libc9 SHARED
     loader.cpp
     message.cpp
     primitive.cpp
+    script.cpp
     string.cpp
     trace.cpp
     tuple.cpp
