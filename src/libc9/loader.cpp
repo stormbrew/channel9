@@ -10,6 +10,7 @@
 #include "json/json.h"
 #include "json/reader.h"
 #include "c9/loader.hpp"
+#include "c9/script.hpp"
 #include "c9/istream.hpp"
 #include "c9/variable_frame.hpp"
 #include "c9/context.hpp"
@@ -218,6 +219,24 @@ namespace Channel9
 		return 0;
 	}
 
+	GCRef<RunnableContext*> load_c9script(Environment *env, const std::string &filename)
+	{
+		GCRef<IStream*> istream = new IStream;
+		script::parse_file(filename, **istream);
+		(*istream)->normalize();
+		GCRef<VariableFrame*> frame = new_variable_frame(*istream);
+		GCRef<RunnableContext*> ctx = new_context(*istream, *frame);
+
+		return ctx;
+	}
+
+	int run_c9script(Environment *env, const std::string &filename)
+	{
+		GCRef<RunnableContext*> ctx = load_c9script(env, filename);
+		channel_send(env, value(*ctx), Nil, value(nothing_channel));
+		return 0;
+	}
+
 	int run_list(Environment *env, const std::string &filename)
 	{
 		std::ifstream file(filename.c_str());
@@ -304,7 +323,7 @@ namespace Channel9
 		if (ext == "")
 			throw loader_error("Can't discover environment for file with no extension.");
 
-		if (ext == ".c9b" || ext == ".c9l" || ext == ".so")
+		if (ext == ".c9s" || ext == ".c9b" || ext == ".c9l" || ext == ".so")
 		{
 			// chop off the c9x file so it doesn't try to load itself.
 			set_argv(env, argc-1, argv+1);
@@ -341,7 +360,10 @@ namespace Channel9
 		if (ext_pos != std::string::npos)
 			ext = filename.substr(ext_pos);
 
-		if (ext == ".c9b")
+		if (ext == ".c9s")
+		{
+			return run_c9script(env, filename);
+		} else if (ext == ".c9b")
 		{
 			return run_bytecode(env, filename);
 		} else if (ext == ".c9l") {
