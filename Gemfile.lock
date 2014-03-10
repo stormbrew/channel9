@@ -1,10 +1,16 @@
+GIT
+  remote: https://github.com/stormbrew/parslet.git
+  revision: 1fc4b1313bfd12a980a99e0c005bff0273d4d56e
+  ref: performance-improvements2
+  specs:
+    parslet (1.2.0)
+      blankslate (~> 2.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
     blankslate (2.1.2.4)
     json (1.7.7)
-    parslet (1.2.3)
-      blankslate (~> 2.0)
     rake (10.0.3)
     ruby_parser (2.3.1)
       sexp_processor (~> 3.0)
@@ -15,6 +21,6 @@ PLATFORMS
 
 DEPENDENCIES
   json
-  parslet (= 1.2.3)
+  parslet!
   rake
   ruby_parser (= 2.3.1)
