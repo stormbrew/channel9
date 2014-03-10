@@ -40,7 +40,7 @@ namespace Channel9
 
 	void GC::Nursery::collect()
 	{
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery%u collection begun (%"PRIu64" objects, free: %"PRIu64"/%"PRIu64")\n", m_generation, (uint64_t)m_data_blocks, (uint64_t)m_free, uint64_t(m_size));
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery%u collection begun (%" PRIu64 " objects, free: %" PRIu64 "/%" PRIu64 ")\n", m_generation, (uint64_t)m_data_blocks, (uint64_t)m_free, uint64_t(m_size));
 		TRACE_DO(TRACE_GC, TRACE_INFO) m_moved_bytes = m_moved_data = 0;
 
 		// first, scan the roots, which triggers a DFS through part the live set in the nursery
@@ -60,7 +60,7 @@ namespace Channel9
 		// and updates the forwarding pointers
 		Remembered *it = m_remembered_set;
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updating %"PRIu64" pointers in nursery%u remembered set\n", uint64_t(m_remembered_end - m_remembered_set), m_generation);
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Updating %" PRIu64 " pointers in nursery%u remembered set\n", uint64_t(m_remembered_end - m_remembered_set), m_generation);
 		while (it != m_remembered_end)
 		{
 			TRACE_PRINTF(TRACE_GC, TRACE_DEBUG, "Updating nursery%u pointer %p (was set to %p, current value %p):", m_generation, it->location, (void*)it->val, (void*)*it->location);
@@ -96,6 +96,6 @@ namespace Channel9
 		VALGRIND_DESTROY_MEMPOOL(m_data);
 		VALGRIND_CREATE_MEMPOOL(m_data, 0, false);
 
-		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery%u collection done, moved %"PRIu64" Data/%"PRIu64" bytes to the inner collector\n", m_generation, uint64_t(m_moved_data), uint64_t(m_moved_bytes));
+		TRACE_PRINTF(TRACE_GC, TRACE_INFO, "Nursery%u collection done, moved %" PRIu64 " Data/%" PRIu64 " bytes to the inner collector\n", m_generation, uint64_t(m_moved_data), uint64_t(m_moved_bytes));
 	}
 }
