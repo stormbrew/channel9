@@ -125,7 +125,7 @@ namespace Channel9
 			message_names.push_back(messagename);
 			message_ids[messagename] = message;
 		}
-		TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Message ID: %s -> %"PRIu64"\n", messagename.c_str(), message);
+		TRACE_PRINTF(TRACE_VM, TRACE_DEBUG, "Message ID: %s -> %" PRIu64 "\n", messagename.c_str(), message);
 		return (protocol << PROTOCOL_ID_SHIFT) | message;
 	}
 
