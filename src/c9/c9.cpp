@@ -78,7 +78,7 @@ StdoutChannel *stdout_channel = new StdoutChannel;
 
 int main(int argc, const char **argv)
 {
-	bool trace = false;
+	bool trace = false, compile = false;
 	const char *program = *argv++; argc--; // chop off program name.
 	int i = 0;
 
@@ -86,9 +86,13 @@ int main(int argc, const char **argv)
 	for (i = 0; i < argc && argv[i][0] == '-'; i++)
 	{
 		if (strcmp("-T", argv[i]) == 0)
+		{
 			trace = true;
-		else if (strcmp("-TT", argv[i]) == 0)
+		} else if (strcmp("-TT", argv[i]) == 0) {
 			Channel9::trace_mute = false;
+		} else if (strcmp("-c", argv[i]) == 0) {
+			compile = true;
+		}
 	}
 
 	Channel9::Environment *env = new Channel9::Environment();
@@ -96,7 +100,7 @@ int main(int argc, const char **argv)
 	env->set_special_channel("stdout", Channel9::value(stdout_channel));
 
 	try {
-		return Channel9::load_environment_and_run(env, program, argc-i, argv+i, trace);
+		return Channel9::load_environment_and_run(env, program, argc-i, argv+i, trace, compile);
 	} catch (const Channel9::loader_error &err) {
 		std::cout << program << ": " << err.reason << "\n";
 		return 1;

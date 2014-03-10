@@ -26,7 +26,7 @@ namespace Channel9
 	// run in the second argument.
 	// Will also set a trace_loaded special channel in the environment to the value of trace_loaded.
 	// This is to advise the environment that it should unmute tracing before acting on its argv.
-	int load_environment_and_run(Environment *env, std::string program, int argc, const char **argv, bool trace_loaded = false);
+	int load_environment_and_run(Environment *env, std::string program, int argc, const char **argv, bool trace_loaded, bool compile);
 
 	// Loads the file at the path given. If environment_loaded is false and the extension is unrecognized
 	// it will attempt to find and load the environment first.

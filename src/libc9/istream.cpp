@@ -138,6 +138,15 @@ namespace Channel9
 		return m_stack_size;
 	}
 
+	Json::Value IStream::to_json() const
+	{
+		Json::Value code(Json::arrayValue);
+
+		Json::Value document(Json::objectValue);
+		document["code"] = code;
+		return code;
+	}
+
 	void IStream::add(Instruction instruction)
 	{
 		long long id;

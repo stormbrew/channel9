@@ -276,7 +276,7 @@ namespace Channel9
 		env->set_special_channel("argv", Channel9::value(Channel9::new_tuple(args.begin(), args.end())));
 	}
 
-	int load_environment_and_run(Environment *env, std::string program, int argc, const char **argv, bool trace_loaded)
+	int load_environment_and_run(Environment *env, std::string program, int argc, const char **argv, bool trace_loaded, bool compile)
 	{
 		// let the program invocation override the filename (ie. c9.rb always runs ruby)
 		// but if the exe doesn't match the exact expectation, use the first argument's

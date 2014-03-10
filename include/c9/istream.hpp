@@ -9,6 +9,7 @@
 #include "c9/instruction.hpp"
 #include "c9/callable_context.hpp"
 #include "c9/value.hpp"
+#include "json/json.h"
 
 namespace Channel9
 {
@@ -99,6 +100,7 @@ namespace Channel9
 		// Turn jmp label references into numeric references.
 		// Returns the maximum stack size.
 		size_t normalize();
+		Json::Value to_json() const;
 
 		typedef std::vector<Instruction> ivector;
 		typedef ivector::iterator iterator;
