@@ -324,6 +324,7 @@ namespace Channel9
 			// include the program name argument so it knows what to load.
 			set_argv(env, argc, argv);
 			env->set_special_channel("trace_loaded", bvalue(trace_loaded));
+			env->set_special_channel("compile", bvalue(compile));
 			return run_file(env, search_path);
 		}
 		return 1;

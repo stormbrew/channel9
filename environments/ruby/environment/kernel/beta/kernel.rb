@@ -29,9 +29,9 @@ module Kernel
     __c9_class__
   end
 
-  def load(name)
+  def _raw_load_or_compile(name, compile)
     if (name.to_s[0] == :'/'.to_chr)
-      if ($__c9_loader.load(name))
+      if ($__c9_loader.load(name, compile))
         return true
       end
     else
@@ -41,13 +41,16 @@ module Kernel
       "loading: #{name}"
       while (i >= 0)
         path = lp[i].to_s_prim
-        if ($__c9_loader.load(path + "/" + name))
+        if ($__c9_loader.load(path + "/" + name, compile))
           return true
         end
         i -= 1
       end
     end
     raise LoadError, "Could not load library #{name}"
+  end
+  def load(name)
+    _raw_load_or_compile(name, false)
   end
   def load_c9(name)
     $__c9_loader.load_c9(name.to_s_prim)

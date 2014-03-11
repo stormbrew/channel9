@@ -57,4 +57,4 @@ end
 if $__c9_trace_loaded
   __c9_debugger__ :trace_enable
 end
-load $0
+_raw_load_or_compile $0, $__c9_compile
