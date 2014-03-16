@@ -213,6 +213,26 @@ namespace Channel9
 		return instruction;
 	}
 
+	Json::Value to_json(const Instruction &ins)
+	{
+		Json::Value val(Json::arrayValue);
+		InstructionInfo info = iinfo(ins);
+
+		std::string name = iname(ins.instruction);
+		std::transform(name.begin(), name.end(), name.begin(), [](char c) {
+			return std::tolower(c);
+		});
+
+		val.append(name);
+		if (info.argc > 0)
+			val.append(to_json(ins.arg1));
+		if (info.argc > 1)
+			val.append(to_json(ins.arg2));
+		if (info.argc > 2)
+			val.append(to_json(ins.arg3));
+		return val;
+	}
+
 	std::string inspect(const Instruction &ins)
 	{
 		std::stringstream str;
