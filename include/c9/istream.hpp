@@ -9,6 +9,7 @@
 #include "c9/instruction.hpp"
 #include "c9/callable_context.hpp"
 #include "c9/value.hpp"
+#include "json/json.h"
 
 namespace Channel9
 {
@@ -35,15 +36,17 @@ namespace Channel9
 			return str.str();
 		}
 
-		bool operator==(const SourcePos &o)
+		bool operator==(const SourcePos &o) const
 		{
 			return line_num == o.line_num && column == o.column && file == o.file;
 		}
-		bool operator!=(const SourcePos &o)
+		bool operator!=(const SourcePos &o) const
 		{
 			return !operator==(o);
 		}
 	};
+
+	Json::Value to_json(const SourcePos &pos);
 
 	class IStream : public CallableContext
 	{
@@ -77,9 +80,10 @@ namespace Channel9
 		void add(Instruction instruction);
 		void set_label(const std::string &label);
 		void set_source_pos(const SourcePos &sp);
-		SourcePos &source_pos(size_t ipos);
-		SourcePos &source_pos(const Instruction *ipos) { return source_pos(ipos - &*m_instructions.begin()); }
+		const SourcePos &source_pos(size_t ipos) const;
+		const SourcePos &source_pos(const Instruction * ipos) const { return source_pos(ipos - &*m_instructions.begin()); }
 
+		const std::map<std::string, size_t> labels() const { return m_labels; }
 		size_t label_pos(const std::string &label) const { return m_labels.find(label)->second; }
 
 		size_t lexical(const std::string &name);
@@ -130,5 +134,7 @@ namespace Channel9
 	{
 		gc_scan(NULL, m_val);
 	}
+
+	Json::Value to_json(const IStream &stream);
 }
 

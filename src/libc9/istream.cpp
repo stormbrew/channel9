@@ -4,9 +4,23 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <list>
 
 namespace Channel9
 {
+	Json::Value to_json(const SourcePos &pos)
+	{
+		Json::Value ret(Json::arrayValue);
+		ret.append("line");
+		ret.append(pos.file);
+		ret.append(Json::UInt64(pos.line_num));
+		ret.append(Json::UInt64(pos.column));
+		if (pos.annotation.length() > 0) {
+			ret.append(pos.annotation);
+		}
+		return ret;
+	}
+
 	size_t IStream::normalize(size_t stack_size, name_map &locals, size_t pos, std::vector<pos_info> &pos_map)
 	{
 		bool done = false;
@@ -138,6 +152,46 @@ namespace Channel9
 		return m_stack_size;
 	}
 
+	Json::Value to_json(const IStream &stream)
+	{
+		Json::Value code(Json::arrayValue);
+		SourcePos prev_pos;
+
+		std::map<std::size_t, std::list<std::string>> label_by_pos;
+		for (auto label_pair : stream.labels())
+		{
+			label_by_pos[label_pair.second].push_back(label_pair.first);
+		}
+
+		size_t pos = 0;
+		for (auto &instruction : stream)
+		{
+			SourcePos next_pos = stream.source_pos(pos);
+			if (next_pos != prev_pos)
+			{
+				code.append(to_json(next_pos));
+				prev_pos = next_pos;
+			}
+			auto labels = label_by_pos.find(pos);
+			if (labels != label_by_pos.end())
+			{
+				for (auto label : labels->second)
+				{
+					Json::Value label_obj(Json::arrayValue);
+					label_obj.append("set_label");
+					label_obj.append(label);
+					code.append(label_obj);
+				}
+			}
+			code.append(to_json(instruction));
+			pos++;
+		}
+
+		Json::Value document(Json::objectValue);
+		document["code"] = code;
+		return document;
+	}
+
 	void IStream::add(Instruction instruction)
 	{
 		long long id;
@@ -174,7 +228,7 @@ namespace Channel9
 		m_source_info.push_back(sp);
 		m_cur_source_pos = m_source_info.size() - 1;
 	}
-	SourcePos &IStream::source_pos(size_t ipos)
+	const SourcePos &IStream::source_pos(size_t ipos) const
 	{
 		static SourcePos empty;
 		if (ipos < m_source_positions.size())
