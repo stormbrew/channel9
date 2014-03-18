@@ -1,21 +1,21 @@
-language: cpp
-compiler:
-  - gcc
-  - clang
+language: objective-c
 # Right now 1.8.7 is the 'reference version'. Other versions working is good,
 # but they're a future concern, so don't bother building both collectors with
 # all versions. It is, though, a future concern I should take care of soon.
 env:
-  - RUBY_VERSION=1.8.7 DEFAULT_COLLECTOR=Markcompact
-  - RUBY_VERSION=1.8.7 DEFAULT_COLLECTOR=Semispace
+  - DEFAULT_COLLECTOR=Markcompact PKG_CONFIG_PATH=/usr/local/opt/libffi/lib/pkgconfig
+#  - C9_RUBY_VERSION=1.8.7 DEFAULT_COLLECTOR=Semispace PKG_CONFIG_PATH=/usr/local/opt/libffi/lib/pkgconfig
 #  - RUBY_VERSION=1.9.3 DEFAULT_COLLECTOR=Markcompact
 #  - RUBY_VERSION=2.0.0 DEFAULT_COLLECTOR=Markcompact
 before_script:
-  - rvm use ${RUBY_VERSION}
-  - sudo apt-get install libffi-dev
-  - sudo apt-get install libonig-dev
-  - sudo apt-get install time
-  - cmake .
+  - brew tap homebrew/dupes
+  - brew install apple-gcc42
+  - rvm use system
+  - brew update
+  - brew install oniguruma
+  - brew install libffi
+  - brew install pkg-config
+  - cmake -DCMAKE_CXX_COMPILER=clang++ .
   - make
 script: travis/run-tests.sh
 notifications:
