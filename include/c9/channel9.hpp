@@ -90,14 +90,17 @@ namespace Channel9
 	template <>
 	struct ptrsize<4>
 	{
-		typedef uint32_t ptrtype_t;
+		typedef uint32_t uptrtype_t;
+		typedef int32_t ptrtype_t;
 	};
 	template <>
 	struct ptrsize<8>
 	{
-		typedef uint64_t ptrtype_t;
+		typedef uint64_t uptrtype_t;
+		typedef int64_t ptrtype_t;
 	};
-	typedef ptrsize<sizeof(void*)>::ptrtype_t uintptr_t;
+	typedef ptrsize<sizeof(void*)>::uptrtype_t uintptr_t;
+	typedef ptrsize<sizeof(void*)>::ptrtype_t intptr_t;
 }
 
 #include "c9/trace.hpp"
