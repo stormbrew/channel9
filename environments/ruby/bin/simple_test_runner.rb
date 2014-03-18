@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+require 'rbconfig'
+
 failed = false
 total_c9_time = 0.0
 total_rb_time = 0.0
@@ -28,7 +30,7 @@ Dir["#{dir}/*.rb"].sort.each do |test|
     total_c9_time += c9_time
 
     stime = Time.now
-    expected = `rvm 1.8.7 do ruby #{test} 2>/dev/null`
+    expected = `#{RbConfig::CONFIG['bindir']}/#{RbConfig::CONFIG['ruby_install_name']} #{test} 2>/dev/null`
     rb_time = Time.now - stime
     total_rb_time += rb_time
 
