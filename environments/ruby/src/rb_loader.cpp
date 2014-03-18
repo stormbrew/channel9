@@ -68,7 +68,7 @@ void LoaderChannel::compile_and_run_ruby(Environment *env, const Value &ret, con
 
 	if (c9_file_found && S_ISREG(c9_file.st_mode))
 	{
-		if (!rb_file_found || c9_file.st_ctim.tv_sec >= rb_file.st_ctim.tv_sec)
+		if (!rb_file_found || c9_file.st_ctime >= rb_file.st_ctime)
 		{
 			try {
 				GCRef<RunnableContext*> ctx = load_bytecode(env, path + ".c9b");
