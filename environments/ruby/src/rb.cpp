@@ -152,6 +152,27 @@ void setup_basic_ffi_functions(Environment *env)
 	struct_timespec->add("tv_sec", ffi_type_map<time_t>());
 	struct_timespec->add("tv_nsec", ffi_type_map<long>());
 	FFIDefinition *struct_stat = new FFIDefinition("struct stat");
+#if defined(__APPLE__)
+	struct_stat->add("st_dev", ffi_type_map<dev_t>());
+	struct_stat->add("st_mode", ffi_type_map<mode_t>());
+	struct_stat->add("st_nlink", ffi_type_map<nlink_t>());
+	struct_stat->add("st_ino", ffi_type_map<__darwin_ino64_t>());
+	struct_stat->add("st_uid", ffi_type_map<uid_t>());
+	struct_stat->add("st_gid", ffi_type_map<gid_t>());
+	struct_stat->add("st_rdev", ffi_type_map<dev_t>());
+	struct_stat->add("st_atim", struct_timespec);
+	struct_stat->add("st_mtim", struct_timespec);
+	struct_stat->add("st_ctim", struct_timespec);
+	struct_stat->add("st_birthtimespec", struct_timespec);
+	struct_stat->add("st_size", ffi_type_map<off_t>());
+	struct_stat->add("st_blocks", ffi_type_map<blkcnt_t>());
+	struct_stat->add("st_blksize", ffi_type_map<blksize_t>());
+	struct_stat->add("st_flags", ffi_type_map<__uint32_t>());
+	struct_stat->add("st_gen", ffi_type_map<__uint32_t>());
+	struct_stat->add("st_lspare", ffi_type_map<__uint32_t>());
+	struct_stat->add("st_qspare1", ffi_type_map<__int64_t>());
+	struct_stat->add("st_qspare2", ffi_type_map<__int64_t>());
+#else
 	struct_stat->add("st_dev", ffi_type_map<dev_t>());
 	struct_stat->add("st_ino", ffi_type_map<ino_t>());
 	struct_stat->add("st_nlink", ffi_type_map<nlink_t>());
@@ -167,6 +188,7 @@ void setup_basic_ffi_functions(Environment *env)
 	struct_stat->add("st_mtim", struct_timespec);
 	struct_stat->add("st_ctim", struct_timespec);
 	struct_stat->add(ffi_type_map<long>(), 3);
+#endif
 
 	FFIDefinition *stat_args = new FFIDefinition("stat args");
 	stat_args->add_pointer(); // string path
