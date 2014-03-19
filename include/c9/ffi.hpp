@@ -29,6 +29,16 @@ namespace Channel9
 	template <>
 	inline ffi_type *ffi_type_map<uint64_t>() { return &ffi_type_uint64; }
 
+#if defined(__APPLE__)
+#include "TargetConditionals.h"
+# if TARGET_CPU_X86_64
+	template <>
+	inline ffi_type *ffi_type_map<long>() { return &ffi_type_sint64; }
+	template <>
+	inline ffi_type *ffi_type_map<unsigned long>() { return &ffi_type_uint64; }
+# endif
+#endif
+
 	class FFIDefinition : public CallableContext
 	{
 		std::string m_name;

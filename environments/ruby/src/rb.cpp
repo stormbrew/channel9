@@ -113,13 +113,13 @@ void setup_basic_ffi_functions(Environment *env)
 	FFIDefinition *fopen_args = new FFIDefinition("fopen args");
 	fopen_args->add_pointer(); // filename
 	fopen_args->add_pointer(); // mode string
-	FFICall *fopen_call = new FFICall("fopen", ffi_fn(fopen), ffi_type_map<intptr_t>(), fopen_args);
+	FFICall *fopen_call = new FFICall("fopen", ffi_fn(fopen), ffi_type_map<Channel9::intptr_t>(), fopen_args);
 
 	FFIDefinition *fwrite_args = new FFIDefinition("fwrite args");
 	fwrite_args->add_pointer(); // string
 	fwrite_args->add(ffi_type_map<size_t>()); // size
 	fwrite_args->add(ffi_type_map<size_t>()); // members
-	fwrite_args->add(ffi_type_map<intptr_t>()); // FILE*
+	fwrite_args->add(ffi_type_map<Channel9::intptr_t>()); // FILE*
 	FFICall *fwrite_call = new FFICall("fwrite", ffi_fn(fwrite), ffi_type_map<size_t>(), fwrite_args);
 
 	// TODO: This needs to be made to pass an actual buffer object of some sort rather than a String
@@ -128,11 +128,11 @@ void setup_basic_ffi_functions(Environment *env)
 	FFIDefinition *fgets_args = new FFIDefinition("fgets args");
 	fgets_args->add_pointer(); // string buffer
 	fgets_args->add(ffi_type_map<int>());
-	fgets_args->add(ffi_type_map<intptr_t>()); // FILE*
-	FFICall *fgets_call = new FFICall("fgets", ffi_fn(fgets), ffi_type_map<intptr_t>(), fgets_args);
+	fgets_args->add(ffi_type_map<Channel9::intptr_t>()); // FILE*
+	FFICall *fgets_call = new FFICall("fgets", ffi_fn(fgets), ffi_type_map<Channel9::intptr_t>(), fgets_args);
 
 	FFIDefinition *fclose_args = new FFIDefinition("fclose args");
-	fclose_args->add(ffi_type_map<intptr_t>()); // FILE*
+	fclose_args->add(ffi_type_map<Channel9::intptr_t>()); // FILE*
 	FFICall *fclose_call = new FFICall("fclose", ffi_fn(fclose), ffi_type_map<int>(), fclose_args);
 
 	env->set_special_channel("ffi_fopen", Channel9::value(fopen_call));
@@ -152,6 +152,27 @@ void setup_basic_ffi_functions(Environment *env)
 	struct_timespec->add("tv_sec", ffi_type_map<time_t>());
 	struct_timespec->add("tv_nsec", ffi_type_map<long>());
 	FFIDefinition *struct_stat = new FFIDefinition("struct stat");
+#if defined(__APPLE__)
+	struct_stat->add("st_dev", ffi_type_map<dev_t>());
+	struct_stat->add("st_mode", ffi_type_map<mode_t>());
+	struct_stat->add("st_nlink", ffi_type_map<nlink_t>());
+	struct_stat->add("st_ino", ffi_type_map<__darwin_ino64_t>());
+	struct_stat->add("st_uid", ffi_type_map<uid_t>());
+	struct_stat->add("st_gid", ffi_type_map<gid_t>());
+	struct_stat->add("st_rdev", ffi_type_map<dev_t>());
+	struct_stat->add("st_atim", struct_timespec);
+	struct_stat->add("st_mtim", struct_timespec);
+	struct_stat->add("st_ctim", struct_timespec);
+	struct_stat->add("st_birthtimespec", struct_timespec);
+	struct_stat->add("st_size", ffi_type_map<off_t>());
+	struct_stat->add("st_blocks", ffi_type_map<blkcnt_t>());
+	struct_stat->add("st_blksize", ffi_type_map<blksize_t>());
+	struct_stat->add("st_flags", ffi_type_map<__uint32_t>());
+	struct_stat->add("st_gen", ffi_type_map<__uint32_t>());
+	struct_stat->add("st_lspare", ffi_type_map<__uint32_t>());
+	struct_stat->add("st_qspare1", ffi_type_map<__int64_t>());
+	struct_stat->add("st_qspare2", ffi_type_map<__int64_t>());
+#else
 	struct_stat->add("st_dev", ffi_type_map<dev_t>());
 	struct_stat->add("st_ino", ffi_type_map<ino_t>());
 	struct_stat->add("st_nlink", ffi_type_map<nlink_t>());
@@ -167,6 +188,7 @@ void setup_basic_ffi_functions(Environment *env)
 	struct_stat->add("st_mtim", struct_timespec);
 	struct_stat->add("st_ctim", struct_timespec);
 	struct_stat->add(ffi_type_map<long>(), 3);
+#endif
 
 	FFIDefinition *stat_args = new FFIDefinition("stat args");
 	stat_args->add_pointer(); // string path

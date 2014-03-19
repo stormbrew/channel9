@@ -251,8 +251,12 @@ namespace Channel9
 	}
 
 	typedef int (*entry_point)(Environment*, const std::string&);
-	int run_shared_object(Environment *env, const std::string &filename)
+	int run_shared_object(Environment *env, std::string filename)
 	{
+#ifdef __APPLE__
+		// on macs change the .so to .dylib
+		filename.replace(filename.length()-3, std::string::npos, ".dylib");
+#endif
 		void *shobj = dlopen(filename.c_str(), RTLD_LAZY | RTLD_LOCAL);
 		if (!shobj)
 		{
