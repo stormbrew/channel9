@@ -77,8 +77,8 @@ namespace Channel9 {
 
         struct string_const
             : sor<
-                surrounded_string<one<'"'>>,
-                surrounded_string<one<'\''>>,
+                enclose<one<'"'>, any>,
+                enclose<one<'\''>, any>,
                 ifmust< one<':'>, symbol >
             > {};
 
@@ -88,20 +88,13 @@ namespace Channel9 {
         struct protocol_id_const
             : ifmust< string<'@', '@'>, string_const > {};
 
-        template <typename tElementParser, typename tLastElementParser = tElementParser>
-        struct comma_list
-            : seq<
-                star< seq< tElementParser, opt<ws>, one<','>, opt<ws> > >,
-                opt< seq< tLastElementParser, opt<ws> > >
-            > {};
-
-
         struct list_const
-            : ifmust< one<'['>, opt<ws>, comma_list<expression>, one<']'> > {};
+            : ifmust< one<'['>, opt<ws>, opt< list<expression, one<','> > >, one<']'> > {};
 
         struct argdef_list
             : ifmust< one<'('>, opt<ws>,
-                comma_list<
+                opt<
+                    list<
                     arg_declare_var,
                     sor<
                         ifmust< one<'@'>, arg_declare_var, opt<ws> >,
@@ -144,11 +137,7 @@ namespace Channel9 {
         struct statement;
 
         struct statement_sequence
-            : seq<
-                star< seq< statement, opt<ws>, opt< seq< eol, opt<ws> > > > >,
-                opt< seq< statement, opt<ws> > >
-            > {};
-
+            : opt< list<statement, eol> > {}
 
         struct statement_block
             : ifmust< one<'{'>, opt<ws>, opt< seq< eol, opt<ws> > >,
@@ -289,7 +278,7 @@ namespace Channel9 {
 
         void parse_file(const std::string &filename, IStream &stream)
         {
-            pegtl::basic_parse_file<grammar>(filename);
+            pegtl::trace_parse_file<grammar>(true, filename);
         }
     }
 }
