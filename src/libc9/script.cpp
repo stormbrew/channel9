@@ -7,274 +7,212 @@ namespace Channel9 {
     namespace script {
         using namespace pegtl;
 
-        struct comment
-            : sor<
-                ifmust< one<'#'>, until< eol, any > >,
-                ifmust< one<'/'>, one<'/'>, until< eol, any > >,
-                ifmust< one<'/'>, one<'*'>, until< seq< one<'*'>, one<'/'> >, any > >
-            > {};
-
-        struct ws
-            : seq< sor< comment, blank > > {};
-
-        struct symbol
-            : seq<
-                sor< alpha, one<'_'> >,
-                star< sor< alnum, one<'_'> > >
-              > {};
-
-        struct method_name
-            : ifmust< symbol, opt< seq< one<':'>, symbol > > > {};
-
-        struct local_var
-            : symbol {};
-
-        struct var_type
-            : sor<
-                string<'f','r','a','m','e'>,
-                string<'l','e','x','i','c','a','l'>,
-                string<'l','o','c','a','l'>
-            > {};
-
         struct expression;
 
-        struct declare_var
+        // terminals (more or less)
+        struct line_comment
+            : ifmust< sor< one<'#'>, string<'/','/'> >, until< at<eol>, any > > {};
+
+        struct block_comment
+            : ifmust< string<'/','*'>, until< string<'*','/'> > > {};
+
+        struct return_op
+            : string<'<','-'> {};
+        struct send_op
+            : string<'-','>'> {};
+
+        struct product_op
+            : one<'*','/','%'> {};
+        struct sum_op
+            : one<'+','-'> {};
+        struct bitshift_op
+            : sor< rep<2, one<'<'>>, rep<2, one<'>'>> > {};
+        struct relational_op
+            : seq< one<'<','>'>, opt< one<'='> > > {};
+        struct equality_op
+            : seq< one<'=','!'>, one<'='> > {};
+        struct bitwise_op
+            : one<'&','|','^'> {};
+        struct logical_op
+            : sor< rep<2, one<'&'>>, rep<2, one<'|'>> > {};
+        struct assignment_op
             : seq<
-                var_type, ws, symbol,
-                opt< seq< opt<ws>, one<'='>, opt<ws>, expression > >
+                opt< sor<bitshift_op, bitwise_op, product_op, sum_op> >,
+                one<'='>
             > {};
 
-        struct arg_declare_var
+        struct variable_type
             : sor<
-                seq<var_type, ws, symbol>,
-                symbol
+                string<'l','e','x','i','c','a','l'>,
+                string<'l','o','c','a','l'>,
+                string<'g','l','o','b','a','l'>
             > {};
 
-        struct special_var
-            : seq< one<'$'>, symbol > {};
+        struct bytecode
+            : string<'b','y','t','e','c','o','d','e'> {};
 
-        struct variable
-            : sor<declare_var, local_var, special_var> {};
+        struct if_
+            : string<'i','f'> {};
+        struct else_
+            : string<'e','l','s','e'> {};
+        struct switch_
+            : string<'s','w','i','t','c','h'> {};
+        struct case_
+            : string<'c','a','s','e'> {};
 
-        struct nil_const
-            : string<'n','i','l'> {};
+        struct open_block
+            : one<'{'> {};
+        struct close_block
+            : one<'}'> {};
 
-        struct undef_const
-            : string<'u','n','d','e','f'> {};
+        // utilities for managing whitespace
 
-        struct true_const
-            : string<'t','r','u','e'> {};
+        // this makes a rule that is greedy about prefixing
+        // whitespace. That is, it will eat comments and line
+        // endings.
+        template <typename ...T>
+        struct gws
+            : seq< plus< sor<blank, eol, line_comment, block_comment> >, T... > {};
+        // The optional version of gws.
+        template <typename ...T>
+        struct ogws
+            : seq< star< sor<blank, eol, line_comment, block_comment> >, T... > {};
 
-        struct false_const
-            : string<'f','a','l','s','e'> {};
-
-        struct integer_const
-            : ifmust< digit, star<digit> > {};
-
-        template <typename tStringPrefix>
-        struct surrounded_string
-            : ifmust< tStringPrefix, until< tStringPrefix, any > > {};
-
-        struct string_const
-            : sor<
-                enclose<one<'"'>, any>,
-                enclose<one<'\''>, any>,
-                ifmust< one<':'>, symbol >
-            > {};
-
-        struct message_id_const
-            : ifmust< one<'@'>, string_const > {};
-
-        struct protocol_id_const
-            : ifmust< string<'@', '@'>, string_const > {};
-
-        struct list_const
-            : ifmust< one<'['>, opt<ws>, opt< list<expression, one<','> > >, one<']'> > {};
-
-        struct argdef_list
-            : ifmust< one<'('>, opt<ws>,
-                opt<
-                    list<
-                    arg_declare_var,
-                    sor<
-                        ifmust< one<'@'>, arg_declare_var, opt<ws> >,
-                        arg_declare_var
-                    >
-                >,
-                one<')'>
-            > {};
-
-        struct const_expr
-            : sor<
-                nil_const, undef_const, true_const, false_const,
-                integer_const, protocol_id_const, message_id_const,
-                string_const, list_const
-            > {};
-
-        struct statement_block;
-
-        struct func
-            : ifmust< argdef_list, opt<ws>,
-                string<'-','>'>, opt<ws>,
-                opt< seq< local_var, opt<ws> > >,
-                statement_block
-            > {};
-
-        struct call_expression;
-
-        struct prefix_op_expression
-            : seq< one<'!','+','-','~'>, opt<ws>, call_expression > {};
-
-        struct value_expression
-            : sor<
-                prefix_op_expression, const_expr, func, variable,
-                ifmust< one<'('>, opt<ws>, expression, opt<ws>, one<')'> >
-            > {};
-
-        struct argslist
-            : ifmust< one<'('>, opt<ws>, comma_list<expression>, one<')'> > {};
-
-        struct statement;
-
-        struct statement_sequence
-            : opt< list<statement, eol> > {}
-
-        struct statement_block
-            : ifmust< one<'{'>, opt<ws>, opt< seq< eol, opt<ws> > >,
-                statement_sequence,
-                one<'}'>
-            > {};
-
-        struct member_invoke
-            : ifmust< one<'.'>, opt<ws>, method_name, opt<ws>, opt<argslist> > {};
-
-        struct array_access
-            : ifmust< one<'['>, opt<ws>, expression, opt<ws>, one<']'> > {};
-
-        struct value_invoke
-            : argslist {};
-
-        struct call_expression
-            : ifmust< value_expression,
-                star< sor< member_invoke, array_access, value_invoke > >
-            > {};
-
-        struct bytecode_instruction
-            : ifmust< symbol, star< opt<ws>, const_expr> > {};
-
-        struct bytecode_block
-            : ifmust< one<'{'>, opt<ws>, opt< seq< eol, opt<ws> > >,
-                star< seq< bytecode_instruction, opt<ws>, eol > >,
-                opt< seq< bytecode_instruction, opt<ws> > >,
-                one<'}'>
-            > {};
-
-        struct bytecode_expression
-            : ifmust< string<'b','y','t','e','c','o','d','e'>, opt<ws>,
-                argslist, opt<ws>,
-                bytecode_block
-            > {};
-
-        template <typename tOp, typename tExpr>
-        struct binop_expression
-            : seq< tExpr, opt<ws>, star< seq< tOp, opt<ws>, tExpr, opt<ws> > > > {};
-
-        struct product_op_expression
-            : binop_expression< one<'*','/','%'>, bytecode_expression > {};
-
-        struct sum_op_expression
-            : binop_expression< one<'+','-'>, product_op_expression > {};
-
-        struct bitshift_op_expression
-            : binop_expression< sor< string<'>','>'>, string<'<','<'> >, sum_op_expression > {};
-
-        struct relational_op_expression
-            : binop_expression< seq< one<'<','>'>, one<'='> >, bitshift_op_expression > {};
-
-        struct equality_op_expression
-            : binop_expression< seq< one<'=','!'>, one<'='> >, relational_op_expression > {};
-
-        struct bitwise_op_expression
-            : binop_expression< one<'&','^','|'>, equality_op_expression > {};
-
-        struct logical_op_expression
-            : binop_expression< sor< string<'&','&'>, string<'|','|'> >, bitwise_op_expression > {};
-
-        struct assignment_expression
-            : seq<
-                opt<
-                    ifmust<
-                        seq<
-                            local_var, opt<ws>,
-                            opt<
-                                sor<
-                                    one<'+','-','*','/','%','&','^'>,
-                                    seq< rep2< 1,2, one<'|'> > >,
-                                    sor< string<'<','<'>, string<'>','>'> >
-                                >
-                            >,
-                            one<'='>
-                        >,
-                        opt<ws>
-                    >
-                >,
-                logical_op_expression
-            > {};
-
-        struct send_expression
-            : binop_expression<string<'-','>'>, assignment_expression> {};
-
-        struct return_expression
-            : seq<
-                opt< seq< value_expression, opt<ws>, string<'<','-'>, opt<ws> > >,
-                send_expression
-            > {};
-
-        struct if_expression;
-
-        struct else_expression
-            : ifmust<
-                string<'e','l','s','e'>,
-                opt<ws>,
-                sor< if_expression, statement_block >
-            > {};
-
-        struct if_expression
-            : ifmust<
-                string<'i','f'>, opt<ws>, one<'('>, opt<ws>, expression, opt<ws>, one<')'>, opt<ws>,
-                statement_block, opt<ws>,
-                opt<else_expression>
-            > {};
-
-        struct while_expression
-            : ifmust<
-                string<'w','h','i','l','e'>, opt<ws>, one<'('>, opt<ws>, expression, opt<ws>, one<')'>, opt<ws>,
-                statement_block, opt<ws>
-            > {};
-
-        struct cases
-            : seq<
-                plus<
-                    ifmust< string<'c','a','s','e'>, opt<ws>, one<'('>, opt<ws>, const_expr, opt<ws>, one<')'>, opt<ws> >,
-                    statement_block, opt<ws>
-                >,
-                opt<else_expression>
-            > {};
-
-        struct switch_expression
-            : ifmust<
-                string<'s','w','i','t','c','h'>, opt<ws>, one<'('>, opt<ws>, expression, opt<ws>, one<')'>, opt<ws>,
-                cases
-            > {};
-
-        struct expression
-            : sor<if_expression, while_expression, switch_expression, return_expression> {};
+        // this makes a less greedy rule that only eats comments.
+        template <typename ...T>
+        struct ws
+            : seq< plus< sor<blank, line_comment, block_comment> >, T... > {};
+        // The optional version of ws.
+        template <typename ...T>
+        struct ows
+            : seq< star< sor<blank, line_comment, block_comment> >, T... > {};
 
         struct statement
-            : seq< expression, eol > {};
+            : seq< ogws<expression>, ows< sor<eol, eof> > > {};
+
+        // [lexical|global|local] var
+        // [lexical|global|local] var = val
+        struct declare_var
+            : ifmust<variable_type, ogws<identifier>,
+                opt< ifmust< ows<one<'='>>, ows<expression> > >
+            > {};
+
+        struct code_block
+            : ifmust<
+                open_block,
+                until<ogws<close_block>, ogws<statement>>
+            > {};
+
+        // if (expr) {
+        //   expr
+        // }
+        // if (expr) {
+        //   expr
+        // } else {
+        //   expr
+        // }
+        // if (expr) {
+        //   expr
+        // } else if (expr) {
+        //   expr
+        // } else {
+        //   expr
+        // }
+        struct else_expr;
+        struct if_expr
+            : ifmust<
+                if_,
+                ogws<one<'('>>, ogws<expression>, ogws<one<')'>>,
+                ogws<code_block>,
+                star<ogws<else_expr>>
+            > {};
+        struct else_expr
+            : ifmust<
+                else_,
+                ogws<
+                    sor<
+                        code_block,
+                        if_expr
+                    >
+                >
+            > {};
+
+        // expr(expr, expr)
+        struct func_apply
+            : ifmust<
+                one<'('>,
+                    opt< list< ogws<expression>, ows<one<','>> > >,
+                ogws<one<')'>>
+            > {};
+
+        // () -> {
+        //   expr
+        //   expr
+        // }
+        // (arg1, arg2) -> {
+        //   expr
+        //   expr
+        // }
+        struct receiver_val
+            : ifmust<
+                one<'('>,
+                    opt< list< ogws<identifier>, ows<one<','>> > >,
+                ogws<one<')'>>,
+                ogws<string<'-','>'>>,
+                ogws<identifier>,
+                ogws<code_block>
+            > {};
+
+        struct variable_val
+            : seq< opt<one<'$'>>, identifier > {};
+
+        struct numeric_val
+            : plus<digit> {};
+
+        struct value
+            : seq<
+                sor<
+                    receiver_val,
+                    variable_val,
+                    numeric_val
+                >,
+                star<
+                    ows<
+                        sor<
+                            func_apply
+                        >
+                    >
+                >
+            > {};
+
+        // binary operators.
+        // The tree structure of this makes operator precedence
+        // work correctly.
+        template <typename tNext, typename tOp>
+        struct basic_op_expr
+            : seq<tNext, star< ifmust< ows<tOp>, ogws<tNext> > > > {};
+
+        struct return_op_expr    : basic_op_expr< value, return_op > {};
+        struct send_op_expr      : basic_op_expr< return_op_expr, send_op > {};
+        struct product_op_expr   : basic_op_expr< send_op_expr, product_op > {};
+        struct sum_op_expr       : basic_op_expr< product_op_expr, sum_op > {};
+        struct bitshift_op_expr  : basic_op_expr< sum_op_expr, bitshift_op > {};
+        struct relational_op_expr: basic_op_expr< bitshift_op_expr, relational_op > {};
+        struct equality_op_expr  : basic_op_expr< relational_op_expr, equality_op > {};
+        struct bitwise_op_expr   : basic_op_expr< equality_op_expr, bitwise_op > {};
+        struct logical_op_expr   : basic_op_expr< bitwise_op_expr, logical_op > {};
+        struct op_expr
+            : logical_op_expr {};
+
+        struct expression
+            : sor<
+                declare_var,
+                if_expr,
+                op_expr
+            > {};
 
         struct grammar
-            : seq< statement_sequence, eof > {};
+            : star< ogws<expression> > {};
 
         void parse_file(const std::string &filename, IStream &stream)
         {
