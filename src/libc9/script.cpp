@@ -45,11 +45,20 @@ namespace Channel9 {
             : sor<
                 string<'l','e','x','i','c','a','l'>,
                 string<'l','o','c','a','l'>,
-                string<'g','l','o','b','a','l'>
+                string<'f','r','a','m','e'>
             > {};
 
         struct bytecode
             : string<'b','y','t','e','c','o','d','e'> {};
+
+        struct nil
+            : string<'n','i','l'> {};
+        struct false_
+            : string<'f','a','l','s','e'> {};
+        struct true_
+            : string<'t','r','u','e'> {};
+        struct undefined
+            : string<'u','n','d','e','f','i','n','e','d'> {};
 
         struct if_
             : string<'i','f'> {};
@@ -59,6 +68,8 @@ namespace Channel9 {
             : string<'s','w','i','t','c','h'> {};
         struct case_
             : string<'c','a','s','e'> {};
+        struct while_
+            : string<'w','h','i','l','e'> {};
 
         struct open_block
             : one<'{'> {};
@@ -88,12 +99,12 @@ namespace Channel9 {
             : seq< star< sor<blank, line_comment, block_comment> >, T... > {};
 
         struct statement
-            : seq< ogws<expression>, ows< sor<eol, eof> > > {};
+            : seq< ogws<expression>, ows< sor<eol, eof, at<close_block> > > > {};
 
-        // [lexical|global|local] var
-        // [lexical|global|local] var = val
+        // [lexical|global|frame] var
+        // [lexical|global|frame] var = val
         struct declare_var
-            : ifmust<variable_type, ogws<identifier>,
+            : ifmust<variable_type, ws<identifier>,
                 opt< ifmust< ows<one<'='>>, ows<expression> > >
             > {};
 
@@ -137,12 +148,58 @@ namespace Channel9 {
                 >
             > {};
 
+        // while (expr) {
+        //   expr
+        // }
+        struct while_expr
+            : ifmust<
+                while_,
+                ogws<one<'('>>, ogws<expression>, ogws<one<')'>>,
+                ogws<code_block>
+            > {};
+
+        // switch (expr)
+        // case (constval) {
+        //   expr
+        // } case (constval) {
+        //   expr
+        // } else {
+        //   expr
+        // }
+        struct case_expr;
+        struct const_val;
+        struct switch_expr
+            : ifmust<
+                switch_,
+                ogws<one<'('>>, ogws<expression>, ogws<one<')'>>,
+                plus<ogws<case_expr>>,
+                opt<ogws<else_expr>>
+            > {};
+        struct case_expr
+            : ifmust<
+                case_,
+                ogws<one<'('>>, ogws<const_val>, ogws<one<')'>>,
+                ogws<code_block>
+            > {};
+
         // expr(expr, expr)
         struct func_apply
             : ifmust<
                 one<'('>,
-                    opt< list< ogws<expression>, ows<one<','>> > >,
+                    opt< list< ogws<expression>, ogws<one<','>> > >,
                 ogws<one<')'>>
+            > {};
+
+        // expr.expr(expr, expr)
+        struct method_apply
+            : ifmust<
+                one<'.'>,
+                ogws<opt<identifier, one<':'>>, identifier>,
+                opt<
+                    ogws<one<'('>>,
+                        opt< list< ogws<expression>, ogws<one<','>> > >,
+                    ogws<one<')'>>
+                >
             > {};
 
         // () -> {
@@ -153,33 +210,117 @@ namespace Channel9 {
         //   expr
         //   expr
         // }
+        // note: this doesn't use ifmust even though it would be good if it did
+        // because it needs to be able to backtrack to expr_val. A language change
+        // should be considered to clean this up.
+        struct definition_arg
+            : sor<
+                ifmust<variable_type, gws<identifier>>,
+                identifier
+            > {};
         struct receiver_val
-            : ifmust<
+            : seq<
                 one<'('>,
-                    opt< list< ogws<identifier>, ows<one<','>> > >,
+                    sor<
+                        seq<
+                            list< seq< ogws<definition_arg> >, ogws<one<','>> >,
+                            opt< ogws<one<','>>, ogws<ifmust<one<'@'>, identifier>> >
+                        >,
+                        opt< ogws<ifmust<one<'@'>, identifier>> >
+                    >,
                 ogws<one<')'>>,
-                ogws<string<'-','>'>>,
-                ogws<identifier>,
+                opt< ifmust< ogws<string<'-','>'>>, ogws<identifier> > >,
                 ogws<code_block>
             > {};
 
+        // (expr)
+        struct expr_val
+            : ifmust< one<'('>, ogws<expression>, ogws<one<')'>> > {};
+
+        // environment global: $var
+        // other variables: var
         struct variable_val
             : seq< opt<one<'$'>>, identifier > {};
 
+        // 42
         struct numeric_val
             : plus<digit> {};
+
+        // "blah"
+        // 'blah'
+        struct string_val
+            : sor<
+                ifmust< one<'"'>, until<one<'"'>, any> >,
+                ifmust< one<'\''>, until<one<'\''>, any> >,
+                ifmust< one<':'>, identifier >
+            > {};
+
+        // @"blah" -- message id
+        // @@"blah" -- protocol id
+        struct message_id_val
+            : ifmust<rep2<1,2, one<'@'>>, string_val> {};
+
+        struct singleton_val
+            : sor<nil, true_, false_, undefined> {};
+
+        struct const_val
+            : sor<
+                singleton_val,
+                string_val,
+                numeric_val,
+                message_id_val
+            > {};
+
+        // [expr, expr, expr]
+        struct tuple_val
+            : ifmust<
+                one<'['>,
+                opt< list< ogws<expression>, ogws<one<','>> > >,
+                ogws<one<']'>>
+            > {};
+
+        // bytecode(expr, expr) {
+        //   opcode arg1 arg2 arg3
+        //   opcode arg1 arg2 arg3
+        // }
+        struct bytecode_statement
+            : ifmust<
+                identifier,
+                opt<ws<const_val>>,
+                opt<ws<const_val>>,
+                opt<ws<const_val>>,
+                ows< sor<eol, eof, at<close_block> > >
+            > {};
+
+        struct bytecode_val
+            : ifmust<
+                bytecode,
+                ogws<one<'('>>,
+                    opt< list< ogws<expression>, ogws<one<','>> > >,
+                ogws<one<')'>>,
+                ogws<open_block>,
+                plus<ogws<bytecode_statement>>,
+                ogws<close_block>
+            > {};
 
         struct value
             : seq<
                 sor<
+                    singleton_val,
                     receiver_val,
+                    expr_val,
+                    bytecode_val,
                     variable_val,
-                    numeric_val
+                    numeric_val,
+                    string_val,
+                    tuple_val,
+                    message_id_val
                 >,
                 star<
                     ows<
                         sor<
-                            func_apply
+                            func_apply,
+                            method_apply
                         >
                     >
                 >
@@ -193,26 +334,32 @@ namespace Channel9 {
             : seq<tNext, star< ifmust< ows<tOp>, ogws<tNext> > > > {};
 
         struct return_op_expr    : basic_op_expr< value, return_op > {};
-        struct send_op_expr      : basic_op_expr< return_op_expr, send_op > {};
-        struct product_op_expr   : basic_op_expr< send_op_expr, product_op > {};
-        struct sum_op_expr       : basic_op_expr< product_op_expr, sum_op > {};
-        struct bitshift_op_expr  : basic_op_expr< sum_op_expr, bitshift_op > {};
+        struct send_op_expr // send has the extra continuation definition.
+            : seq<return_op_expr, star< ifmust<ows<send_op>, ogws<return_op_expr>,
+                opt< ows<one<':'>>, ogws<definition_arg>> > >
+            > {};
+        struct product_op_expr   : basic_op_expr< send_op_expr, seq< product_op, not_at<one<'='>> > > {};
+        struct sum_op_expr       : basic_op_expr< product_op_expr, seq< sum_op, not_at<one<'='>> > > {};
+        struct bitshift_op_expr  : basic_op_expr< sum_op_expr, seq< bitshift_op, not_at<one<'='>> > > {};
         struct relational_op_expr: basic_op_expr< bitshift_op_expr, relational_op > {};
         struct equality_op_expr  : basic_op_expr< relational_op_expr, equality_op > {};
-        struct bitwise_op_expr   : basic_op_expr< equality_op_expr, bitwise_op > {};
+        struct bitwise_op_expr   : basic_op_expr< equality_op_expr, seq< bitwise_op, not_at<one<'='>> > > {};
         struct logical_op_expr   : basic_op_expr< bitwise_op_expr, logical_op > {};
+        struct assignment_op_expr: basic_op_expr< logical_op_expr, assignment_op > {};
         struct op_expr
-            : logical_op_expr {};
+            : assignment_op_expr {};
 
         struct expression
             : sor<
                 declare_var,
                 if_expr,
+                while_expr,
+                switch_expr,
                 op_expr
             > {};
 
         struct grammar
-            : star< ogws<expression> > {};
+            : until< ogws<eof>, ogws<statement> > {};
 
         void parse_file(const std::string &filename, IStream &stream)
         {
