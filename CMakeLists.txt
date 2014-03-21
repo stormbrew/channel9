@@ -16,7 +16,7 @@ add_definitions( -D__STDC_FORMAT_MACROS )
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -g")
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall -Werror -frtti -Wno-unknown-warning-option -Wno-unused-but-set-variable -Wno-strict-aliasing")
-if(NOT ${CMAKE_CXX_COMPILER} MATCHES "clang")
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} --param inline-unit-growth=100000 --param large-function-growth=100000 --param max-inline-insns-single=100000")
 endif()
 
