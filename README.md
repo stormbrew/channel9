@@ -52,10 +52,6 @@ You can install install the dependencies using homebrew via:
 
   > brew install libffi oniguruma pkg-config
 
-Run cmake with:
-
-  > cmake -DCMAKE_CXX_COMPILER=clang++ ..
-
 Build running `make` you'll want to run:
 
   > export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/":$PKG_CONFIG_PATH
