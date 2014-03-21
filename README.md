@@ -46,6 +46,18 @@ it:
 	> cmake ..
 	> make
 
+OSX Troubleshooting
+-------------------
+You can install install the dependencies using homebrew via:
+
+  > brew install libffi oniguruma pkg-config
+
+Build running `make` you'll want to run:
+
+  > export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/":$PKG_CONFIG_PATH
+
+Consider exporting this automatically (e.g. in your .bash_profile or .zshrc).
+
 Running
 -------
 
