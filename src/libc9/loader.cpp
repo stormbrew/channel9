@@ -222,7 +222,7 @@ namespace Channel9
 	GCRef<RunnableContext*> load_c9script(Environment *env, const std::string &filename)
 	{
 		GCRef<IStream*> istream = new IStream;
-		script::parse_file(filename, **istream);
+		script::parser::parse_file(filename, **istream);
 		(*istream)->normalize();
 		GCRef<VariableFrame*> frame = new_variable_frame(*istream);
 		GCRef<RunnableContext*> ctx = new_context(*istream, *frame);
