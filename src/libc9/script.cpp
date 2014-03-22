@@ -16,6 +16,7 @@ namespace Channel9 { namespace script
             float_number,
             string,
             tuple,
+            variable,
 
             // function calls
             message_send,
@@ -159,7 +160,6 @@ namespace Channel9 { namespace script
                 {
                     out << indent(indent_level) << "- ";
                     statement->printer->pretty_print(out, indent_level);
-                    out << std::endl;
                 }
             }
         };
@@ -173,7 +173,7 @@ namespace Channel9 { namespace script
 
             void pretty_print(std::ostream &out, unsigned int indent_level)
             {
-                out << "literal: " << str;
+                out << "literal: " << str << std::endl;
             }
         };
 
@@ -186,7 +186,7 @@ namespace Channel9 { namespace script
 
             void pretty_print(std::ostream &out, unsigned int indent_level)
             {
-                out << "literal: \"" << str << "\"";
+                out << "literal: \"" << str << "\"" << std::endl;
             }
         };
 
@@ -199,7 +199,20 @@ namespace Channel9 { namespace script
 
             void pretty_print(std::ostream &out, unsigned int indent_level)
             {
-                out << "literal: " << str;
+                out << "literal: " << str << std::endl;
+            }
+        };
+
+        template <>
+        struct node<type::variable> : public pretty_printable
+        {
+            std::string str;
+
+            node(const std::string &str) : str(str) {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "variable: " << str << std::endl;
             }
         };
 
@@ -224,7 +237,6 @@ namespace Channel9 { namespace script
                 {
                     out << indent(indent_level) << "initializer: ";
                     initializer->printer->pretty_print(out, indent_level);
-                    out << std::endl;
                 }
             }
         };
@@ -248,7 +260,6 @@ namespace Channel9 { namespace script
                 {
                     out << indent(indent_level) << "- ";
                     argument->printer->pretty_print(out, indent_level);
-                    out << std::endl;
                 }
                 indent_level--;
                 if (message_arg)
@@ -270,6 +281,122 @@ namespace Channel9 { namespace script
                 }
             }
         };
+
+        template <>
+        struct node<type::else_block> : public pretty_printable
+        {
+            std::vector<node_ptr> statements;
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "else_block:" << std::endl;
+                indent_level++;
+                for (auto statement : statements)
+                {
+                    out << indent(indent_level) << "- ";
+                    statement->printer->pretty_print(out, indent_level);
+                }
+            }
+        };
+        template <>
+        struct node<type::if_block> : public pretty_printable
+        {
+            node_ptr condition;
+            std::vector<node_ptr> statements;
+            node_ptr else_block;
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "if_block:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "condition: ";
+                condition->printer->pretty_print(out, indent_level);
+
+                out << indent(indent_level) << "body:" << std::endl;
+                indent_level++;
+                for (auto statement : statements)
+                {
+                    out << indent(indent_level) << "- ";
+                    statement->printer->pretty_print(out, indent_level);
+                }
+                indent_level--;
+                if (else_block)
+                {
+                    out << indent(indent_level);
+                    else_block->printer->pretty_print(out, indent_level);
+                }
+            }
+        };
+        template <>
+        struct node<type::method_send> : public pretty_printable
+        {
+            node_ptr receiver;
+            std::string name;
+            std::vector<node_ptr> arguments;
+
+            node(node_ptr receiver, const std::string &name) : receiver(receiver), name(name) {};
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "method_send:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "name: " << name << std::endl;
+                out << indent(indent_level) << "receiver: ";
+                receiver->printer->pretty_print(out, indent_level);
+                if (arguments.size() > 0)
+                {
+                    out << indent(indent_level) << "arguments:" << std::endl;
+                    indent_level++;
+                    for (auto argument : arguments)
+                    {
+                        out << indent(indent_level) << "- ";
+                        argument->printer->pretty_print(out, indent_level);
+                    }
+                }
+            }
+        };
+        template <>
+        struct node<type::return_send> : public pretty_printable
+        {
+            node_ptr receiver;
+            node_ptr expression;
+
+            node(node_ptr receiver) : receiver(receiver) {};
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "return_send:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "receiver: ";
+                receiver->printer->pretty_print(out, indent_level);
+                out << indent(indent_level) << "expression: ";
+                expression->printer->pretty_print(out, indent_level);
+            }
+        };
+        template <>
+        struct node<type::message_send> : public pretty_printable
+        {
+            node_ptr receiver;
+            node_ptr expression;
+            node_ptr continuation;
+
+            node(node_ptr expression) : expression(expression) {};
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "message_send:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "receiver: ";
+                receiver->printer->pretty_print(out, indent_level);
+                out << indent(indent_level) << "expression: ";
+                expression->printer->pretty_print(out, indent_level);
+                if (continuation)
+                {
+                    out << indent(indent_level) << "continuation: ";
+                    continuation->printer->pretty_print(out, indent_level);
+                }
+            }
+        };
     }
 
     namespace parser
@@ -282,7 +409,12 @@ namespace Channel9 { namespace script
         struct expression;
 
         template <compiler::type tNodeType>
+        struct start;
+        template <compiler::type tNodeType>
+        struct undo;
+        template <compiler::type tNodeType>
         struct add_literal;
+        typedef add_literal<type::variable> add_variable;
         struct add_statement;
 
         struct start_variable_declaration;
@@ -293,6 +425,17 @@ namespace Channel9 { namespace script
         struct add_arg;
         struct add_message_arg;
         struct add_return_arg;
+
+        struct add_return_send;
+        struct add_method_send;
+        struct add_func_method_send; // method with no name
+
+        struct add_message_send;
+        struct add_receiver;
+        struct add_cont;
+
+        struct add_else;
+        struct add_condition;
 
         // terminals (more or less)
         struct line_comment
@@ -397,19 +540,23 @@ namespace Channel9 { namespace script
             > {};
 
         // Like the above declare_var, but also allows the type to be removed.
+        template <typename tAction>
         struct declare_arg_var
-            : sor<
-                declare_var,
-                ifmust<
-                    ifapply< identifier, add_simple_variable_declaration >,
-                    opt< ifmust< ows<one<'='>>, ifapply< ows<expression>, add_statement > > >
-                >
+            : ifapply<
+                sor<
+                    declare_var,
+                    ifmust<
+                        ifapply< identifier, add_simple_variable_declaration >,
+                        opt< ifmust< ows<one<'='>>, ifapply< ows<expression>, add_statement > > >
+                    >
+                >,
+                tAction
             > {};
 
         struct code_block
             : ifmust<
                 open_block,
-                until<ogws<close_block>, ogws<statement>>
+                until<ogws<close_block>, ogws< ifapply< statement, add_statement > >>
             > {};
 
         // if (expr) {
@@ -430,18 +577,18 @@ namespace Channel9 { namespace script
         struct else_expr;
         struct if_expr
             : ifmust<
-                if_,
-                ogws<one<'('>>, ogws<expression>, ogws<one<')'>>,
+                ifapply< if_, start<type::if_block> >,
+                ogws<one<'('>>, ifapply< ogws<expression>, add_condition >, ogws<one<')'>>,
                 ogws<code_block>,
-                star<ogws<else_expr>>
+                ogws<ifapply< else_expr, add_else >>
             > {};
         struct else_expr
             : ifmust<
-                else_,
+                ifapply< else_, start<type::else_block> >,
                 ogws<
                     sor<
                         code_block,
-                        if_expr
+                        ifapply< if_expr, add_statement >
                     >
                 >
             > {};
@@ -483,8 +630,8 @@ namespace Channel9 { namespace script
         // expr(expr, expr)
         struct func_apply
             : ifmust<
-                one<'('>,
-                    opt< list< ogws<expression>, ogws<one<','>> > >,
+                ifapply< one<'('>, add_func_method_send >,
+                    opt< list< ifapply< ogws<expression>, add_arg >, ogws<one<','>> > >,
                 ogws<one<')'>>
             > {};
 
@@ -492,10 +639,10 @@ namespace Channel9 { namespace script
         struct method_apply
             : ifmust<
                 one<'.'>,
-                ogws<opt<identifier, one<':'>>, identifier>,
+                ifapply< ogws<opt<identifier, one<':'>>, identifier>, add_method_send >,
                 opt<
                     ogws<one<'('>>,
-                        opt< list< ogws<expression>, ogws<one<','>> > >,
+                        opt< list< ifapply< ogws<expression>, add_arg >, ogws<one<','>> > >,
                     ogws<one<')'>>
                 >
             > {};
@@ -513,27 +660,33 @@ namespace Channel9 { namespace script
         // should be considered to clean this up.
         struct receiver_val
             : seq<
-                one<'('>,
+                ifapply< one<'('>, start<type::receiver_block> >,
                     sor<
                         seq<
-                            list< seq< ogws<declare_arg_var> >, ogws<one<','>> >,
-                            opt< ogws<one<','>>, ogws<ifmust<one<'@'>, declare_arg_var>> >
+                            list< seq< ogws<declare_arg_var<add_arg>> >, ogws<one<','>> >,
+                            opt< ogws<one<','>>, ogws<ifmust<one<'@'>, declare_arg_var<add_message_arg>>> >
                         >,
-                        opt< ogws<ifmust<one<'@'>, declare_arg_var>> >
+                        opt< ogws<ifmust<one<'@'>, declare_arg_var<add_message_arg>>> >
                     >,
                 ogws<one<')'>>,
-                opt< ifmust< ogws<string<'-','>'>>, ogws<declare_arg_var> > >,
+                opt< ifmust< ogws<string<'-','>'>>, ogws<declare_arg_var<add_return_arg>> > >,
                 ogws<code_block>
             > {};
 
         // (expr)
+        // note: the really ugly ifapply undo below is because we will have tried it being
+        // a receiver first, and that will have left cruft on the stack. We need to
+        // remove that cruft.
+        // there are probably better solutions to this particular problem, but the
+        // best solution is to, once this is fully functional, rip it out and make the
+        // grammar clearer and not allow this alternative formulation to occur.
         struct expr_val
-            : ifmust< one<'('>, ogws<expression>, ogws<one<')'>> > {};
+            : ifmust< ifapply< one<'('>, undo<type::receiver_block> >, ogws<expression>, ogws<one<')'>> > {};
 
         // environment global: $var
         // other variables: var
         struct variable_val
-            : seq< opt<one<'$'>>, identifier > {};
+            : ifapply< seq< opt<one<'$'>>, identifier >, add_variable > {};
 
         // 42
         struct numeric_val
@@ -622,16 +775,23 @@ namespace Channel9 { namespace script
         // binary operators.
         // The tree structure of this makes operator precedence
         // work correctly.
-        template <typename tNext, typename tOp>
+        template <typename tNext, typename tOp, typename tAction = add_method_send>
         struct basic_op_expr
-            : seq<tNext, star< ifmust< ows<tOp>, ogws<tNext> > > > {};
+            : seq<tNext, star< ifmust< ows< ifapply< tOp, tAction > >, ifapply< ogws<tNext>, add_arg > > > > {};
 
-        struct return_op_expr    : basic_op_expr< value, return_op > {};
         struct send_op_expr // send has the extra continuation definition.
-            : seq<return_op_expr, star< ifmust<ows<send_op>, ogws<return_op_expr>,
-                opt< ows<one<':'>>, ogws<declare_arg_var>> > >
+            : seq<
+                value,
+                star<
+                    ifmust<
+                        ifapply< ows<send_op>, add_message_send >,
+                        ifapply< ogws<value>, add_receiver >,
+                        opt< ows<one<':'>>, ogws<declare_arg_var<add_cont>>>
+                    >
+                >
             > {};
-        struct product_op_expr   : basic_op_expr< send_op_expr, seq< product_op, not_at<one<'='>> > > {};
+        struct return_op_expr    : basic_op_expr< send_op_expr, return_op, add_return_send > {};
+        struct product_op_expr   : basic_op_expr< return_op_expr, seq< product_op, not_at<one<'='>> > > {};
         struct sum_op_expr       : basic_op_expr< product_op_expr, seq< sum_op, not_at<one<'='>> > > {};
         struct bitshift_op_expr  : basic_op_expr< sum_op_expr, seq< bitshift_op, not_at<one<'='>> > > {};
         struct relational_op_expr: basic_op_expr< bitshift_op_expr, relational_op > {};
@@ -654,6 +814,7 @@ namespace Channel9 { namespace script
         struct grammar
             : until< ogws<eof>, ifapply< ogws<statement>, add_statement > > {};
 
+        // parser state management and actions
         struct parser_state
         {
             node_ptr root;
@@ -663,6 +824,29 @@ namespace Channel9 { namespace script
                 : root(compiler::make<compiler::type::script_file>(filename))
             {
                 stack.push_back(root);
+            }
+        };
+
+        template <compiler::type tType>
+        struct start : action_base<start<tType>>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                state.stack.push_back(compiler::make<tType>());
+            }
+        };
+
+        template <compiler::type tType>
+        struct undo : action_base<undo<tType>>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr last = state.stack.back();
+                if (last->node_type == tType) {
+                    state.stack.pop_back();
+                } else {
+                    throw "Unexpected problem undoing a node. This should not happen.";
+                }
             }
         };
 
@@ -716,15 +900,173 @@ namespace Channel9 { namespace script
                 for (auto &receiver : into->when<type::receiver_block>()) {
                     receiver.statements.push_back(expr);
                 }
+                for (auto &if_block : into->when<type::if_block>()) {
+                    if_block.statements.push_back(expr);
+                }
+                for (auto &else_block : into->when<type::else_block>()) {
+                    else_block.statements.push_back(expr);
+                }
             }
         };
+
+        struct add_condition : action_base<add_condition>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr expr = state.stack.back();
+                state.stack.pop_back();
+                node_ptr into = state.stack.back();
+
+                for (auto &if_block : into->when<type::if_block>()) {
+                    if_block.condition = expr;
+                }
+            }
+        };
+
+        struct add_else : action_base<add_else>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr else_block = state.stack.back();
+                state.stack.pop_back();
+                node_ptr into = state.stack.back();
+
+                for (auto &if_block : into->when<type::if_block>()) {
+                    if_block.else_block = else_block;
+                }
+            }
+        };
+
+        struct add_message_send : action_base<add_message_send>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr receiver = state.stack.back();
+                state.stack.pop_back();
+                state.stack.push_back(compiler::make<type::message_send>(receiver));
+            }
+        };
+        struct add_receiver : action_base<add_receiver>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr receiver = state.stack.back();
+                state.stack.pop_back();
+                node_ptr message_send = state.stack.back();
+                message_send->get<type::message_send>().receiver = receiver;
+            }
+        };
+        struct add_cont : action_base<add_cont>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr continuation = state.stack.back();
+                state.stack.pop_back();
+                node_ptr message_send = state.stack.back();
+                message_send->get<type::message_send>().continuation = continuation;
+            }
+        };
+        struct add_return_send : action_base<add_return_send>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr receiver = state.stack.back();
+                state.stack.pop_back();
+                state.stack.push_back(compiler::make<type::return_send>(receiver));
+            }
+        };
+        struct add_method_send : action_base<add_method_send>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr receiver = state.stack.back();
+                state.stack.pop_back();
+                state.stack.push_back(compiler::make<type::method_send>(receiver, str));
+            }
+        };
+        struct add_func_method_send : action_base<add_func_method_send>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr receiver = state.stack.back();
+                state.stack.pop_back();
+                state.stack.push_back(compiler::make<type::method_send>(receiver, "call"));
+            }
+        };
+        struct add_arg : action_base<add_arg>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr arg = state.stack.back();
+                state.stack.pop_back();
+                node_ptr into = state.stack.back();
+
+                for (auto &method_send : into->when<type::method_send>()) {
+                    method_send.arguments.push_back(arg);
+                }
+                for (auto &receiver : into->when<type::receiver_block>()) {
+                    receiver.arguments.push_back(arg);
+                }
+                for (auto &return_send : into->when<type::return_send>()) {
+                    return_send.expression = arg;
+                }
+            }
+        };
+        struct add_message_arg : action_base<add_arg>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr arg = state.stack.back();
+                state.stack.pop_back();
+                node_ptr into = state.stack.back();
+
+                for (auto &receiver : into->when<type::receiver_block>()) {
+                    receiver.message_arg = arg;
+                }
+            }
+        };
+
+        struct add_return_arg : action_base<add_arg>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr arg = state.stack.back();
+                state.stack.pop_back();
+                node_ptr into = state.stack.back();
+
+                for (auto &receiver : into->when<type::receiver_block>()) {
+                    receiver.return_arg = arg;
+                }
+            }
+        };
+
 
         void parse_file(const std::string &filename, IStream &stream)
         {
             parser_state state(filename);
             pegtl::trace_parse_file<grammar>(false, filename, state);
+
+            // sanity checks
+            if (state.stack.size() != 1)
+            {
+                std::cerr << "Error: State stack was not 1. Following items on stack:" << std::endl;
+                size_t n = 0;
+                for (auto item : state.stack)
+                {
+                    std::cerr << "Item " << n++ << ":" << std::endl;
+                    item->printer->pretty_print(std::cerr, 4);
+                }
+                throw "Parse stack error.";
+            }
+            if (state.stack.front()->node_type != type::script_file)
+            {
+                std::cerr << "Error: Expected script file to be at the top of the stack." << std::endl
+                    << "Found instead:" << std::endl;
+                state.stack.front()->printer->pretty_print(std::cerr, 4);
+                throw "Parse stack error.";
+            }
+
             state.root->printer->pretty_print(std::cout, 0);
-            *((char*)NULL) = 1;
         }
     }
 }}
