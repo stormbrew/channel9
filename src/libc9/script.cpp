@@ -1,13 +1,298 @@
+#include <memory>
+#include <vector>
+
 #include "c9/channel9.hpp"
 #include "c9/script.hpp"
 #include "pegtl.hh"
 #include "json/json.h"
 
-namespace Channel9 {
-    namespace script {
-        using namespace pegtl;
+namespace Channel9 { namespace script
+{
+    namespace compiler
+    {
+        enum class type {
+            // value types
+            int_number,
+            float_number,
+            string,
+            tuple,
 
+            // function calls
+            message_send,
+            return_send,
+            method_send,
+
+            // complex values
+            bytecode_block,
+            receiver_block,
+
+            // control flow
+            if_block,
+            else_block,
+            switch_block,
+            case_block,
+            while_block,
+
+            // variable declaration
+            variable_declaration,
+
+            // the file itself
+            script_file,
+        };
+
+        template <type tNodeType>
+        struct node;
+
+        struct pretty_printable
+        {
+            virtual void pretty_print(std::ostream &out, unsigned int indent_level) = 0;
+
+            std::string indent(unsigned int indent_level)
+            {
+                return std::string(indent_level, ' ');
+            }
+        };
+
+        struct expression_any
+        {
+            type node_type;
+
+            // this seems redundant, but it avoids messing with the layout of a virtual base pointer.
+            pretty_printable *printer;
+
+            unsigned char data[0];
+
+            template <type tNodeType>
+            node<tNodeType> &get()
+            {
+                if (tNodeType == node_type) {
+                    return *reinterpret_cast<node<tNodeType>*>(&data);
+                } else {
+                    throw "Incorrect type fetch attempted.";
+                }
+            }
+            template <type tNodeType, typename tLambda>
+            void when(tLambda func)
+            {
+                if (tNodeType == node_type) {
+                    func(*reinterpret_cast<node<tNodeType>*>(&data));
+                }
+            }
+
+            // this is an obscene hack to let you do something like
+            // the lambda-using when above, but a bit cleaner if more
+            // abusive:
+            //
+            //   n.when<compiler::script_file>([](compiler::node<compiler::script_file> &script) {
+            //     // do stuff
+            //   }
+            //
+            // vs.
+            //
+            //   for (auto script : n.where<compiler::script_file>) {
+            //     // do stuff
+            //   }
+            //
+            // the former will look nicer again, probably, when lambdas
+            // can have auto args, which should be in C++14.
+            template <type tNodeType>
+            class when_
+            {
+                node<tNodeType> *begin_;
+                node<tNodeType> *end_;
+
+            public:
+                when_(node<tNodeType> *item)
+                    : begin_(item), end_(nullptr)
+                {
+                    if (item) { end_ = item+1; }
+                }
+
+                node<tNodeType> *begin() { return begin_; }
+                node<tNodeType> *end() { return end_; }
+            };
+            template <type tNodeType>
+            when_<tNodeType> when()
+            {
+                if (tNodeType == node_type) {
+                    return when_<tNodeType>(reinterpret_cast<node<tNodeType>*>(&data));
+                } else {
+                    return when_<tNodeType>(nullptr);
+                }
+            }
+        };
+        typedef std::shared_ptr<expression_any> node_ptr;
+        template <type tNodeType, typename... tArgs>
+        std::shared_ptr<expression_any> make(tArgs... args)
+        {
+            std::shared_ptr<expression_any> ptr(
+                reinterpret_cast<expression_any*>(new char[sizeof(expression_any) + sizeof(node<tNodeType>)]),
+                [](expression_any *obj) {
+                    reinterpret_cast<node<tNodeType>*>(obj->data)->~node<tNodeType>();
+                    delete[] reinterpret_cast<char*>(obj);
+                }
+            );
+            node<tNodeType> *inner_ptr = reinterpret_cast<node<tNodeType>*>(ptr->data);
+            new(inner_ptr) node<tNodeType>(args...);
+            ptr->node_type = tNodeType;
+            ptr->printer = inner_ptr;
+            return ptr;
+        }
+
+        template <>
+        struct node<type::script_file> : public pretty_printable
+        {
+            std::string filename;
+            std::vector<node_ptr> statements;
+
+            node(const std::string &filename) : filename(filename) {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                indent_level++;
+                out << "script_file:" << std::endl
+                    << indent(indent_level) << "filename: \"" << filename << "\"" << std::endl
+                    << indent(indent_level) << "body:" << std::endl;
+
+                indent_level++;
+                for (auto statement : statements)
+                {
+                    out << indent(indent_level) << "- ";
+                    statement->printer->pretty_print(out, indent_level);
+                    out << std::endl;
+                }
+            }
+        };
+
+        template <>
+        struct node<type::float_number> : public pretty_printable
+        {
+            std::string str;
+
+            node(const std::string &str) : str(str) {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "literal: " << str;
+            }
+        };
+
+        template <>
+        struct node<type::string> : public pretty_printable
+        {
+            std::string str;
+
+            node(const std::string &str) : str(str) {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "literal: \"" << str << "\"";
+            }
+        };
+
+        template <>
+        struct node<type::int_number> : public pretty_printable
+        {
+            std::string str;
+
+            node(const std::string &str) : str(str) {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "literal: " << str;
+            }
+        };
+
+        template <>
+        struct node<type::variable_declaration> : public pretty_printable
+        {
+            std::string type;
+            std::string name;
+            node_ptr initializer;
+
+            node(const std::string &type, const std::string &name)
+                : type(type), name(name)
+            {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "variable_declaration:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "type: " << type << std::endl
+                    << indent(indent_level) << "name: " << name << std::endl;
+                if (initializer)
+                {
+                    out << indent(indent_level) << "initializer: ";
+                    initializer->printer->pretty_print(out, indent_level);
+                    out << std::endl;
+                }
+            }
+        };
+
+        template <>
+        struct node<type::receiver_block> : public pretty_printable
+        {
+            std::vector<node_ptr> arguments;
+            node_ptr message_arg;
+            node_ptr return_arg;
+
+            std::vector<node_ptr> statements;
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "receiver_block:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "arguments:" << std::endl;
+                indent_level++;
+                for (auto argument : arguments)
+                {
+                    out << indent(indent_level) << "- ";
+                    argument->printer->pretty_print(out, indent_level);
+                    out << std::endl;
+                }
+                indent_level--;
+                if (message_arg)
+                {
+                    out << indent(indent_level) << "message_arg: ";
+                    message_arg->printer->pretty_print(out, indent_level);
+                }
+                if (return_arg)
+                {
+                    out << indent(indent_level) << "return_arg: ";
+                    return_arg->printer->pretty_print(out, indent_level);
+                }
+                out << indent(indent_level) << "body:" << std::endl;
+                indent_level++;
+                for (auto statement : statements)
+                {
+                    out << indent(indent_level) << "- ";
+                    statement->printer->pretty_print(out, indent_level);
+                }
+            }
+        };
+    }
+
+    namespace parser
+    {
+        using namespace pegtl;
+        using compiler::type;
+        using compiler::node_ptr;
+
+        // forward declarations
         struct expression;
+
+        template <compiler::type tNodeType>
+        struct add_literal;
+        struct add_statement;
+
+        struct start_variable_declaration;
+        struct add_simple_variable_declaration;
+        struct add_name;
+
+        struct start_receiver_declaration;
+        struct add_arg;
+        struct add_message_arg;
+        struct add_return_arg;
 
         // terminals (more or less)
         struct line_comment
@@ -104,8 +389,21 @@ namespace Channel9 {
         // [lexical|global|frame] var
         // [lexical|global|frame] var = val
         struct declare_var
-            : ifmust<variable_type, ws<identifier>,
-                opt< ifmust< ows<one<'='>>, ows<expression> > >
+            : seq<
+                ifmust< ifapply< variable_type, start_variable_declaration>,
+                    ws< ifapply< identifier, add_name > >
+                >,
+                opt< ifmust< ows<one<'='>>, ifapply< ows<expression>, add_statement > > >
+            > {};
+
+        // Like the above declare_var, but also allows the type to be removed.
+        struct declare_arg_var
+            : sor<
+                declare_var,
+                ifmust<
+                    ifapply< identifier, add_simple_variable_declaration >,
+                    opt< ifmust< ows<one<'='>>, ifapply< ows<expression>, add_statement > > >
+                >
             > {};
 
         struct code_block
@@ -213,23 +511,18 @@ namespace Channel9 {
         // note: this doesn't use ifmust even though it would be good if it did
         // because it needs to be able to backtrack to expr_val. A language change
         // should be considered to clean this up.
-        struct definition_arg
-            : sor<
-                ifmust<variable_type, gws<identifier>>,
-                identifier
-            > {};
         struct receiver_val
             : seq<
                 one<'('>,
                     sor<
                         seq<
-                            list< seq< ogws<definition_arg> >, ogws<one<','>> >,
-                            opt< ogws<one<','>>, ogws<ifmust<one<'@'>, identifier>> >
+                            list< seq< ogws<declare_arg_var> >, ogws<one<','>> >,
+                            opt< ogws<one<','>>, ogws<ifmust<one<'@'>, declare_arg_var>> >
                         >,
-                        opt< ogws<ifmust<one<'@'>, identifier>> >
+                        opt< ogws<ifmust<one<'@'>, declare_arg_var>> >
                     >,
                 ogws<one<')'>>,
-                opt< ifmust< ogws<string<'-','>'>>, ogws<identifier> > >,
+                opt< ifmust< ogws<string<'-','>'>>, ogws<declare_arg_var> > >,
                 ogws<code_block>
             > {};
 
@@ -244,15 +537,15 @@ namespace Channel9 {
 
         // 42
         struct numeric_val
-            : plus<digit> {};
+            : ifapply< plus<digit>, add_literal<compiler::type::int_number> > {};
 
         // "blah"
         // 'blah'
         struct string_val
             : sor<
-                ifmust< one<'"'>, until<one<'"'>, any> >,
-                ifmust< one<'\''>, until<one<'\''>, any> >,
-                ifmust< one<':'>, identifier >
+                enclose< one<'"'>, any, one<'"'>, add_literal<type::string> >,
+                enclose< one<'\''>, any, one<'\''>, add_literal<type::string> >,
+                ifmust< one<':'>, ifapply< identifier, add_literal<type::string> > >
             > {};
 
         // @"blah" -- message id
@@ -336,7 +629,7 @@ namespace Channel9 {
         struct return_op_expr    : basic_op_expr< value, return_op > {};
         struct send_op_expr // send has the extra continuation definition.
             : seq<return_op_expr, star< ifmust<ows<send_op>, ogws<return_op_expr>,
-                opt< ows<one<':'>>, ogws<definition_arg>> > >
+                opt< ows<one<':'>>, ogws<declare_arg_var>> > >
             > {};
         struct product_op_expr   : basic_op_expr< send_op_expr, seq< product_op, not_at<one<'='>> > > {};
         struct sum_op_expr       : basic_op_expr< product_op_expr, seq< sum_op, not_at<one<'='>> > > {};
@@ -359,11 +652,79 @@ namespace Channel9 {
             > {};
 
         struct grammar
-            : until< ogws<eof>, ogws<statement> > {};
+            : until< ogws<eof>, ifapply< ogws<statement>, add_statement > > {};
+
+        struct parser_state
+        {
+            node_ptr root;
+            std::vector<node_ptr> stack;
+
+            parser_state(const std::string &filename)
+                : root(compiler::make<compiler::type::script_file>(filename))
+            {
+                stack.push_back(root);
+            }
+        };
+
+        struct start_variable_declaration : action_base<start_variable_declaration>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                state.stack.push_back(compiler::make<type::variable_declaration>(str, ""));
+            }
+        };
+        struct add_simple_variable_declaration : action_base<add_simple_variable_declaration>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                state.stack.push_back(compiler::make<type::variable_declaration>("local", str));
+            }
+        };
+        struct add_name : action_base<add_name>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                state.stack.back()->get<type::variable_declaration>().name = str;
+            }
+        };
+
+        template <compiler::type tLiteralType>
+        struct add_literal : action_base<add_literal<tLiteralType>>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                state.stack.push_back(compiler::make<tLiteralType>(str));
+            }
+        };
+
+        struct add_statement : action_base<add_statement>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                using namespace compiler;
+
+                node_ptr expr = state.stack.back();
+                state.stack.pop_back();
+                node_ptr into = state.stack.back();
+
+                for (auto &script : into->when<type::script_file>()) {
+                    script.statements.push_back(expr);
+                }
+                for (auto &variable_decl : into->when<type::variable_declaration>()) {
+                    variable_decl.initializer = expr;
+                }
+                for (auto &receiver : into->when<type::receiver_block>()) {
+                    receiver.statements.push_back(expr);
+                }
+            }
+        };
 
         void parse_file(const std::string &filename, IStream &stream)
         {
-            pegtl::trace_parse_file<grammar>(true, filename);
+            parser_state state(filename);
+            pegtl::trace_parse_file<grammar>(false, filename, state);
+            state.root->printer->pretty_print(std::cout, 0);
+            *((char*)NULL) = 1;
         }
     }
-}
+}}
