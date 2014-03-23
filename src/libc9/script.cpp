@@ -44,7 +44,7 @@ namespace Channel9 { namespace script
         template <type tNodeType>
         struct node;
 
-        struct pretty_printable
+        struct compilable
         {
             virtual void pretty_print(std::ostream &out, unsigned int indent_level) = 0;
 
@@ -59,7 +59,7 @@ namespace Channel9 { namespace script
             type node_type;
 
             // this seems redundant, but it avoids messing with the layout of a virtual base pointer.
-            pretty_printable *printer;
+            compilable *compiler;
 
             unsigned char data[0];
 
@@ -136,12 +136,12 @@ namespace Channel9 { namespace script
             node<tNodeType> *inner_ptr = reinterpret_cast<node<tNodeType>*>(ptr->data);
             new(inner_ptr) node<tNodeType>(args...);
             ptr->node_type = tNodeType;
-            ptr->printer = inner_ptr;
+            ptr->compiler = inner_ptr;
             return ptr;
         }
 
         template <>
-        struct node<type::script_file> : public pretty_printable
+        struct node<type::script_file> : public compilable
         {
             std::string filename;
             std::vector<node_ptr> statements;
@@ -159,13 +159,13 @@ namespace Channel9 { namespace script
                 for (auto statement : statements)
                 {
                     out << indent(indent_level) << "- ";
-                    statement->printer->pretty_print(out, indent_level);
+                    statement->compiler->pretty_print(out, indent_level);
                 }
             }
         };
 
         template <>
-        struct node<type::float_number> : public pretty_printable
+        struct node<type::float_number> : public compilable
         {
             std::string str;
 
@@ -178,7 +178,7 @@ namespace Channel9 { namespace script
         };
 
         template <>
-        struct node<type::string> : public pretty_printable
+        struct node<type::string> : public compilable
         {
             std::string str;
 
@@ -191,7 +191,7 @@ namespace Channel9 { namespace script
         };
 
         template <>
-        struct node<type::int_number> : public pretty_printable
+        struct node<type::int_number> : public compilable
         {
             std::string str;
 
@@ -204,7 +204,7 @@ namespace Channel9 { namespace script
         };
 
         template <>
-        struct node<type::variable> : public pretty_printable
+        struct node<type::variable> : public compilable
         {
             std::string str;
 
@@ -217,7 +217,7 @@ namespace Channel9 { namespace script
         };
 
         template <>
-        struct node<type::variable_declaration> : public pretty_printable
+        struct node<type::variable_declaration> : public compilable
         {
             std::string type;
             std::string name;
@@ -236,13 +236,13 @@ namespace Channel9 { namespace script
                 if (initializer)
                 {
                     out << indent(indent_level) << "initializer: ";
-                    initializer->printer->pretty_print(out, indent_level);
+                    initializer->compiler->pretty_print(out, indent_level);
                 }
             }
         };
 
         template <>
-        struct node<type::receiver_block> : public pretty_printable
+        struct node<type::receiver_block> : public compilable
         {
             std::vector<node_ptr> arguments;
             node_ptr message_arg;
@@ -259,31 +259,31 @@ namespace Channel9 { namespace script
                 for (auto argument : arguments)
                 {
                     out << indent(indent_level) << "- ";
-                    argument->printer->pretty_print(out, indent_level);
+                    argument->compiler->pretty_print(out, indent_level);
                 }
                 indent_level--;
                 if (message_arg)
                 {
                     out << indent(indent_level) << "message_arg: ";
-                    message_arg->printer->pretty_print(out, indent_level);
+                    message_arg->compiler->pretty_print(out, indent_level);
                 }
                 if (return_arg)
                 {
                     out << indent(indent_level) << "return_arg: ";
-                    return_arg->printer->pretty_print(out, indent_level);
+                    return_arg->compiler->pretty_print(out, indent_level);
                 }
                 out << indent(indent_level) << "body:" << std::endl;
                 indent_level++;
                 for (auto statement : statements)
                 {
                     out << indent(indent_level) << "- ";
-                    statement->printer->pretty_print(out, indent_level);
+                    statement->compiler->pretty_print(out, indent_level);
                 }
             }
         };
 
         template <>
-        struct node<type::else_block> : public pretty_printable
+        struct node<type::else_block> : public compilable
         {
             std::vector<node_ptr> statements;
 
@@ -294,12 +294,12 @@ namespace Channel9 { namespace script
                 for (auto statement : statements)
                 {
                     out << indent(indent_level) << "- ";
-                    statement->printer->pretty_print(out, indent_level);
+                    statement->compiler->pretty_print(out, indent_level);
                 }
             }
         };
         template <>
-        struct node<type::if_block> : public pretty_printable
+        struct node<type::if_block> : public compilable
         {
             node_ptr condition;
             std::vector<node_ptr> statements;
@@ -310,25 +310,25 @@ namespace Channel9 { namespace script
                 out << "if_block:" << std::endl;
                 indent_level++;
                 out << indent(indent_level) << "condition: ";
-                condition->printer->pretty_print(out, indent_level);
+                condition->compiler->pretty_print(out, indent_level);
 
                 out << indent(indent_level) << "body:" << std::endl;
                 indent_level++;
                 for (auto statement : statements)
                 {
                     out << indent(indent_level) << "- ";
-                    statement->printer->pretty_print(out, indent_level);
+                    statement->compiler->pretty_print(out, indent_level);
                 }
                 indent_level--;
                 if (else_block)
                 {
                     out << indent(indent_level);
-                    else_block->printer->pretty_print(out, indent_level);
+                    else_block->compiler->pretty_print(out, indent_level);
                 }
             }
         };
         template <>
-        struct node<type::method_send> : public pretty_printable
+        struct node<type::method_send> : public compilable
         {
             node_ptr receiver;
             std::string name;
@@ -342,7 +342,7 @@ namespace Channel9 { namespace script
                 indent_level++;
                 out << indent(indent_level) << "name: " << name << std::endl;
                 out << indent(indent_level) << "receiver: ";
-                receiver->printer->pretty_print(out, indent_level);
+                receiver->compiler->pretty_print(out, indent_level);
                 if (arguments.size() > 0)
                 {
                     out << indent(indent_level) << "arguments:" << std::endl;
@@ -350,13 +350,13 @@ namespace Channel9 { namespace script
                     for (auto argument : arguments)
                     {
                         out << indent(indent_level) << "- ";
-                        argument->printer->pretty_print(out, indent_level);
+                        argument->compiler->pretty_print(out, indent_level);
                     }
                 }
             }
         };
         template <>
-        struct node<type::return_send> : public pretty_printable
+        struct node<type::return_send> : public compilable
         {
             node_ptr receiver;
             node_ptr expression;
@@ -368,13 +368,13 @@ namespace Channel9 { namespace script
                 out << "return_send:" << std::endl;
                 indent_level++;
                 out << indent(indent_level) << "receiver: ";
-                receiver->printer->pretty_print(out, indent_level);
+                receiver->compiler->pretty_print(out, indent_level);
                 out << indent(indent_level) << "expression: ";
-                expression->printer->pretty_print(out, indent_level);
+                expression->compiler->pretty_print(out, indent_level);
             }
         };
         template <>
-        struct node<type::message_send> : public pretty_printable
+        struct node<type::message_send> : public compilable
         {
             node_ptr receiver;
             node_ptr expression;
@@ -387,13 +387,13 @@ namespace Channel9 { namespace script
                 out << "message_send:" << std::endl;
                 indent_level++;
                 out << indent(indent_level) << "receiver: ";
-                receiver->printer->pretty_print(out, indent_level);
+                receiver->compiler->pretty_print(out, indent_level);
                 out << indent(indent_level) << "expression: ";
-                expression->printer->pretty_print(out, indent_level);
+                expression->compiler->pretty_print(out, indent_level);
                 if (continuation)
                 {
                     out << indent(indent_level) << "continuation: ";
-                    continuation->printer->pretty_print(out, indent_level);
+                    continuation->compiler->pretty_print(out, indent_level);
                 }
             }
         };
@@ -1054,7 +1054,7 @@ namespace Channel9 { namespace script
                 for (auto item : state.stack)
                 {
                     std::cerr << "Item " << n++ << ":" << std::endl;
-                    item->printer->pretty_print(std::cerr, 4);
+                    item->compiler->pretty_print(std::cerr, 4);
                 }
                 throw "Parse stack error.";
             }
@@ -1062,11 +1062,11 @@ namespace Channel9 { namespace script
             {
                 std::cerr << "Error: Expected script file to be at the top of the stack." << std::endl
                     << "Found instead:" << std::endl;
-                state.stack.front()->printer->pretty_print(std::cerr, 4);
+                state.stack.front()->compiler->pretty_print(std::cerr, 4);
                 throw "Parse stack error.";
             }
 
-            state.root->printer->pretty_print(std::cout, 0);
+            state.root->compiler->pretty_print(std::cout, 0);
         }
     }
 }}
