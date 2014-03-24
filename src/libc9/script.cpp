@@ -80,46 +80,46 @@ namespace Channel9 { namespace script
                 }
             }
 
-            // this is an obscene hack to let you do something like
-            // the lambda-using when above, but a bit cleaner if more
-            // abusive:
-            //
-            //   n.when<compiler::script_file>([](compiler::node<compiler::script_file> &script) {
-            //     // do stuff
-            //   }
-            //
-            // vs.
-            //
-            //   for (auto script : n.where<compiler::script_file>) {
-            //     // do stuff
-            //   }
-            //
-            // the former will look nicer again, probably, when lambdas
-            // can have auto args, which should be in C++14.
             template <type tNodeType>
             class when_
             {
-                node<tNodeType> *begin_;
-                node<tNodeType> *end_;
-
+                node<tNodeType> *node_;
             public:
-                when_(node<tNodeType> *item)
-                    : begin_(item), end_(nullptr)
+                when_(expression_any *maybe_node)
+                 : node_(nullptr)
                 {
-                    if (item) { end_ = item+1; }
+                    // only set it if it matches.
+                    if (maybe_node->node_type == tNodeType)
+                    {
+                        node_ = &maybe_node->get<tNodeType>();
+                    }
                 }
 
-                node<tNodeType> *begin() { return begin_; }
-                node<tNodeType> *end() { return end_; }
+                explicit operator bool() const
+                {
+                    return node_;
+                }
+                node<tNodeType> *operator->()
+                {
+                    return node_;
+                }
+                const node<tNodeType> *operator->() const
+                {
+                    return node_;
+                }
+                node<tNodeType> &operator*()
+                {
+                    return *node_;
+                }
+                const node<tNodeType> &operator*() const
+                {
+                    return *node_;
+                }
             };
             template <type tNodeType>
             when_<tNodeType> when()
             {
-                if (tNodeType == node_type) {
-                    return when_<tNodeType>(reinterpret_cast<node<tNodeType>*>(&data));
-                } else {
-                    return when_<tNodeType>(nullptr);
-                }
+                return when_<tNodeType>(this);
             }
         };
         typedef std::shared_ptr<expression_any> node_ptr;
@@ -139,30 +139,6 @@ namespace Channel9 { namespace script
             ptr->compiler = inner_ptr;
             return ptr;
         }
-
-        template <>
-        struct node<type::script_file> : public compilable
-        {
-            std::string filename;
-            std::vector<node_ptr> statements;
-
-            node(const std::string &filename) : filename(filename) {}
-
-            void pretty_print(std::ostream &out, unsigned int indent_level)
-            {
-                indent_level++;
-                out << "script_file:" << std::endl
-                    << indent(indent_level) << "filename: \"" << filename << "\"" << std::endl
-                    << indent(indent_level) << "body:" << std::endl;
-
-                indent_level++;
-                for (auto statement : statements)
-                {
-                    out << indent(indent_level) << "- ";
-                    statement->compiler->pretty_print(out, indent_level);
-                }
-            }
-        };
 
         template <>
         struct node<type::float_number> : public compilable
@@ -241,6 +217,22 @@ namespace Channel9 { namespace script
             }
         };
 
+        struct variable_scope
+        {
+            std::set<node_ptr> lexical_vars;
+            std::set<node_ptr> frame_vars;
+
+            void add_variable(node_ptr variable_decl_node)
+            {
+                auto &variable_decl = variable_decl_node->get<type::variable_declaration>();
+                if (variable_decl.type == "lexical")
+                {
+                    lexical_vars.insert(variable_decl_node);
+                }
+            }
+
+        };
+
         template <>
         struct node<type::receiver_block> : public compilable
         {
@@ -249,6 +241,8 @@ namespace Channel9 { namespace script
             node_ptr return_arg;
 
             std::vector<node_ptr> statements;
+
+            variable_scope scope;
 
             void pretty_print(std::ostream &out, unsigned int indent_level)
             {
@@ -397,6 +391,32 @@ namespace Channel9 { namespace script
                 }
             }
         };
+
+        template <>
+        struct node<type::script_file> : public compilable
+        {
+            std::string filename;
+            std::vector<node_ptr> statements;
+
+            variable_scope scope;
+
+            node(const std::string &filename) : filename(filename) {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                indent_level++;
+                out << "script_file:" << std::endl
+                    << indent(indent_level) << "filename: \"" << filename << "\"" << std::endl
+                    << indent(indent_level) << "body:" << std::endl;
+
+                indent_level++;
+                for (auto statement : statements)
+                {
+                    out << indent(indent_level) << "- ";
+                    statement->compiler->pretty_print(out, indent_level);
+                }
+            }
+        };
     }
 
     namespace parser
@@ -414,7 +434,7 @@ namespace Channel9 { namespace script
         struct undo;
         template <compiler::type tNodeType>
         struct add_literal;
-        typedef add_literal<type::variable> add_variable;
+        struct add_variable;
         struct add_statement;
 
         struct start_variable_declaration;
@@ -814,6 +834,20 @@ namespace Channel9 { namespace script
         struct grammar
             : until< ogws<eof>, ifapply< ogws<statement>, add_statement > > {};
 
+        template <typename tIter>
+        class in_range
+        {
+            tIter begin_, end_;
+            public:
+            in_range(tIter begin, tIter end) : begin_(begin), end_(end) {}
+            tIter begin() { return begin_; }
+            tIter end() { return end_; }
+        };
+        template <typename tIter>
+        in_range<tIter> in(tIter begin, tIter end) { return in_range<tIter>(begin, end); }
+        template <typename tObj>
+        auto reverse_in(tObj &obj) -> in_range<decltype(obj.rbegin())> { return in(obj.rbegin(), obj.rend()); }
+
         // parser state management and actions
         struct parser_state
         {
@@ -825,6 +859,17 @@ namespace Channel9 { namespace script
             {
                 stack.push_back(root);
             }
+
+            void push(node_ptr node)
+            {
+                stack.push_back(node);
+            }
+            node_ptr pop()
+            {
+                node_ptr top = stack.back();
+                stack.pop_back();
+                return top;
+            }
         };
 
         template <compiler::type tType>
@@ -832,7 +877,7 @@ namespace Channel9 { namespace script
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                state.stack.push_back(compiler::make<tType>());
+                state.push(compiler::make<tType>());
             }
         };
 
@@ -854,14 +899,31 @@ namespace Channel9 { namespace script
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                state.stack.push_back(compiler::make<type::variable_declaration>(str, ""));
+                node_ptr dec = compiler::make<type::variable_declaration>(str, "");
+                state.push(dec);
+                // add it to the appropriate frame.
+                for (node_ptr level : reverse_in(state.stack))
+                {
+                    if (auto receiver = level->when<type::receiver_block>())
+                    {
+                        receiver->scope.add_variable(dec);
+                        break;
+                    }
+                    if (auto script = level->when<type::script_file>())
+                    {
+                        script->scope.add_variable(dec);
+                        break;
+                    }
+                }
             }
         };
         struct add_simple_variable_declaration : action_base<add_simple_variable_declaration>
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                state.stack.push_back(compiler::make<type::variable_declaration>("local", str));
+                state.push(compiler::make<type::variable_declaration>("local", str));
+                // these don't need to be added because we don't add locals to the
+                // table anyways.
             }
         };
         struct add_name : action_base<add_name>
@@ -877,7 +939,15 @@ namespace Channel9 { namespace script
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                state.stack.push_back(compiler::make<tLiteralType>(str));
+                state.push(compiler::make<tLiteralType>(str));
+            }
+        };
+
+        struct add_variable : action_base<add_variable>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                state.push(compiler::make<type::variable>(str));
             }
         };
 
@@ -887,24 +957,23 @@ namespace Channel9 { namespace script
             {
                 using namespace compiler;
 
-                node_ptr expr = state.stack.back();
-                state.stack.pop_back();
+                node_ptr expr = state.pop();
                 node_ptr into = state.stack.back();
 
-                for (auto &script : into->when<type::script_file>()) {
-                    script.statements.push_back(expr);
+                if (auto script = into->when<type::script_file>()) {
+                    script->statements.push_back(expr);
                 }
-                for (auto &variable_decl : into->when<type::variable_declaration>()) {
-                    variable_decl.initializer = expr;
+                if (auto variable_decl = into->when<type::variable_declaration>()) {
+                    variable_decl->initializer = expr;
                 }
-                for (auto &receiver : into->when<type::receiver_block>()) {
-                    receiver.statements.push_back(expr);
+                if (auto receiver = into->when<type::receiver_block>()) {
+                    receiver->statements.push_back(expr);
                 }
-                for (auto &if_block : into->when<type::if_block>()) {
-                    if_block.statements.push_back(expr);
+                if (auto if_block = into->when<type::if_block>()) {
+                    if_block->statements.push_back(expr);
                 }
-                for (auto &else_block : into->when<type::else_block>()) {
-                    else_block.statements.push_back(expr);
+                if (auto else_block = into->when<type::else_block>()) {
+                    else_block->statements.push_back(expr);
                 }
             }
         };
@@ -913,12 +982,11 @@ namespace Channel9 { namespace script
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr expr = state.stack.back();
-                state.stack.pop_back();
+                node_ptr expr = state.pop();
                 node_ptr into = state.stack.back();
 
-                for (auto &if_block : into->when<type::if_block>()) {
-                    if_block.condition = expr;
+                if (auto if_block = into->when<type::if_block>()) {
+                    if_block->condition = expr;
                 }
             }
         };
@@ -927,12 +995,11 @@ namespace Channel9 { namespace script
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr else_block = state.stack.back();
-                state.stack.pop_back();
+                node_ptr else_block = state.pop();
                 node_ptr into = state.stack.back();
 
-                for (auto &if_block : into->when<type::if_block>()) {
-                    if_block.else_block = else_block;
+                if (auto if_block = into->when<type::if_block>()) {
+                    if_block->else_block = else_block;
                 }
             }
         };
@@ -941,17 +1008,15 @@ namespace Channel9 { namespace script
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr receiver = state.stack.back();
-                state.stack.pop_back();
-                state.stack.push_back(compiler::make<type::message_send>(receiver));
+                node_ptr receiver = state.pop();
+                state.push(compiler::make<type::message_send>(receiver));
             }
         };
         struct add_receiver : action_base<add_receiver>
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr receiver = state.stack.back();
-                state.stack.pop_back();
+                node_ptr receiver = state.pop();
                 node_ptr message_send = state.stack.back();
                 message_send->get<type::message_send>().receiver = receiver;
             }
@@ -960,8 +1025,7 @@ namespace Channel9 { namespace script
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr continuation = state.stack.back();
-                state.stack.pop_back();
+                node_ptr continuation = state.pop();
                 node_ptr message_send = state.stack.back();
                 message_send->get<type::message_send>().continuation = continuation;
             }
@@ -970,45 +1034,41 @@ namespace Channel9 { namespace script
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr receiver = state.stack.back();
-                state.stack.pop_back();
-                state.stack.push_back(compiler::make<type::return_send>(receiver));
+                node_ptr receiver = state.pop();
+                state.push(compiler::make<type::return_send>(receiver));
             }
         };
         struct add_method_send : action_base<add_method_send>
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr receiver = state.stack.back();
-                state.stack.pop_back();
-                state.stack.push_back(compiler::make<type::method_send>(receiver, str));
+                node_ptr receiver = state.pop();
+                state.push(compiler::make<type::method_send>(receiver, str));
             }
         };
         struct add_func_method_send : action_base<add_func_method_send>
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr receiver = state.stack.back();
-                state.stack.pop_back();
-                state.stack.push_back(compiler::make<type::method_send>(receiver, "call"));
+                node_ptr receiver = state.pop();
+                state.push(compiler::make<type::method_send>(receiver, "call"));
             }
         };
         struct add_arg : action_base<add_arg>
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr arg = state.stack.back();
-                state.stack.pop_back();
+                node_ptr arg = state.pop();
                 node_ptr into = state.stack.back();
 
-                for (auto &method_send : into->when<type::method_send>()) {
-                    method_send.arguments.push_back(arg);
+                if (auto method_send = into->when<type::method_send>()) {
+                    method_send->arguments.push_back(arg);
                 }
-                for (auto &receiver : into->when<type::receiver_block>()) {
-                    receiver.arguments.push_back(arg);
+                if (auto receiver = into->when<type::receiver_block>()) {
+                    receiver->arguments.push_back(arg);
                 }
-                for (auto &return_send : into->when<type::return_send>()) {
-                    return_send.expression = arg;
+                if (auto return_send = into->when<type::return_send>()) {
+                    return_send->expression = arg;
                 }
             }
         };
@@ -1016,12 +1076,11 @@ namespace Channel9 { namespace script
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr arg = state.stack.back();
-                state.stack.pop_back();
+                node_ptr arg = state.pop();
                 node_ptr into = state.stack.back();
 
-                for (auto &receiver : into->when<type::receiver_block>()) {
-                    receiver.message_arg = arg;
+                if (auto receiver = into->when<type::receiver_block>()) {
+                    receiver->message_arg = arg;
                 }
             }
         };
@@ -1030,12 +1089,11 @@ namespace Channel9 { namespace script
         {
             static void apply(const std::string &str, parser_state &state)
             {
-                node_ptr arg = state.stack.back();
-                state.stack.pop_back();
+                node_ptr arg = state.pop();
                 node_ptr into = state.stack.back();
 
-                for (auto &receiver : into->when<type::receiver_block>()) {
-                    receiver.return_arg = arg;
+                if (auto receiver = into->when<type::receiver_block>()) {
+                    receiver->return_arg = arg;
                 }
             }
         };
