@@ -2,6 +2,8 @@
 #include <vector>
 
 #include "c9/channel9.hpp"
+#include "c9/instruction.hpp"
+#include "c9/istream.hpp"
 #include "c9/script.hpp"
 #include "pegtl.hh"
 #include "json/json.h"
@@ -44,9 +46,16 @@ namespace Channel9 { namespace script
         template <type tNodeType>
         struct node;
 
+        struct compiler_state
+        {};
+
         struct compilable
         {
             virtual void pretty_print(std::ostream &out, unsigned int indent_level) = 0;
+            virtual void compile(compiler_state &state, IStream &stream)
+            {
+                stream.add(PUSH);
+            } // TODO make = 0 when everything has implemented it.
 
             std::string indent(unsigned int indent_level)
             {
@@ -149,7 +158,7 @@ namespace Channel9 { namespace script
 
             void pretty_print(std::ostream &out, unsigned int indent_level)
             {
-                out << "literal: " << str << std::endl;
+                out << str << std::endl;
             }
         };
 
@@ -162,7 +171,11 @@ namespace Channel9 { namespace script
 
             void pretty_print(std::ostream &out, unsigned int indent_level)
             {
-                out << "literal: \"" << str << "\"" << std::endl;
+                out << "\"" << str << "\"" << std::endl;
+            }
+            void compile(compiler_state &state, IStream &stream)
+            {
+                stream.add(PUSH, value(str));
             }
         };
 
@@ -175,20 +188,32 @@ namespace Channel9 { namespace script
 
             void pretty_print(std::ostream &out, unsigned int indent_level)
             {
-                out << "literal: " << str << std::endl;
+                out << str << std::endl;
+            }
+            void compile(compiler_state &state, IStream &stream)
+            {
+                stream.add(PUSH, value(std::atoll(str.c_str())));
             }
         };
 
         template <>
         struct node<type::variable> : public compilable
         {
-            std::string str;
+            std::string name;
 
-            node(const std::string &str) : str(str) {}
+            node(const std::string &name) : name(name) {}
 
             void pretty_print(std::ostream &out, unsigned int indent_level)
             {
-                out << "variable: " << str << std::endl;
+                out << "variable: " << name << std::endl;
+            }
+            void compile(compiler_state &state, IStream &stream)
+            {
+                if (name[0] == '$') {
+                    stream.add(CHANNEL_SPECIAL, value(std::string(name.begin()+1, name.end())));
+                } else {
+                    stream.add(LOCAL_GET, value(name));
+                }
             }
         };
 
@@ -390,6 +415,19 @@ namespace Channel9 { namespace script
                     continuation->compiler->pretty_print(out, indent_level);
                 }
             }
+            void compile(compiler_state &state, IStream &stream)
+            {
+                receiver->compiler->compile(state, stream);
+                expression->compiler->compile(state, stream);
+                stream.add(CHANNEL_CALL);
+                if (continuation)
+                {
+                    // TODO: Implement this properly
+                    stream.add(POP);
+                } else {
+                    stream.add(POP);
+                }
+            }
         };
 
         template <>
@@ -415,6 +453,25 @@ namespace Channel9 { namespace script
                     out << indent(indent_level) << "- ";
                     statement->compiler->pretty_print(out, indent_level);
                 }
+            }
+
+            void compile(compiler_state &state, IStream &stream)
+            {
+                stream.set_source_pos(SourcePos(filename, 1, 0, ""));
+                stream.add(SWAP);
+                stream.add(POP);
+
+                size_t not_last = statements.size();
+                for (auto statement : statements)
+                {
+                    statement->compiler->compile(state, stream);
+                    if (--not_last) {
+                        stream.add(POP);
+                    }
+                }
+                assert(not_last == 0);
+
+                stream.add(CHANNEL_RET);
             }
         };
     }
@@ -1125,6 +1182,12 @@ namespace Channel9 { namespace script
             }
 
             state.root->compiler->pretty_print(std::cout, 0);
+
+            compiler::compiler_state compiler_state;
+            state.root->compiler->compile(compiler_state, stream);
+
+            Json::StyledWriter writer;
+            std::cout << writer.write(to_json(stream)) << std::endl;
         }
     }
 }}
