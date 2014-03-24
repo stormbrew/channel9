@@ -85,10 +85,10 @@ int main(int argc, const char **argv)
 	Channel9::trace_mute = true;
 	for (i = 0; i < argc && argv[i][0] == '-'; i++)
 	{
-		if (strcmp("-T", argv[i]) == 0)
-			trace = true;
-		else if (strcmp("-TT", argv[i]) == 0)
+		if (strcmp("-TT", argv[i]) == 0)
 			Channel9::trace_mute = false;
+		else if (strcmp("-T", argv[i]) == 0)
+			trace = true;
 	}
 
 	Channel9::Environment *env = new Channel9::Environment();
