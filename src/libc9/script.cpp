@@ -45,9 +45,33 @@ namespace Channel9 { namespace script
 
         template <type tNodeType>
         struct node;
+        struct expression_any;
+        typedef std::shared_ptr<expression_any> node_ptr;
+        struct variable_scope;
+        struct compiler_scope;
 
         struct compiler_state
-        {};
+        {
+            std::vector<compiler_scope*> scope_stack;
+            unsigned int current_lexical_level;
+
+            compiler_state() : current_lexical_level(0) {}
+        };
+
+        struct compiler_scope
+        {
+            compiler_state &state;
+            variable_scope &vars;
+            unsigned int lexical_level;
+            bool lexical_start;
+
+            compiler_scope(compiler_state &state, variable_scope &scope);
+            ~compiler_scope()
+            {
+                assert(state.scope_stack.back() == this);
+                state.scope_stack.pop_back();
+            }
+        };
 
         struct compilable
         {
@@ -131,7 +155,6 @@ namespace Channel9 { namespace script
                 return when_<tNodeType>(this);
             }
         };
-        typedef std::shared_ptr<expression_any> node_ptr;
         template <type tNodeType, typename... tArgs>
         std::shared_ptr<expression_any> make(tArgs... args)
         {
@@ -253,6 +276,8 @@ namespace Channel9 { namespace script
                 if (variable_decl.type == "lexical")
                 {
                     lexical_vars.insert(variable_decl_node);
+                } else if (variable_decl.type == "frame") {
+                    frame_vars.insert(variable_decl_node);
                 }
             }
 
@@ -457,6 +482,7 @@ namespace Channel9 { namespace script
 
             void compile(compiler_state &state, IStream &stream)
             {
+                compiler_scope cscope(state, scope);
                 stream.set_source_pos(SourcePos(filename, 1, 0, ""));
                 stream.add(SWAP);
                 stream.add(POP);
@@ -474,6 +500,23 @@ namespace Channel9 { namespace script
                 stream.add(CHANNEL_RET);
             }
         };
+
+        compiler_scope::compiler_scope(compiler_state &state, variable_scope &vars)
+            : state(state), vars(vars), lexical_level(0), lexical_start(false)
+        {
+            if (state.scope_stack.size() > 0)
+            {
+                compiler_scope *prev = state.scope_stack.back();
+                lexical_level = prev->lexical_level;
+
+                if (vars.lexical_vars.size() > 0)
+                {
+                    lexical_level++;
+                    lexical_start = true;
+                }
+            }
+            state.scope_stack.push_back(this);
+        }
     }
 
     namespace parser
