@@ -20,6 +20,7 @@ namespace pegtl
       // when Must == true, as is the case here].
       const bool b = de.template match< true, TopRule >( in, std::forward< States >( st ) ... );
       assert( b );
+      (void)b;
    }
 
    // The next functions add one convenience layer: they take care of instantiating
