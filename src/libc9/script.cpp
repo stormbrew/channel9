@@ -10,6 +10,20 @@
 
 namespace Channel9 { namespace script
 {
+    template <typename tIter>
+    class in_range
+    {
+        tIter begin_, end_;
+        public:
+        in_range(tIter begin, tIter end) : begin_(begin), end_(end) {}
+        tIter begin() { return begin_; }
+        tIter end() { return end_; }
+    };
+    template <typename tIter>
+    in_range<tIter> in(tIter begin, tIter end) { return in_range<tIter>(begin, end); }
+    template <typename tObj>
+    auto reverse_in(tObj &obj) -> in_range<decltype(obj.rbegin())> { return in(obj.rbegin(), obj.rend()); }
+
     namespace compiler
     {
         enum class type {
@@ -57,7 +71,7 @@ namespace Channel9 { namespace script
 
             compiler_state() : current_lexical_level(0) {}
 
-            int64_t find_lexical_level(const std::string &name) { return 0; }
+            int64_t get_lexical_level(const std::string &name);
         };
 
         struct compiler_scope
@@ -73,6 +87,16 @@ namespace Channel9 { namespace script
                 assert(state.scope_stack.back() == this);
                 state.scope_stack.pop_back();
             }
+        };
+
+        struct variable_scope
+        {
+            std::set<node_ptr> lexical_vars;
+            std::set<node_ptr> frame_vars;
+
+            void add_variable(node_ptr variable_decl_node);
+            bool has_lexical(const std::string &name);
+            bool has_frame(const std::string &name);
         };
 
         struct compilable
@@ -237,7 +261,19 @@ namespace Channel9 { namespace script
                 if (name[0] == '$') {
                     stream.add(CHANNEL_SPECIAL, value(std::string(name.begin()+1, name.end())));
                 } else {
-                    stream.add(LOCAL_GET, value(name));
+                    int64_t lexical_level = state.get_lexical_level(name);
+                    if (lexical_level != -1)
+                    {
+                        stream.add(LEXICAL_GET, value(lexical_level), value(name));
+                    }
+                    else if (state.scope_stack.back()->vars.has_frame(name))
+                    {
+                        stream.add(FRAME_GET, value(name));
+                    }
+                    else
+                    {
+                        stream.add(LOCAL_GET, value(name));
+                    }
                 }
             }
         };
@@ -281,8 +317,7 @@ namespace Channel9 { namespace script
                 }
                 else if (type == "lexical")
                 {
-                    int64_t level = state.find_lexical_level(name);
-                    stream.add(LEXICAL_SET, value(level), value(name));
+                    stream.add(LEXICAL_SET, value(int64_t(0)), value(name));
                 }
             }
 
@@ -298,23 +333,40 @@ namespace Channel9 { namespace script
             }
         };
 
-        struct variable_scope
+        void variable_scope::add_variable(node_ptr variable_decl_node)
         {
-            std::set<node_ptr> lexical_vars;
-            std::set<node_ptr> frame_vars;
-
-            void add_variable(node_ptr variable_decl_node)
+            auto &variable_decl = variable_decl_node->get<type::variable_declaration>();
+            if (variable_decl.type == "lexical")
             {
-                auto &variable_decl = variable_decl_node->get<type::variable_declaration>();
-                if (variable_decl.type == "lexical")
+                lexical_vars.insert(variable_decl_node);
+            } else if (variable_decl.type == "frame") {
+                frame_vars.insert(variable_decl_node);
+            }
+        }
+
+        bool variable_scope::has_lexical(const std::string &name)
+        {
+            for (auto var : lexical_vars)
+            {
+                if (var->get<type::variable_declaration>().name == name)
                 {
-                    lexical_vars.insert(variable_decl_node);
-                } else if (variable_decl.type == "frame") {
-                    frame_vars.insert(variable_decl_node);
+                    return true;
                 }
             }
+            return false;
+        }
 
-        };
+        bool variable_scope::has_frame(const std::string &name)
+        {
+            for (auto var : frame_vars)
+            {
+                if (var->get<type::variable_declaration>().name == name)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         template <>
         struct node<type::receiver_block> : public compilable
@@ -556,6 +608,20 @@ namespace Channel9 { namespace script
                 }
             }
             state.scope_stack.push_back(this);
+        }
+
+        int64_t compiler_state::get_lexical_level(const std::string &name)
+        {
+            int64_t last_level = current_lexical_level;
+            for (auto scope : reverse_in(scope_stack))
+            {
+                if (scope->vars.has_lexical(name))
+                {
+                    assert(last_level >= scope->lexical_level);
+                    return last_level - scope->lexical_level;
+                }
+            }
+            return -1;
         }
     }
 
@@ -973,20 +1039,6 @@ namespace Channel9 { namespace script
 
         struct grammar
             : until< ogws<eof>, ifapply< ogws<statement>, add_statement > > {};
-
-        template <typename tIter>
-        class in_range
-        {
-            tIter begin_, end_;
-            public:
-            in_range(tIter begin, tIter end) : begin_(begin), end_(end) {}
-            tIter begin() { return begin_; }
-            tIter end() { return end_; }
-        };
-        template <typename tIter>
-        in_range<tIter> in(tIter begin, tIter end) { return in_range<tIter>(begin, end); }
-        template <typename tObj>
-        auto reverse_in(tObj &obj) -> in_range<decltype(obj.rbegin())> { return in(obj.rbegin(), obj.rend()); }
 
         // parser state management and actions
         struct parser_state
