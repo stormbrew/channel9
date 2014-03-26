@@ -56,6 +56,8 @@ namespace Channel9 { namespace script
             unsigned int current_lexical_level;
 
             compiler_state() : current_lexical_level(0) {}
+
+            int64_t find_lexical_level(const std::string &name) { return 0; }
         };
 
         struct compiler_scope
@@ -263,6 +265,36 @@ namespace Channel9 { namespace script
                     initializer->compiler->pretty_print(out, indent_level);
                 }
             }
+
+            // this is for compiling an assignment that already has the
+            // value placed on the stack. Ie. receiver args.
+            void compile_with_assignment(compiler_state &state, IStream &stream)
+            {
+                if (type == "local")
+                {
+                    stream.add(LOCAL_SET, value(name));
+                }
+                else if (type == "frame")
+                {
+                    stream.add(FRAME_SET, value(name));
+                }
+                else if (type == "lexical")
+                {
+                    int64_t level = state.find_lexical_level(name);
+                    stream.add(LEXICAL_SET, value(level), value(name));
+                }
+            }
+
+            void compile(compiler_state &state, IStream &stream)
+            {
+                if (initializer)
+                {
+                    initializer->compiler->compile(state, stream);
+                } else {
+                    stream.add(PUSH, Undef);
+                }
+                compile_with_assignment(state, stream);
+            }
         };
 
         struct variable_scope
@@ -323,6 +355,13 @@ namespace Channel9 { namespace script
                     out << indent(indent_level) << "- ";
                     statement->compiler->pretty_print(out, indent_level);
                 }
+            }
+
+            void compile(compiler_state &state, IStream &stream)
+            {
+                compiler_scope cscope(state, scope);
+
+                stream.add(PUSH);
             }
         };
 
