@@ -68,8 +68,8 @@ namespace Channel9 { namespace script
         struct compiler_state
         {
             std::vector<compiler_scope*> scope_stack;
-            unsigned int current_lexical_level;
             unsigned int label_counter;
+            unsigned int current_lexical_level;
 
             compiler_state() : label_counter(1), current_lexical_level(0) {}
 
@@ -110,9 +110,11 @@ namespace Channel9 { namespace script
         struct compilable
         {
             virtual void pretty_print(std::ostream &out, unsigned int indent_level) = 0;
-            virtual void compile(compiler_state &state, IStream &stream)
+            virtual void compile(compiler_state &state, IStream &stream, bool leave_on_stack = true)
             {
-                stream.add(PUSH);
+                if (leave_on_stack) {
+                    stream.add(PUSH);
+                }
             } // TODO make = 0 when everything has implemented it.
 
             std::string indent(unsigned int indent_level)
@@ -230,9 +232,11 @@ namespace Channel9 { namespace script
             {
                 out << "\"" << str << "\"" << std::endl;
             }
-            void compile(compiler_state &state, IStream &stream)
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
             {
-                stream.add(PUSH, value(str));
+                if (leave_on_stack) {
+                    stream.add(PUSH, value(str));
+                }
             }
         };
 
@@ -247,9 +251,11 @@ namespace Channel9 { namespace script
             {
                 out << str << std::endl;
             }
-            void compile(compiler_state &state, IStream &stream)
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
             {
-                stream.add(PUSH, value(std::atoll(str.c_str())));
+                if (leave_on_stack) {
+                    stream.add(PUSH, value(std::atoll(str.c_str())));
+                }
             }
         };
 
@@ -264,8 +270,11 @@ namespace Channel9 { namespace script
             {
                 out << "variable: " << name << std::endl;
             }
-            void compile(compiler_state &state, IStream &stream)
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
             {
+                if (!leave_on_stack) {
+                    return; // don't bother fetching the variable
+                }
                 if (name[0] == '$') {
                     stream.add(CHANNEL_SPECIAL, value(std::string(name.begin()+1, name.end())));
                 } else {
@@ -351,15 +360,18 @@ namespace Channel9 { namespace script
                 }
             }
 
-            void compile(compiler_state &state, IStream &stream)
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
             {
                 if (initializer)
                 {
-                    initializer->compiler->compile(state, stream);
-                } else {
+                    initializer->compiler->compile(state, stream, true);
+                    compile_with_assignment(state, stream, leave_on_stack);
+                }
+                else if (leave_on_stack) {
                     stream.add(PUSH, Undef);
                 }
-                compile_with_assignment(state, stream);
+                // if we're not leaving it on the stack and there's no initializer,
+                // we just don't need to do anything.
             }
         };
 
@@ -446,8 +458,14 @@ namespace Channel9 { namespace script
                 }
             }
 
-            void compile(compiler_state &state, IStream &stream)
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
             {
+                if (!leave_on_stack) {
+                    // this may seem extreme, but if we're not leaving this on the stack
+                    // it can just go away. There should be no side-effects of defining
+                    // a channel.
+                    return;
+                }
                 compiler_scope cscope(state, scope);
                 auto prefix = state.prefix("func");
 
@@ -485,10 +503,7 @@ namespace Channel9 { namespace script
                 size_t not_last = statements.size();
                 for (auto statement : statements)
                 {
-                    statement->compiler->compile(state, stream);
-                    if (--not_last) {
-                        stream.add(POP);
-                    }
+                    statement->compiler->compile(state, stream, !(--not_last));
                 }
                 assert(not_last == 0);
 
@@ -577,16 +592,19 @@ namespace Channel9 { namespace script
                     }
                 }
             }
-            void compile(compiler_state &state, IStream &stream)
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
             {
-                receiver->compiler->compile(state, stream);
+                receiver->compiler->compile(state, stream, true);
                 for (auto argument : arguments)
                 {
-                    argument->compiler->compile(state, stream);
+                    argument->compiler->compile(state, stream, true);
                 }
                 stream.add(MESSAGE_NEW, value(name), value(int64_t(0)), value(int64_t(arguments.size())));
                 stream.add(CHANNEL_CALL);
                 stream.add(POP);
+                if (!leave_on_stack) {
+                    stream.add(POP);
+                }
             }
         };
 
@@ -631,16 +649,18 @@ namespace Channel9 { namespace script
                     continuation->compiler->pretty_print(out, indent_level);
                 }
             }
-            void compile(compiler_state &state, IStream &stream)
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
             {
-                receiver->compiler->compile(state, stream);
-                expression->compiler->compile(state, stream);
+                receiver->compiler->compile(state, stream, true);
+                expression->compiler->compile(state, stream, true);
                 stream.add(CHANNEL_CALL);
                 if (continuation)
                 {
-                    // TODO: Implement this properly
-                    stream.add(POP);
+                    continuation->get<type::variable_declaration>().compile_with_assignment(state, stream, false);
                 } else {
+                    stream.add(POP);
+                }
+                if (!leave_on_stack) {
                     stream.add(POP);
                 }
             }
@@ -671,7 +691,7 @@ namespace Channel9 { namespace script
                 }
             }
 
-            void compile(compiler_state &state, IStream &stream)
+            void compile(compiler_state &state, IStream &stream, bool /*no meaning to leave_on_stack*/)
             {
                 compiler_scope cscope(state, scope);
                 stream.set_source_pos(SourcePos(filename, 1, 0, ""));
@@ -681,10 +701,7 @@ namespace Channel9 { namespace script
                 size_t not_last = statements.size();
                 for (auto statement : statements)
                 {
-                    statement->compiler->compile(state, stream);
-                    if (--not_last) {
-                        stream.add(POP);
-                    }
+                    statement->compiler->compile(state, stream, !(--not_last));
                 }
                 assert(not_last == 0);
 
