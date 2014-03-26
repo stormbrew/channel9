@@ -1,5 +1,6 @@
 #include <memory>
 #include <vector>
+#include <sstream>
 
 #include "c9/channel9.hpp"
 #include "c9/instruction.hpp"
@@ -68,10 +69,17 @@ namespace Channel9 { namespace script
         {
             std::vector<compiler_scope*> scope_stack;
             unsigned int current_lexical_level;
+            unsigned int label_counter;
 
-            compiler_state() : current_lexical_level(0) {}
+            compiler_state() : label_counter(1), current_lexical_level(0) {}
 
             int64_t get_lexical_level(const std::string &name);
+            std::string prefix(const std::string &input)
+            {
+                std::stringstream str;
+                str << input << "_" << label_counter++;
+                return str.str();
+            }
         };
 
         struct compiler_scope
@@ -304,9 +312,11 @@ namespace Channel9 { namespace script
 
             // this is for compiling an assignment that already has the
             // value placed on the stack. Ie. receiver args.
-            void compile_with_assignment(compiler_state &state, IStream &stream)
+            void compile_with_assignment(compiler_state &state, IStream &stream, bool leave = true)
             {
-                stream.add(DUP_TOP);
+                if (leave) {
+                    stream.add(DUP_TOP);
+                }
                 if (type == "local")
                 {
                     stream.add(LOCAL_SET, value(name));
@@ -318,6 +328,26 @@ namespace Channel9 { namespace script
                 else if (type == "lexical")
                 {
                     stream.add(LEXICAL_SET, value(int64_t(0)), value(name));
+                }
+            }
+
+            // this is pretty much just for when generating the automatic
+            // return at the end of a receiver.
+            void compile_get(compiler_state &state, IStream &stream)
+            {
+                if (type == "local")
+                {
+                    stream.add(LOCAL_GET, value(name));
+                }
+                else if (type == "frame")
+                {
+                    stream.add(FRAME_GET, value(name));
+                }
+                else if (type == "lexical")
+                {
+                    // Note: if used anywhere else (it shouldn't be),
+                    // this would have to be smarter.
+                    stream.add(LEXICAL_GET, value(int64_t(0)), value(name));
                 }
             }
 
@@ -379,6 +409,12 @@ namespace Channel9 { namespace script
 
             variable_scope scope;
 
+            node()
+            {
+                // create a default return argument.
+                return_arg = make<type::variable_declaration>("local", "return");
+            }
+
             void pretty_print(std::ostream &out, unsigned int indent_level)
             {
                 out << "receiver_block:" << std::endl;
@@ -413,8 +449,59 @@ namespace Channel9 { namespace script
             void compile(compiler_state &state, IStream &stream)
             {
                 compiler_scope cscope(state, scope);
+                auto prefix = state.prefix("func");
 
-                stream.add(PUSH);
+                auto done_label = prefix + ".done",
+                     body_label = prefix + ".body";
+
+                stream.add(JMP, value(done_label));
+                stream.set_label(body_label);
+
+                if (cscope.vars.lexical_vars.size() > 0)
+                {
+                    stream.add(LEXICAL_LINKED_SCOPE);
+                }
+
+                auto &return_arg_decl = return_arg->get<type::variable_declaration>();
+                return_arg_decl.compile_with_assignment(state, stream, false);
+
+                stream.add(MESSAGE_UNPACK,
+                        value(int64_t(arguments.size())),
+                        value(int64_t(0)),
+                        value(int64_t(0)));
+
+                for (auto argument : arguments)
+                {
+                    argument->get<type::variable_declaration>().compile_with_assignment(state, stream, false);
+                }
+
+                if (message_arg)
+                {
+                    message_arg->get<type::variable_declaration>().compile_with_assignment(state, stream, false);
+                } else {
+                    stream.add(POP); // get rid of the message
+                }
+
+                size_t not_last = statements.size();
+                for (auto statement : statements)
+                {
+                    statement->compiler->compile(state, stream);
+                    if (--not_last) {
+                        stream.add(POP);
+                    }
+                }
+                assert(not_last == 0);
+
+                if (statements.size() == 0) {
+                    // empty block needs to return something.
+                    stream.add(PUSH);
+                }
+                return_arg_decl.compile_get(state, stream);
+                stream.add(SWAP);
+                stream.add(CHANNEL_RET);
+
+                stream.set_label(done_label);
+                stream.add(CHANNEL_NEW, value(body_label));
             }
         };
 
@@ -490,7 +577,19 @@ namespace Channel9 { namespace script
                     }
                 }
             }
+            void compile(compiler_state &state, IStream &stream)
+            {
+                receiver->compiler->compile(state, stream);
+                for (auto argument : arguments)
+                {
+                    argument->compiler->compile(state, stream);
+                }
+                stream.add(MESSAGE_NEW, value(name), value(int64_t(0)), value(int64_t(arguments.size())));
+                stream.add(CHANNEL_CALL);
+                stream.add(POP);
+            }
         };
+
         template <>
         struct node<type::return_send> : public compilable
         {
