@@ -270,6 +270,7 @@ namespace Channel9 { namespace script
             // value placed on the stack. Ie. receiver args.
             void compile_with_assignment(compiler_state &state, IStream &stream)
             {
+                stream.add(DUP_TOP);
                 if (type == "local")
                 {
                     stream.add(LOCAL_SET, value(name));
