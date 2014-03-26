@@ -1,9 +1,9 @@
 librb.so
-kernel/alpha/basic_hash.c9s.c9b
-kernel/alpha/object.c9s.c9b
-kernel/alpha/class.c9s.c9b
-kernel/alpha/module.c9s.c9b
-kernel/alpha/finish.c9s.c9b
+kernel/alpha/basic_hash.c9s
+kernel/alpha/object.c9s
+kernel/alpha/class.c9s
+kernel/alpha/module.c9s
+kernel/alpha/finish.c9s
 kernel/beta/singletons.rb.c9b
 kernel/beta/module.rb.c9b
 kernel/beta/string.rb.c9b

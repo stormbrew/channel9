@@ -14,21 +14,6 @@ add_library(rb SHARED
 )
 target_link_libraries(rb libc9 ${RUBY_LIBRARY} ${ONIGURUMA_LIBRARIES} ${LIBFFI_LDFLAGS})
 
-add_custom_command(
-    OUTPUT ${LIBRARY_OUTPUT_PATH}/rb.c9l
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/rb.c9l ${LIBRARY_OUTPUT_PATH}/rb.c9l
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/rb.c9l
-)
-add_custom_target(rb-pkg-c9l ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/rb.c9l)
-
-add_c9script(${CMAKE_CURRENT_SOURCE_DIR}/environment ${LIBRARY_OUTPUT_PATH} kernel/alpha rb-pkg-alpha
-	basic_hash.c9s
-	object.c9s
-	class.c9s
-	module.c9s
-	finish.c9s
-)
-
 function(add_compiled_ruby SRC DST COMMON_PATH TARGET_PREFIX) # extra args are script names.
 	foreach(FILE ${ARGN})
 		add_custom_command(
