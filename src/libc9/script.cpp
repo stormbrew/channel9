@@ -35,6 +35,9 @@ namespace Channel9 { namespace script
             tuple,
             variable,
 
+            // singletons (nil, undef, true, false)
+            singleton,
+
             // function calls
             message_send,
             return_send,
@@ -77,7 +80,7 @@ namespace Channel9 { namespace script
             std::string prefix(const std::string &input)
             {
                 std::stringstream str;
-                str << input << "_" << label_counter++;
+                str << input << "_" << label_counter++ << ".";
                 return str.str();
             }
         };
@@ -255,6 +258,25 @@ namespace Channel9 { namespace script
             {
                 if (leave_on_stack) {
                     stream.add(PUSH, value(std::atoll(str.c_str())));
+                }
+            }
+        };
+
+        template <>
+        struct node<type::singleton> : public compilable
+        {
+            Value val;
+
+            node(const Value &val) : val(val) {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << to_json(val) << std::endl;
+            }
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                if (leave_on_stack) {
+                    stream.add(PUSH, val);
                 }
             }
         };
@@ -469,8 +491,8 @@ namespace Channel9 { namespace script
                 compiler_scope cscope(state, scope);
                 auto prefix = state.prefix("func");
 
-                auto done_label = prefix + ".done",
-                     body_label = prefix + ".body";
+                auto done_label = prefix + "done",
+                     body_label = prefix + "body";
 
                 stream.add(JMP, value(done_label));
                 stream.set_label(body_label);
@@ -535,6 +557,20 @@ namespace Channel9 { namespace script
                     statement->compiler->pretty_print(out, indent_level);
                 }
             }
+
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                size_t not_last = statements.size();
+                for (auto statement : statements)
+                {
+                    statement->compiler->compile(state, stream, --not_last == 0 && leave_on_stack);
+                }
+                assert(not_last == 0);
+
+                if (leave_on_stack && statements.size() == 0) {
+                    stream.add(PUSH);
+                }
+            }
         };
         template <>
         struct node<type::if_block> : public compilable
@@ -563,6 +599,37 @@ namespace Channel9 { namespace script
                     out << indent(indent_level);
                     else_block->compiler->pretty_print(out, indent_level);
                 }
+            }
+
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                auto prefix = state.prefix("if");
+                auto done_label = prefix + "done",
+                     else_label = prefix + "else";
+
+                condition->compiler->compile(state, stream, true);
+                stream.add(JMP_IF_NOT, value(else_label));
+
+                size_t not_last = statements.size();
+                for (auto statement : statements)
+                {
+                    statement->compiler->compile(state, stream, !(--not_last) && leave_on_stack);
+                }
+                assert(not_last == 0);
+
+                if (leave_on_stack && statements.size() == 0) {
+                    // empty block needs to return something.
+                    stream.add(PUSH);
+                }
+                stream.add(JMP, value(done_label));
+
+                stream.set_label(else_label);
+                if (else_block) {
+                    else_block->compiler->compile(state, stream, leave_on_stack);
+                } else if (leave_on_stack) {
+                    stream.add(PUSH);
+                }
+                stream.set_label(done_label);
             }
         };
         template <>
@@ -758,6 +825,7 @@ namespace Channel9 { namespace script
         struct add_literal;
         struct add_variable;
         struct add_statement;
+        struct add_singleton;
 
         struct start_variable_declaration;
         struct add_simple_variable_declaration;
@@ -1049,7 +1117,7 @@ namespace Channel9 { namespace script
             : ifmust<rep2<1,2, one<'@'>>, string_val> {};
 
         struct singleton_val
-            : sor<nil, true_, false_, undefined> {};
+            : ifapply< sor<nil, true_, false_, undefined>, add_singleton > {};
 
         struct const_val
             : sor<
@@ -1248,6 +1316,30 @@ namespace Channel9 { namespace script
             static void apply(const std::string &str, parser_state &state)
             {
                 state.push(compiler::make<tLiteralType>(str));
+            }
+        };
+        struct add_singleton : action_base<add_singleton>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                Value val;
+                if (str == "nil")
+                {
+                    val = Nil;
+                }
+                else if (str == "false")
+                {
+                    val = False;
+                }
+                else if (str == "true")
+                {
+                    val = True;
+                }
+                else if (str == "undef")
+                {
+                    val = Undef;
+                }
+                state.push(compiler::make<type::singleton>(val));
             }
         };
 
