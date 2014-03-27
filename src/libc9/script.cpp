@@ -116,12 +116,7 @@ namespace Channel9 { namespace script
         struct compilable
         {
             virtual void pretty_print(std::ostream &out, unsigned int indent_level) = 0;
-            virtual void compile(compiler_state &state, IStream &stream, bool leave_on_stack = true)
-            {
-                if (leave_on_stack) {
-                    stream.add(PUSH);
-                }
-            } // TODO make = 0 when everything has implemented it.
+            virtual void compile(compiler_state &state, IStream &stream, bool leave_on_stack = true) = 0;
 
             std::string indent(unsigned int indent_level)
             {
@@ -636,6 +631,67 @@ namespace Channel9 { namespace script
             }
         };
         template <>
+        struct node<type::while_block> : public compilable
+        {
+            node_ptr condition;
+            std::vector<node_ptr> statements;
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "while_block:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "condition: ";
+                condition->compiler->pretty_print(out, indent_level);
+
+                out << indent(indent_level) << "body:" << std::endl;
+                indent_level++;
+                for (auto statement : statements)
+                {
+                    out << indent(indent_level) << "- ";
+                    statement->compiler->pretty_print(out, indent_level);
+                }
+            }
+
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                auto prefix = state.prefix("while");
+                auto done_label = prefix + "done",
+                     start_label = prefix + "start";
+
+                if (leave_on_stack)
+                {
+                    // this makes it so that if we're leaving the result
+                    // of the last iteration on the stack, the first
+                    // iteration has something to pop off.
+                    stream.add(PUSH);
+                }
+                stream.set_label(start_label);
+                condition->compiler->compile(state, stream, true);
+                stream.add(JMP_IF_NOT, value(done_label));
+                if (leave_on_stack)
+                {
+                    // pop off the result of the last iteration, only
+                    // the final one leaves something behind.
+                    stream.add(POP);
+                }
+
+                size_t not_last = statements.size();
+                for (auto statement : statements)
+                {
+                    statement->compiler->compile(state, stream, !(--not_last) && leave_on_stack);
+                }
+                assert(not_last == 0);
+
+                if (leave_on_stack && statements.size() == 0) {
+                    // empty block needs to return something.
+                    stream.add(PUSH);
+                }
+
+                stream.add(JMP, value(start_label));
+                stream.set_label(done_label);
+            }
+        };
+        template <>
         struct node<type::equality_op> : public compilable
         {
             node_ptr lhs;
@@ -1060,8 +1116,8 @@ namespace Channel9 { namespace script
         // }
         struct while_expr
             : ifmust<
-                while_,
-                ogws<one<'('>>, ogws<expression>, ogws<one<')'>>,
+                ifapply< while_, start<type::while_block> >,
+                ogws<one<'('>>, ifapply< ogws<expression>, add_condition >, ogws<one<')'>>,
                 ogws<code_block>
             > {};
 
@@ -1415,17 +1471,23 @@ namespace Channel9 { namespace script
                 if (auto script = into->when<type::script_file>()) {
                     script->statements.push_back(expr);
                 }
-                if (auto variable_decl = into->when<type::variable_declaration>()) {
+                else if (auto variable_decl = into->when<type::variable_declaration>()) {
                     variable_decl->initializer = expr;
                 }
-                if (auto receiver = into->when<type::receiver_block>()) {
+                else if (auto receiver = into->when<type::receiver_block>()) {
                     receiver->statements.push_back(expr);
                 }
-                if (auto if_block = into->when<type::if_block>()) {
+                else if (auto if_block = into->when<type::if_block>()) {
                     if_block->statements.push_back(expr);
                 }
-                if (auto else_block = into->when<type::else_block>()) {
+                else if (auto else_block = into->when<type::else_block>()) {
                     else_block->statements.push_back(expr);
+                }
+                else if (auto while_block = into->when<type::while_block>()) {
+                    while_block->statements.push_back(expr);
+                }
+                else {
+                    throw "add_statement called on unknown block type.";
                 }
             }
         };
@@ -1439,6 +1501,12 @@ namespace Channel9 { namespace script
 
                 if (auto if_block = into->when<type::if_block>()) {
                     if_block->condition = expr;
+                }
+                else if (auto while_block = into->when<type::while_block>()) {
+                    while_block->condition = expr;
+                }
+                else {
+                    throw "add_condition called on unknown block type.";
                 }
             }
         };
