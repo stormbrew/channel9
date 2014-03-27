@@ -6,6 +6,7 @@
 #include "c9/instruction.hpp"
 #include "c9/istream.hpp"
 #include "c9/script.hpp"
+#include "c9/message.hpp"
 #include "pegtl.hh"
 #include "json/json.h"
 
@@ -34,6 +35,8 @@ namespace Channel9 { namespace script
             string,
             tuple,
             variable,
+            message_id,
+            protocol_id,
 
             // singletons (nil, undef, true, false)
             singleton,
@@ -260,6 +263,45 @@ namespace Channel9 { namespace script
                 }
             }
         };
+
+        template <>
+        struct node<type::message_id> : public compilable
+        {
+            std::string str;
+
+            node(const std::string &str) : str(str) {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "message_id: \"" << str << "\"" << std::endl;
+            }
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                if (leave_on_stack) {
+                    stream.add(PUSH, value(int64_t(make_message_id(str))));
+                }
+            }
+        };
+
+        template <>
+        struct node<type::protocol_id> : public compilable
+        {
+            std::string str;
+
+            node(const std::string &str) : str(str) {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "protocol_id: \"" << str << "\"" << std::endl;
+            }
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                if (leave_on_stack) {
+                    stream.add(PUSH, value(int64_t(make_protocol_id(str))));
+                }
+            }
+        };
+
 
         template <>
         struct node<type::singleton> : public compilable
@@ -739,6 +781,14 @@ namespace Channel9 { namespace script
             else if (auto singleton = node->when<type::singleton>())
             {
                 return singleton->val;
+            }
+            else if (auto message_id = node->when<type::message_id>())
+            {
+                return value(int64_t(make_message_id(message_id->str)));
+            }
+            else if (auto protocol_id = node->when<type::protocol_id>())
+            {
+                return value(int64_t(make_protocol_id(protocol_id->str)));
             }
             else
             {
@@ -1450,10 +1500,24 @@ namespace Channel9 { namespace script
             > {};
 
         // @"blah" -- message id
-        // @@"blah" -- protocol id
         struct message_id_val
-            : ifmust<rep2<1,2, one<'@'>>, string_val> {};
+            : ifmust<seq<one<'@'>,not_at<one<'@'>>>,
+                sor<
+                    enclose< one<'"'>, any, one<'"'>, add_literal<type::message_id> >,
+                    enclose< one<'\''>, any, one<'\''>, add_literal<type::message_id> >
+                >
+            > {};
 
+        // @@"blah" -- protocol id
+        struct protocol_id_val
+            : ifmust<string<'@','@'>,
+                sor<
+                    enclose< one<'"'>, any, one<'"'>, add_literal<type::protocol_id> >,
+                    enclose< one<'\''>, any, one<'\''>, add_literal<type::protocol_id> >
+                >
+            > {};
+
+        // nil, true, false, or undef.
         struct singleton_val
             : ifapply< sor<nil, true_, false_, undefined>, add_singleton > {};
 
@@ -1462,6 +1526,7 @@ namespace Channel9 { namespace script
                 singleton_val,
                 string_val,
                 numeric_val,
+                protocol_id_val,
                 message_id_val
             > {};
 
@@ -1508,6 +1573,7 @@ namespace Channel9 { namespace script
                     numeric_val,
                     string_val,
                     tuple_val,
+                    protocol_id_val,
                     message_id_val
                 >,
                 star<
