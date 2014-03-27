@@ -1906,7 +1906,7 @@ namespace Channel9 { namespace script
                 auto val_node = state.pop();
                 auto &block = state.stack.back()->get<type::bytecode_block>();
 
-                Value val = Nil;
+                Value val = compiler::const_node_value(val_node);
 
                 block.instructions.back().args[tArgNum] = val;
             }
