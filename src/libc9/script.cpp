@@ -477,6 +477,52 @@ namespace Channel9 { namespace script
         }
 
         template <>
+        struct node<type::bytecode_block> : public compilable
+        {
+            std::vector<node_ptr> arguments;
+            std::vector<Instruction> instructions;
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "bytecode:" << std::endl;
+                indent_level++;
+                if (arguments.size() > 0)
+                {
+                    out << indent(indent_level) << "arguments:" << std::endl;
+                    indent_level++;
+                    for (auto &argument : arguments)
+                    {
+                        out << indent(indent_level) << "- ";
+                        argument->compiler->pretty_print(out, indent_level);
+                    }
+                    indent_level--;
+                }
+                out << indent(indent_level) << "instructions:" << std::endl;
+                indent_level++;
+                for (auto &instruction : instructions)
+                {
+                    out << indent(indent_level) << "- " << to_json(instruction) << std::endl;
+                }
+            }
+
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                for (auto &argument : arguments)
+                {
+                    argument->compiler->compile(state, stream, true);
+                }
+                for (auto &instruction : instructions)
+                {
+                    stream.add(instruction);
+                }
+                if (!leave_on_stack)
+                {
+                    stream.add(POP);
+                }
+            }
+        };
+
+        template <>
         struct node<type::receiver_block> : public compilable
         {
             std::vector<node_ptr> arguments;
@@ -1005,6 +1051,10 @@ namespace Channel9 { namespace script
         struct add_else;
         struct add_condition;
 
+        struct add_instruction;
+        template <size_t tArgNum>
+        struct add_instruction_arg;
+
         // terminals (more or less)
         struct line_comment
             : ifmust< sor< one<'#'>, string<'/','/'> >, until< at<eol>, any > > {};
@@ -1299,18 +1349,18 @@ namespace Channel9 { namespace script
         // }
         struct bytecode_statement
             : ifmust<
-                identifier,
-                opt<ws<const_val>>,
-                opt<ws<const_val>>,
-                opt<ws<const_val>>,
+                ifapply<identifier, add_instruction>,
+                opt<ifapply<ws<const_val>, add_instruction_arg<0> > >,
+                opt<ifapply<ws<const_val>, add_instruction_arg<1> > >,
+                opt<ifapply<ws<const_val>, add_instruction_arg<2> > >,
                 ows< sor<eol, eof, at<close_block> > >
             > {};
 
         struct bytecode_val
             : ifmust<
-                bytecode,
+                ifapply< bytecode, start<type::bytecode_block> >,
                 ogws<one<'('>>,
-                    opt< list< ogws<expression>, ogws<one<','>> > >,
+                    opt< list< ifapply< ogws<expression>, add_arg >, ogws<one<','>> > >,
                 ogws<one<')'>>,
                 ogws<open_block>,
                 plus<ogws<bytecode_statement>>,
@@ -1664,6 +1714,9 @@ namespace Channel9 { namespace script
                 else if (auto assignment_op = into->when<type::assignment_op>()) {
                     assignment_op->rhs = arg;
                 }
+                else if (auto bytecode_block = into->when<type::bytecode_block>()) {
+                    bytecode_block->arguments.push_back(arg);
+                }
                 else {
                     throw "add_arg called on invalid parent type.";
                 }
@@ -1679,6 +1732,28 @@ namespace Channel9 { namespace script
                 if (auto receiver = into->when<type::receiver_block>()) {
                     receiver->message_arg = arg;
                 }
+            }
+        };
+
+        struct add_instruction : action_base<add_instruction>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                auto &block = state.stack.back()->get<type::bytecode_block>();
+                block.instructions.push_back(Instruction {inum(str), {0}});
+            }
+        };
+        template <size_t tArgNum>
+        struct add_instruction_arg : action_base<add_instruction_arg<tArgNum>>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                auto val_node = state.pop();
+                auto &block = state.stack.back()->get<type::bytecode_block>();
+
+                Value val = Nil;
+
+                block.instructions.back().args[tArgNum] = val;
             }
         };
 
