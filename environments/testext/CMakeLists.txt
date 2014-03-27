@@ -12,6 +12,6 @@ add_custom_command(
 )
 add_custom_target(testext-pkg-c9l ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/testext.c9l)
 
-add_c9script(${CMAKE_CURRENT_SOURCE_DIR} ${LIBRARY_OUTPUT_PATH} . pkg-testext testext.c9s)
+copy_script_files(${CMAKE_CURRENT_SOURCE_DIR} ${LIBRARY_OUTPUT_PATH} . pkg-testext testext.c9s)
 
 add_c9_alias(testext)

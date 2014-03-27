@@ -14,17 +14,6 @@ add_library(rb SHARED
 )
 target_link_libraries(rb libc9 ${RUBY_LIBRARY} ${ONIGURUMA_LIBRARIES} ${LIBFFI_LDFLAGS})
 
-function(copy_script_files SRC DST COMMON_PATH TARGET_PREFIX) # extra args are script names.
-	foreach(FILE ${ARGN})
-		add_custom_command(
-			OUTPUT ${DST}/${COMMON_PATH}/${FILE}
-			COMMAND ${CMAKE_COMMAND} -E copy ${SRC}/${COMMON_PATH}/${FILE} ${DST}/${COMMON_PATH}/${FILE}
-			DEPENDS ${SRC}/${COMMON_PATH}/${FILE}
-		)
-		add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE})
-	endforeach()
-endfunction()
-
 copy_script_files(${CMAKE_CURRENT_SOURCE_DIR}/environment ${LIBRARY_OUTPUT_PATH} kernel/alpha rb-pkg-alpha
 	basic_hash.c9s
 	object.c9s
@@ -47,7 +36,7 @@ function(add_compiled_ruby SRC DST COMMON_PATH TARGET_PREFIX) # extra args are s
 			COMMAND ${RUBY_EXECUTABLE} -rubygems -I${CMAKE_SOURCE_DIR}/ruby/lib -I${CMAKE_CURRENT_SOURCE_DIR}/lib ${CMAKE_CURRENT_SOURCE_DIR}/bin/c9c.rb ${SRC}/${COMMON_PATH}/${FILE} ${DST}/${COMMON_PATH}/${FILE}.c9b
 			DEPENDS ${SRC}/${COMMON_PATH}/${FILE}
 		)
-		add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE}.c9b)
+		add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE}.c9b bundle-install)
 	endforeach()
 endfunction()
 

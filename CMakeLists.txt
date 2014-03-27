@@ -76,14 +76,14 @@ add_subdirectory(src/libc9)
 add_subdirectory(src/jsoncpp)
 add_subdirectory(src/c9)
 
-function(add_c9script SRC DST COMMON_PATH TARGET_PREFIX) # extra args are script names.
+function(copy_script_files SRC DST COMMON_PATH TARGET_PREFIX) # extra args are script names.
     foreach(FILE ${ARGN})
         add_custom_command(
-            OUTPUT ${DST}/${COMMON_PATH}/${FILE}.c9b
-            COMMAND ${RUBY_EXECUTABLE} -rubygems -I${CMAKE_SOURCE_DIR}/ruby/lib ${CMAKE_SOURCE_DIR}/bin/c9c ${SRC}/${COMMON_PATH}/${FILE} ${DST}/${COMMON_PATH}/${FILE}.c9b
+            OUTPUT ${DST}/${COMMON_PATH}/${FILE}
+            COMMAND ${CMAKE_COMMAND} -E copy ${SRC}/${COMMON_PATH}/${FILE} ${DST}/${COMMON_PATH}/${FILE}
             DEPENDS ${SRC}/${COMMON_PATH}/${FILE}
         )
-        add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE}.c9b bundle-install)
+        add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE})
     endforeach()
 endfunction()
 
