@@ -79,9 +79,8 @@ namespace Channel9 { namespace script
         {
             std::vector<compiler_scope*> scope_stack;
             unsigned int label_counter;
-            unsigned int current_lexical_level;
 
-            compiler_state() : label_counter(1), current_lexical_level(0) {}
+            compiler_state() : label_counter(1) {}
 
             int64_t get_lexical_level(const std::string &name);
             std::string prefix(const std::string &input)
@@ -1175,9 +1174,13 @@ namespace Channel9 { namespace script
 
         int64_t compiler_state::get_lexical_level(const std::string &name)
         {
-            int64_t last_level = current_lexical_level;
+            int64_t last_level = -1;
             for (auto scope : reverse_in(scope_stack))
             {
+                if (last_level == -1)
+                {
+                    last_level = scope->lexical_level;
+                }
                 if (scope->vars.has_lexical(name))
                 {
                     assert(last_level >= scope->lexical_level);
