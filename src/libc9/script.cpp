@@ -83,6 +83,7 @@ namespace Channel9 { namespace script
             compiler_state() : label_counter(1) {}
 
             int64_t get_lexical_level(const std::string &name);
+            bool has_frame_var(const std::string &name);
             std::string prefix(const std::string &input)
             {
                 std::stringstream str;
@@ -392,7 +393,7 @@ namespace Channel9 { namespace script
                 {
                     type = "lexical";
                 }
-                else if (state.scope_stack.back()->vars.has_frame(name)) {
+                else if (state.has_frame_var(name)) {
                     type = "frame";
                 }
                 compile_with_assignment(state, stream, type, lexical_level, leave);
@@ -408,7 +409,7 @@ namespace Channel9 { namespace script
                     {
                         stream.add(LEXICAL_GET, value(lexical_level), value(name));
                     }
-                    else if (state.scope_stack.back()->vars.has_frame(name))
+                    else if (state.has_frame_var(name))
                     {
                         stream.add(FRAME_GET, value(name));
                     }
@@ -1217,6 +1218,17 @@ namespace Channel9 { namespace script
                 }
             }
             return -1;
+        }
+        bool compiler_state::has_frame_var(const std::string &name)
+        {
+            for (auto scope : reverse_in(scope_stack))
+            {
+                if (scope->vars.has_frame(name))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
