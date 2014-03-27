@@ -1148,7 +1148,7 @@ namespace Channel9 { namespace script
                 ifapply< if_, start<type::if_block> >,
                 ogws<one<'('>>, ifapply< ogws<expression>, add_condition >, ogws<one<')'>>,
                 ogws<code_block>,
-                ogws<ifapply< else_expr, add_else >>
+                opt< ogws<ifapply< else_expr, add_else >> >
             > {};
         struct else_expr
             : ifmust<
