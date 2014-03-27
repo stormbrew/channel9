@@ -1004,11 +1004,11 @@ namespace Channel9 { namespace script
         struct product_op
             : one<'*','/','%'> {};
         struct sum_op
-            : one<'+','-'> {};
+            : seq< one<'+','-'>, not_at<one<'>'>> > {};
         struct bitshift_op
             : sor< rep<2, one<'<'>>, rep<2, one<'>'>> > {};
         struct relational_op
-            : seq< one<'<','>'>, opt< one<'='> > > {};
+            : seq< one<'<','>'>, sor< not_at<one<'-'>>, one<'='> > > {};
         struct equality_op
             : seq< one<'=','!'>, one<'='> > {};
         struct bitwise_op
@@ -1331,25 +1331,25 @@ namespace Channel9 { namespace script
         struct basic_op_expr
             : seq<tNext, star< ifmust< ows< ifapply< tOp, tAction > >, ifapply< ogws<tNext>, add_arg > > > > {};
 
-        struct send_op_expr // send has the extra continuation definition.
-            : seq<
-                value,
-                star<
-                    ifmust<
-                        ifapply< ows<send_op>, add_message_send >,
-                        ifapply< ogws<value>, add_receiver >,
-                        opt< ows<one<':'>>, ogws<declare_arg_var<add_cont>>>
-                    >
-                >
-            > {};
-        struct return_op_expr    : basic_op_expr< send_op_expr, return_op, add_return_send > {};
-        struct product_op_expr   : basic_op_expr< return_op_expr, seq< product_op, not_at<one<'='>> > > {};
+        struct product_op_expr   : basic_op_expr< value, seq< product_op, not_at<one<'='>> > > {};
         struct sum_op_expr       : basic_op_expr< product_op_expr, seq< sum_op, not_at<one<'='>> > > {};
         struct bitshift_op_expr  : basic_op_expr< sum_op_expr, seq< bitshift_op, not_at<one<'='>> > > {};
         struct relational_op_expr: basic_op_expr< bitshift_op_expr, relational_op > {};
         struct equality_op_expr  : basic_op_expr< relational_op_expr, equality_op, add_equality_op > {};
         struct bitwise_op_expr   : basic_op_expr< equality_op_expr, seq< bitwise_op, not_at<one<'='>> > > {};
-        struct logical_op_expr   : basic_op_expr< bitwise_op_expr, logical_op > {};
+        struct send_op_expr // send has the extra continuation definition.
+            : seq<
+                bitwise_op_expr,
+                star<
+                    ifmust<
+                        ifapply< ows<send_op>, add_message_send >,
+                        ifapply< ogws<bitwise_op_expr>, add_receiver >,
+                        opt< ows<one<':'>>, ogws<declare_arg_var<add_cont>>>
+                    >
+                >
+            > {};
+        struct return_op_expr    : basic_op_expr< send_op_expr, return_op, add_return_send > {};
+        struct logical_op_expr   : basic_op_expr< return_op_expr, logical_op > {};
         struct assignment_op_expr: basic_op_expr< logical_op_expr, assignment_op, add_assignment_op > {};
         struct op_expr
             : assignment_op_expr {};
