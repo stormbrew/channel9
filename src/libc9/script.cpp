@@ -536,14 +536,17 @@ namespace Channel9 { namespace script
                 auto &return_arg_decl = return_arg->get<type::variable_declaration>();
                 return_arg_decl.compile_with_assignment(state, stream, false);
 
-                stream.add(MESSAGE_UNPACK,
-                        value(int64_t(arguments.size())),
-                        value(int64_t(0)),
-                        value(int64_t(0)));
-
-                for (auto argument : arguments)
+                if (arguments.size() > 0)
                 {
-                    argument->get<type::variable_declaration>().compile_with_assignment(state, stream, false);
+                    stream.add(MESSAGE_UNPACK,
+                            value(int64_t(arguments.size())),
+                            value(int64_t(0)),
+                            value(int64_t(0)));
+
+                    for (auto argument : arguments)
+                    {
+                        argument->get<type::variable_declaration>().compile_with_assignment(state, stream, false);
+                    }
                 }
 
                 if (message_arg)
