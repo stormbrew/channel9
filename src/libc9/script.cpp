@@ -2052,13 +2052,13 @@ namespace Channel9 { namespace script
                 throw "Parse stack error.";
             }
 
-            state.root->compiler->pretty_print(std::cout, 0);
+            //state.root->compiler->pretty_print(std::cout, 0);
 
             compiler::compiler_state compiler_state;
             state.root->compiler->compile(compiler_state, stream);
 
-            Json::StyledWriter writer;
-            std::cout << writer.write(to_json(stream)) << std::endl;
+            /*Json::StyledWriter writer;
+            std::cout << writer.write(to_json(stream)) << std::endl;*/
         }
     }
 }}
