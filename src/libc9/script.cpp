@@ -364,7 +364,7 @@ namespace Channel9 { namespace script
                     type = "lexical";
                 }
                 else if (state.scope_stack.back()->vars.has_frame(name)) {
-                    type = "lexical";
+                    type = "frame";
                 }
                 compile_with_assignment(state, stream, type, lexical_level, leave);
             }
