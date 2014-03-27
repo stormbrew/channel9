@@ -1631,22 +1631,22 @@ namespace Channel9 { namespace script
         struct relational_op_expr: basic_op_expr< bitshift_op_expr, relational_op > {};
         struct equality_op_expr  : basic_op_expr< relational_op_expr, equality_op, add_equality_op > {};
         struct bitwise_op_expr   : basic_op_expr< equality_op_expr, seq< bitwise_op, not_at<one<'='>> > > {};
+        struct logical_op_expr   : basic_op_expr< bitwise_op_expr, logical_op > {};
+        struct assignment_op_expr: basic_op_expr< logical_op_expr, assignment_op, add_assignment_op > {};
         struct send_op_expr // send has the extra continuation definition.
             : seq<
-                bitwise_op_expr,
+                assignment_op_expr,
                 star<
                     ifmust<
                         ifapply< ows<send_op>, add_message_send >,
-                        ifapply< ogws<bitwise_op_expr>, add_receiver >,
+                        ifapply< ogws<assignment_op_expr>, add_receiver >,
                         opt< ows<one<':'>>, ogws<declare_arg_var<add_cont>>>
                     >
                 >
             > {};
         struct return_op_expr    : basic_op_expr< send_op_expr, return_op, add_return_send > {};
-        struct logical_op_expr   : basic_op_expr< return_op_expr, logical_op > {};
-        struct assignment_op_expr: basic_op_expr< logical_op_expr, assignment_op, add_assignment_op > {};
         struct op_expr
-            : assignment_op_expr {};
+            : return_op_expr {};
 
         struct expression
             : sor<
