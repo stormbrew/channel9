@@ -43,6 +43,9 @@ namespace Channel9 { namespace script
             return_send,
             method_send,
 
+            // raw operators
+            equality_op,
+
             // complex values
             bytecode_block,
             receiver_block,
@@ -633,6 +636,47 @@ namespace Channel9 { namespace script
             }
         };
         template <>
+        struct node<type::equality_op> : public compilable
+        {
+            node_ptr lhs;
+            std::string op;
+            node_ptr rhs;
+
+            node(node_ptr lhs, const std::string &op) : lhs(lhs), op(op) {};
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "equality_op:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "op: " << op << std::endl;
+                out << indent(indent_level) << "lhs: ";
+                lhs->compiler->pretty_print(out, indent_level);
+                out << indent(indent_level) << "rhs:";
+                rhs->compiler->pretty_print(out, indent_level);
+            }
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                lhs->compiler->compile(state, stream, true);
+                rhs->compiler->compile(state, stream, true);
+                if (op == "==")
+                {
+                    stream.add(IS_EQ);
+                }
+                else if (op == "!=")
+                {
+                    stream.add(IS_NOT_EQ);
+                }
+                else
+                {
+                    throw "Invalid operator.";
+                }
+                if (!leave_on_stack) {
+                    stream.add(POP);
+                }
+            }
+        };
+
+        template <>
         struct node<type::method_send> : public compilable
         {
             node_ptr receiver;
@@ -691,6 +735,12 @@ namespace Channel9 { namespace script
                 receiver->compiler->pretty_print(out, indent_level);
                 out << indent(indent_level) << "expression: ";
                 expression->compiler->pretty_print(out, indent_level);
+            }
+            void compile(compiler_state &state, IStream &stream, bool /*leave_on_stack doesn't make sense, never returns*/)
+            {
+                receiver->compiler->compile(state, stream, true);
+                expression->compiler->compile(state, stream, true);
+                stream.add(CHANNEL_RET);
             }
         };
         template <>
@@ -839,6 +889,8 @@ namespace Channel9 { namespace script
         struct add_return_send;
         struct add_method_send;
         struct add_func_method_send; // method with no name
+
+        struct add_equality_op;
 
         struct add_message_send;
         struct add_receiver;
@@ -1205,7 +1257,7 @@ namespace Channel9 { namespace script
         struct sum_op_expr       : basic_op_expr< product_op_expr, seq< sum_op, not_at<one<'='>> > > {};
         struct bitshift_op_expr  : basic_op_expr< sum_op_expr, seq< bitshift_op, not_at<one<'='>> > > {};
         struct relational_op_expr: basic_op_expr< bitshift_op_expr, relational_op > {};
-        struct equality_op_expr  : basic_op_expr< relational_op_expr, equality_op > {};
+        struct equality_op_expr  : basic_op_expr< relational_op_expr, equality_op, add_equality_op > {};
         struct bitwise_op_expr   : basic_op_expr< equality_op_expr, seq< bitwise_op, not_at<one<'='>> > > {};
         struct logical_op_expr   : basic_op_expr< bitwise_op_expr, logical_op > {};
         struct assignment_op_expr: basic_op_expr< logical_op_expr, assignment_op > {};
@@ -1404,6 +1456,15 @@ namespace Channel9 { namespace script
             }
         };
 
+        struct add_equality_op : action_base<add_equality_op>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr lhs = state.pop();
+                state.push(compiler::make<type::equality_op>(lhs, str));
+            }
+        };
+
         struct add_message_send : action_base<add_message_send>
         {
             static void apply(const std::string &str, parser_state &state)
@@ -1464,11 +1525,17 @@ namespace Channel9 { namespace script
                 if (auto method_send = into->when<type::method_send>()) {
                     method_send->arguments.push_back(arg);
                 }
-                if (auto receiver = into->when<type::receiver_block>()) {
+                else if (auto receiver = into->when<type::receiver_block>()) {
                     receiver->arguments.push_back(arg);
                 }
-                if (auto return_send = into->when<type::return_send>()) {
+                else if (auto return_send = into->when<type::return_send>()) {
                     return_send->expression = arg;
+                }
+                else if (auto equality_op = into->when<type::equality_op>()) {
+                    equality_op->rhs = arg;
+                }
+                else {
+                    throw "add_arg called on invalid parent type.";
                 }
             }
         };
