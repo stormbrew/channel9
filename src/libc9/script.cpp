@@ -45,6 +45,7 @@ namespace Channel9 { namespace script
 
             // raw operators
             equality_op,
+            assignment_op,
 
             // complex values
             bytecode_block,
@@ -290,58 +291,10 @@ namespace Channel9 { namespace script
             {
                 out << "variable: " << name << std::endl;
             }
-            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
-            {
-                if (!leave_on_stack) {
-                    return; // don't bother fetching the variable
-                }
-                if (name[0] == '$') {
-                    stream.add(CHANNEL_SPECIAL, value(std::string(name.begin()+1, name.end())));
-                } else {
-                    int64_t lexical_level = state.get_lexical_level(name);
-                    if (lexical_level != -1)
-                    {
-                        stream.add(LEXICAL_GET, value(lexical_level), value(name));
-                    }
-                    else if (state.scope_stack.back()->vars.has_frame(name))
-                    {
-                        stream.add(FRAME_GET, value(name));
-                    }
-                    else
-                    {
-                        stream.add(LOCAL_GET, value(name));
-                    }
-                }
-            }
-        };
-
-        template <>
-        struct node<type::variable_declaration> : public compilable
-        {
-            std::string type;
-            std::string name;
-            node_ptr initializer;
-
-            node(const std::string &type, const std::string &name)
-                : type(type), name(name)
-            {}
-
-            void pretty_print(std::ostream &out, unsigned int indent_level)
-            {
-                out << "variable_declaration:" << std::endl;
-                indent_level++;
-                out << indent(indent_level) << "type: " << type << std::endl
-                    << indent(indent_level) << "name: " << name << std::endl;
-                if (initializer)
-                {
-                    out << indent(indent_level) << "initializer: ";
-                    initializer->compiler->pretty_print(out, indent_level);
-                }
-            }
 
             // this is for compiling an assignment that already has the
             // value placed on the stack. Ie. receiver args.
-            void compile_with_assignment(compiler_state &state, IStream &stream, bool leave = true)
+            void compile_with_assignment(compiler_state &state, IStream &stream, const std::string &type, int64_t level, bool leave)
             {
                 if (leave) {
                     stream.add(DUP_TOP);
@@ -360,24 +313,77 @@ namespace Channel9 { namespace script
                 }
             }
 
-            // this is pretty much just for when generating the automatic
-            // return at the end of a receiver.
+            void compile_with_assignment(compiler_state &state, IStream &stream, bool leave)
+            {
+                // find out the correct type
+                std::string type = "local";
+                int64_t lexical_level = state.get_lexical_level(name);
+                if (lexical_level != -1)
+                {
+                    type = "lexical";
+                }
+                else if (state.scope_stack.back()->vars.has_frame(name)) {
+                    type = "lexical";
+                }
+                compile_with_assignment(state, stream, type, lexical_level, leave);
+            }
+
             void compile_get(compiler_state &state, IStream &stream)
             {
-                if (type == "local")
-                {
-                    stream.add(LOCAL_GET, value(name));
+                if (name[0] == '$') {
+                    stream.add(CHANNEL_SPECIAL, value(std::string(name.begin()+1, name.end())));
+                } else {
+                    int64_t lexical_level = state.get_lexical_level(name);
+                    if (lexical_level != -1)
+                    {
+                        stream.add(LEXICAL_GET, value(lexical_level), value(name));
+                    }
+                    else if (state.scope_stack.back()->vars.has_frame(name))
+                    {
+                        stream.add(FRAME_GET, value(name));
+                    }
+                    else
+                    {
+                        stream.add(LOCAL_GET, value(name));
+                    }
                 }
-                else if (type == "frame")
-                {
-                    stream.add(FRAME_GET, value(name));
+            }
+
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                if (!leave_on_stack) {
+                    return; // don't bother fetching the variable
                 }
-                else if (type == "lexical")
+                compile_get(state, stream);
+            }
+        };
+
+        template <>
+        struct node<type::variable_declaration> : public node<type::variable>
+        {
+            std::string type;
+            node_ptr initializer;
+
+            node(const std::string &type, const std::string &name)
+                : node<compiler::type::variable>(name), type(type)
+            {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "variable_declaration:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "type: " << type << std::endl
+                    << indent(indent_level) << "name: " << name << std::endl;
+                if (initializer)
                 {
-                    // Note: if used anywhere else (it shouldn't be),
-                    // this would have to be smarter.
-                    stream.add(LEXICAL_GET, value(int64_t(0)), value(name));
+                    out << indent(indent_level) << "initializer: ";
+                    initializer->compiler->pretty_print(out, indent_level);
                 }
+            }
+
+            void compile_with_assignment(compiler_state &state, IStream &stream, bool leave)
+            {
+                node<compiler::type::variable>::compile_with_assignment(state, stream, type, 0, leave);
             }
 
             void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
@@ -391,7 +397,34 @@ namespace Channel9 { namespace script
                     stream.add(PUSH, Undef);
                 }
                 // if we're not leaving it on the stack and there's no initializer,
-                // we just don't need to do anything.
+                // we just don't need to do anything. It will have already been
+                // added to the scope list anyways.
+            }
+        };
+
+        template <>
+        struct node<type::assignment_op> : public compilable
+        {
+            node_ptr lhs;
+            node_ptr rhs;
+
+            node(node_ptr lhs) : lhs(lhs) {}
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "assignment_op:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "lhs: ";
+                lhs->compiler->pretty_print(out, indent_level);
+                out << indent(indent_level) << "rhs: ";
+                rhs->compiler->pretty_print(out, indent_level);
+            }
+
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                auto &variable = lhs->get<type::variable>();
+                rhs->compiler->compile(state, stream, true);
+                variable.compile_with_assignment(state, stream, leave_on_stack);
             }
         };
 
@@ -947,6 +980,7 @@ namespace Channel9 { namespace script
         struct add_func_method_send; // method with no name
 
         struct add_equality_op;
+        struct add_assignment_op;
 
         struct add_message_send;
         struct add_receiver;
@@ -1316,7 +1350,7 @@ namespace Channel9 { namespace script
         struct equality_op_expr  : basic_op_expr< relational_op_expr, equality_op, add_equality_op > {};
         struct bitwise_op_expr   : basic_op_expr< equality_op_expr, seq< bitwise_op, not_at<one<'='>> > > {};
         struct logical_op_expr   : basic_op_expr< bitwise_op_expr, logical_op > {};
-        struct assignment_op_expr: basic_op_expr< logical_op_expr, assignment_op > {};
+        struct assignment_op_expr: basic_op_expr< logical_op_expr, assignment_op, add_assignment_op > {};
         struct op_expr
             : assignment_op_expr {};
 
@@ -1533,6 +1567,19 @@ namespace Channel9 { namespace script
             }
         };
 
+        struct add_assignment_op : action_base<add_assignment_op>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr lhs = state.pop();
+                if (str.size() == 1) {
+                    state.push(compiler::make<type::assignment_op>(lhs));
+                } else {
+                    throw "compound assignment not implemented yet.";
+                }
+            }
+        };
+
         struct add_message_send : action_base<add_message_send>
         {
             static void apply(const std::string &str, parser_state &state)
@@ -1601,6 +1648,9 @@ namespace Channel9 { namespace script
                 }
                 else if (auto equality_op = into->when<type::equality_op>()) {
                     equality_op->rhs = arg;
+                }
+                else if (auto assignment_op = into->when<type::assignment_op>()) {
+                    assignment_op->rhs = arg;
                 }
                 else {
                     throw "add_arg called on invalid parent type.";
