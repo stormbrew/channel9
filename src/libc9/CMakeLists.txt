@@ -1,5 +1,11 @@
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBFFI REQUIRED libffi)
+
+if(${WIN32})
+    set(LIBFFI_CFLAGS "-I${CMAKE_SOURCE_DIR}/vendor/include")
+    set(LIBFFI_LDFLAGS "-lffi")
+else()
+    pkg_check_modules(LIBFFI REQUIRED libffi)
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBFFI_CFLAGS} -I${CMAKE_SOURCE_DIR}/src/pegtl/include")
 
