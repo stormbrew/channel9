@@ -379,7 +379,7 @@ namespace Channel9 { namespace script
                 }
                 else if (type == "lexical")
                 {
-                    stream.add(LEXICAL_SET, value(int64_t(0)), value(name));
+                    stream.add(LEXICAL_SET, value(int64_t(level)), value(name));
                 }
             }
 
