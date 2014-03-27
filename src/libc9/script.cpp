@@ -213,6 +213,35 @@ namespace Channel9 { namespace script
         }
 
         template <>
+        struct node<type::tuple> : public compilable
+        {
+            std::vector<node_ptr> elements;
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "tuple:" << std::endl;
+                indent_level++;
+                for(auto &element : elements)
+                {
+                    out << indent(indent_level) << "- ";
+                    element->compiler->pretty_print(out, indent_level);
+                }
+            }
+
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                for (auto &element : reverse_in(elements))
+                {
+                    element->compiler->compile(state, stream, leave_on_stack);
+                }
+                if (leave_on_stack)
+                {
+                    stream.add(TUPLE_NEW, value(int64_t(elements.size())));
+                }
+            }
+        };
+
+        template <>
         struct node<type::float_number> : public compilable
         {
             std::string str;
@@ -1536,8 +1565,8 @@ namespace Channel9 { namespace script
         // [expr, expr, expr]
         struct tuple_val
             : ifmust<
-                one<'['>,
-                opt< list< ogws<expression>, ogws<one<','>> > >,
+                ifapply< one<'['>, start<type::tuple> >,
+                opt< list< ifapply< ogws<expression>, add_arg >, ogws<one<','>> > >,
                 ogws<one<']'>>
             > {};
 
@@ -1940,6 +1969,9 @@ namespace Channel9 { namespace script
                 }
                 else if (auto bytecode_block = into->when<type::bytecode_block>()) {
                     bytecode_block->arguments.push_back(arg);
+                }
+                else if (auto tuple = into->when<type::tuple>()) {
+                    tuple->elements.push_back(arg);
                 }
                 else {
                     throw "add_arg called on invalid parent type.";
