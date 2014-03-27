@@ -725,6 +725,135 @@ namespace Channel9 { namespace script
                 stream.set_label(done_label);
             }
         };
+
+        Value const_node_value(node_ptr node)
+        {
+            if (auto string_node = node->when<type::string>())
+            {
+                return value(string_node->str);
+            }
+            else if (auto int_num_node = node->when<type::int_number>())
+            {
+                return value(std::atoll(int_num_node->str.c_str()));
+            }
+            else if (auto singleton = node->when<type::singleton>())
+            {
+                return singleton->val;
+            }
+            else
+            {
+                throw "Not a constant node.";
+            }
+        }
+
+        template <>
+        struct node<type::switch_block> : public compilable
+        {
+            node_ptr condition;
+            typedef std::pair<node_ptr, node_ptr> case_pair;
+            std::vector<case_pair> cases;
+            node_ptr else_block;
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "switch_block:" << std::endl;
+                indent_level++;
+                out << indent(indent_level) << "condition: ";
+                condition->compiler->pretty_print(out, indent_level);
+                out << indent(indent_level) << "cases:" << std::endl;
+                indent_level++;
+                for (auto &case_ : cases)
+                {
+                    out << indent(indent_level) << "- condition: ";
+                    indent_level+=2;
+                    case_.first->compiler->pretty_print(out, indent_level);
+                    out << indent(indent_level);
+                    case_.second->compiler->pretty_print(out, indent_level);
+                    indent_level-=2;
+                }
+                indent_level--;
+                if (else_block)
+                {
+                    out << indent(indent_level);
+                    indent_level++;
+                    else_block->compiler->pretty_print(out, indent_level);
+                }
+            }
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                auto prefix = state.prefix("switch");
+                auto else_label = prefix + "else",
+                     done_label = prefix + "done";
+
+                // TODO: Make this a hash table jumper.
+                condition->compiler->compile(state, stream, true);
+                uint64_t idx = 0;
+                std::vector<std::string> labels;
+                for (auto &case_ : cases)
+                {
+                    std::stringstream case_label;
+                    case_label << prefix << idx++;
+                    labels.push_back(case_label.str());
+
+                    stream.add(DUP_TOP);
+                    stream.add(IS, const_node_value(case_.first));
+                    stream.add(JMP_IF, value(case_label.str()));
+                }
+                stream.add(POP); // get rid of the test value, don't need it anymore.
+                stream.add(JMP, value(else_label));
+
+                idx = 0;
+                for (auto &case_ : cases)
+                {
+                    stream.set_label(labels[idx++]);
+                    stream.add(POP); // also get rid of test value
+                    case_.second->compiler->compile(state, stream, leave_on_stack);
+                    stream.add(JMP, value(done_label));
+                }
+                stream.set_label(else_label);
+                if (else_block)
+                {
+                    else_block->compiler->compile(state, stream, leave_on_stack);
+                }
+                else if (leave_on_stack)
+                {
+                    stream.add(PUSH);
+                }
+                stream.set_label(done_label);
+            }
+        };
+        template <>
+        struct node<type::case_block> : public compilable
+        {
+            std::vector<node_ptr> statements;
+
+            void pretty_print(std::ostream &out, unsigned int indent_level)
+            {
+                out << "case_block:" << std::endl;
+                indent_level+=2;
+                for (auto &statement : statements)
+                {
+                    out << indent(indent_level) << "- ";
+                    statement->compiler->pretty_print(out, indent_level);
+                }
+            }
+
+            void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
+            {
+                size_t not_last = statements.size();
+                for (auto statement : statements)
+                {
+                    statement->compiler->compile(state, stream, !(--not_last) && leave_on_stack);
+                }
+                assert(not_last == 0);
+
+                if (leave_on_stack && statements.size() == 0) {
+                    // empty block needs to return something.
+                    stream.add(PUSH);
+                }
+
+            }
+        };
         template <>
         struct node<type::while_block> : public compilable
         {
@@ -1048,6 +1177,7 @@ namespace Channel9 { namespace script
         struct add_receiver;
         struct add_cont;
 
+        struct add_case;
         struct add_else;
         struct add_condition;
 
@@ -1233,15 +1363,15 @@ namespace Channel9 { namespace script
         struct const_val;
         struct switch_expr
             : ifmust<
-                switch_,
-                ogws<one<'('>>, ogws<expression>, ogws<one<')'>>,
-                plus<ogws<case_expr>>,
-                opt<ogws<else_expr>>
+                ifapply<switch_, start<type::switch_block>>,
+                ogws<one<'('>>, ifapply<ogws<expression>, add_condition>, ogws<one<')'>>,
+                plus< ifapply<ogws<case_expr>, add_case> >,
+                opt<ogws<ifapply<else_expr, add_else>>>
             > {};
         struct case_expr
             : ifmust<
                 case_,
-                ogws<one<'('>>, ogws<const_val>, ogws<one<')'>>,
+                ifapply<seq<ogws<one<'('>>, ogws<const_val>, ogws<one<')'>>>, start<type::case_block> >,
                 ogws<code_block>
             > {};
 
@@ -1586,6 +1716,9 @@ namespace Channel9 { namespace script
                 else if (auto while_block = into->when<type::while_block>()) {
                     while_block->statements.push_back(expr);
                 }
+                else if (auto case_block = into->when<type::case_block>()) {
+                    case_block->statements.push_back(expr);
+                }
                 else {
                     throw "add_statement called on unknown block type.";
                 }
@@ -1605,11 +1738,27 @@ namespace Channel9 { namespace script
                 else if (auto while_block = into->when<type::while_block>()) {
                     while_block->condition = expr;
                 }
+                else if (auto switch_block = into->when<type::switch_block>()) {
+                    switch_block->condition = expr;
+                }
                 else {
                     throw "add_condition called on unknown block type.";
                 }
             }
         };
+
+        struct add_case : action_base<add_case>
+        {
+            static void apply(const std::string &str, parser_state &state)
+            {
+                node_ptr case_block = state.pop();
+                node_ptr condition = state.pop();
+                node_ptr into = state.stack.back();
+
+                into->get<type::switch_block>().cases.push_back(std::make_pair(condition, case_block));
+            }
+        };
+
 
         struct add_else : action_base<add_else>
         {
@@ -1620,6 +1769,12 @@ namespace Channel9 { namespace script
 
                 if (auto if_block = into->when<type::if_block>()) {
                     if_block->else_block = else_block;
+                }
+                else if (auto switch_block = into->when<type::switch_block>()) {
+                    switch_block->else_block = else_block;
+                }
+                else {
+                    throw "add_else called on unknown block type.";
                 }
             }
         };
