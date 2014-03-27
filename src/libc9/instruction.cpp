@@ -209,7 +209,7 @@ namespace Channel9
 
 	Instruction instruction(INUM ins, const Value &arg1, const Value &arg2, const Value &arg3)
 	{
-		Instruction instruction = {ins, arg1, arg2, arg3};
+		Instruction instruction = {ins, {{arg1, arg2, arg3}}};
 		return instruction;
 	}
 
