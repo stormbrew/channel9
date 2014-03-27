@@ -1996,7 +1996,7 @@ namespace Channel9 { namespace script
             static void apply(const std::string &str, parser_state &state)
             {
                 auto &block = state.stack.back()->get<type::bytecode_block>();
-                block.instructions.push_back(Instruction {inum(str), {0}});
+                block.instructions.push_back(Instruction {inum(str)});
             }
         };
         template <size_t tArgNum>
