@@ -141,7 +141,7 @@ namespace Channel9
 				{
 					throw loader_error("Invalid instruction ") << instruction << " at " << num;
 				}
-				Instruction ins = {insnum, {0}, {0}, {0}};
+				Instruction ins = {insnum, {0}};
 				InstructionInfo info = iinfo(ins);
 				if (line.size() - 1 < info.argc)
 				{

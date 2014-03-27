@@ -84,9 +84,14 @@ namespace Channel9
 	struct Instruction
 	{
 		INUM instruction;
-		Value arg1;
-		Value arg2;
-		Value arg3;
+		union {
+			struct {
+				Value arg1;
+				Value arg2;
+				Value arg3;
+			};
+			Value args[3];
+		};
 		Value cache;
 	};
 	Instruction instruction(INUM instruction, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil);
