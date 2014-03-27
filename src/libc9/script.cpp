@@ -407,13 +407,17 @@ namespace Channel9 { namespace script
         {
             node_ptr lhs;
             node_ptr rhs;
+            std::string compound_op;
 
-            node(node_ptr lhs) : lhs(lhs) {}
+            node(node_ptr lhs, std::string compound_op) : lhs(lhs), compound_op(compound_op) {}
 
             void pretty_print(std::ostream &out, unsigned int indent_level)
             {
                 out << "assignment_op:" << std::endl;
                 indent_level++;
+                if (compound_op.size() > 0) {
+                    out << indent(indent_level) << "compound_op: " << compound_op << std::endl;
+                }
                 out << indent(indent_level) << "lhs: ";
                 lhs->compiler->pretty_print(out, indent_level);
                 out << indent(indent_level) << "rhs: ";
@@ -423,7 +427,16 @@ namespace Channel9 { namespace script
             void compile(compiler_state &state, IStream &stream, bool leave_on_stack)
             {
                 auto &variable = lhs->get<type::variable>();
-                rhs->compiler->compile(state, stream, true);
+                if (compound_op.size() > 0) {
+                    variable.compile_get(state, stream);
+                    rhs->compiler->compile(state, stream, true);
+                    stream.add(MESSAGE_NEW, value(compound_op), value(int64_t(0)), value(int64_t(1)));
+                    stream.add(CHANNEL_CALL);
+                    stream.add(POP);
+                }
+                else {
+                    rhs->compiler->compile(state, stream, true);
+                }
                 variable.compile_with_assignment(state, stream, leave_on_stack);
             }
         };
@@ -1575,11 +1588,7 @@ namespace Channel9 { namespace script
             static void apply(const std::string &str, parser_state &state)
             {
                 node_ptr lhs = state.pop();
-                if (str.size() == 1) {
-                    state.push(compiler::make<type::assignment_op>(lhs));
-                } else {
-                    throw "compound assignment not implemented yet.";
-                }
+                state.push(compiler::make<type::assignment_op>(lhs, std::string(str.begin(), str.end()-1)));
             }
         };
 
