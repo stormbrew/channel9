@@ -1286,8 +1286,8 @@ namespace Channel9 { namespace script
             : string<'f','a','l','s','e'> {};
         struct true_
             : string<'t','r','u','e'> {};
-        struct undefined
-            : string<'u','n','d','e','f','i','n','e','d'> {};
+        struct undef
+            : string<'u','n','d','e','f'> {};
 
         struct if_
             : string<'i','f'> {};
@@ -1522,7 +1522,7 @@ namespace Channel9 { namespace script
 
         // nil, true, false, or undef.
         struct singleton_val
-            : ifapply< sor<nil, true_, false_, undefined>, add_singleton > {};
+            : ifapply< sor<nil, true_, false_, undef>, add_singleton > {};
 
         struct const_val
             : sor<
