@@ -2,6 +2,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib/c9-env/rb)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 find_package(Oniguruma REQUIRED)
+find_package(Ruby REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBFFI_CFLAGS}")
 include_directories(${RUBY_INCLUDE_DIRS} ${ONIGURUMA_INCLUDE_DIRS})
@@ -28,6 +29,11 @@ add_custom_command(
 	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/rb.c9l
 )
 add_custom_target(rb-pkg-c9l ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/rb.c9l)
+
+add_custom_target(bundle-install
+    COMMAND ${RUBY_EXECUTABLE} -rubygems -C${CMAKE_SOURCE_DIR} -S bundle install
+    DEPENDS ${CMAKE_SOURCE_DIR}/Gemfile ${CMAKE_SOURCE_DIR}/Gemfile.lock
+)
 
 function(add_compiled_ruby SRC DST COMMON_PATH TARGET_PREFIX) # extra args are script names.
 	foreach(FILE ${ARGN})

@@ -9,7 +9,6 @@ set (channel9_VERSION_MAJOR 1)
 set (channel9_VERSION_MINOR 0)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
-find_package(Ruby REQUIRED)
 
 add_definitions( -D__STDC_FORMAT_MACROS )
 
@@ -73,11 +72,6 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 include_directories(include)
-
-add_custom_target(bundle-install
-    COMMAND ${RUBY_EXECUTABLE} -rubygems -C${CMAKE_SOURCE_DIR} -S bundle install
-    DEPENDS ${CMAKE_SOURCE_DIR}/Gemfile ${CMAKE_SOURCE_DIR}/Gemfile.lock
-)
 
 add_subdirectory(src/libc9)
 add_subdirectory(src/jsoncpp)
