@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "json/json.h"
 #include "c9/channel9.hpp"
 #include "c9/value.hpp"
 
@@ -83,9 +84,14 @@ namespace Channel9
 	struct Instruction
 	{
 		INUM instruction;
-		Value arg1;
-		Value arg2;
-		Value arg3;
+		union {
+			struct {
+				Value arg1;
+				Value arg2;
+				Value arg3;
+			};
+			Value args[3];
+		};
 		Value cache;
 	};
 	Instruction instruction(INUM instruction, const Value &arg1 = Nil, const Value &arg2 = Nil, const Value &arg3 = Nil);
@@ -97,6 +103,7 @@ namespace Channel9
 	InstructionInfo iinfo(const Instruction &ins);
 
 	std::string inspect(const Instruction &ins);
+	Json::Value to_json(const Instruction &ins);
 
 	inline void gc_scan(void *obj, Instruction *ins)
 	{

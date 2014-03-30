@@ -8,7 +8,7 @@ lexical hi = () {
 	}
 }
 
-lexical ho = (&count) -> cont {
+lexical ho = (@count) -> cont {
 	while (true) {
 		"ho " + count.to_string_primitive -> $stdout
 		count = (count + 1 -> cont : cont)

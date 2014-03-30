@@ -110,5 +110,81 @@ namespace Channel9
 	{
 		return std::string("<") + inner_inspect(val) + ">";
 	}
+	Json::Value to_json(const Value &val)
+	{
+		Json::Value res(Json::nullValue);
+		switch (type(val))
+		{
+		case NIL: break; // defaults to null
+		case UNDEF:
+			res = Json::Value(Json::objectValue);
+			res["undef"] = "undef";
+			break;
+		case BFALSE:
+		case BTRUE:
+			res = Json::Value((bool)val.machine_num);
+			break;
+		case POSITIVE_NUMBER:
+		case NEGATIVE_NUMBER:
+			res = Json::Value((Json::Int64)val.machine_num);
+			break;
+		case FLOAT_NUM:
+			res = Json::Value(float_num(val));
+			break;
+		case STRING:
+			res = Json::Value(ptr<String>(val)->str());
+			break;
+		case TUPLE: {
+			Tuple *tuple = ptr<Tuple>(val);
+			res = Json::Value(Json::arrayValue);
+			for (auto val : *tuple)
+			{
+				res.append(to_json(val));
+			}
+			break;
+		}
+		case MESSAGE: {
+			Message *msg = ptr<Message>(val);
+			res = Json::Value(Json::objectValue);
+			Json::Value msg_obj(Json::objectValue);
+			Json::Value sysArgs(Json::arrayValue);
+			Json::Value args(Json::arrayValue);
+			for (auto it = msg->sysargs(); it != msg->sysargs_end(); it++)
+			{
+				sysArgs.append(to_json(*it));
+			}
+
+			for (auto it = msg->args(); it != msg->args_end(); it++)
+			{
+				args.append(to_json(*it));
+			}
+
+			msg_obj["sysArgs"] = sysArgs;
+			msg_obj["args"] = args;
+			res["message"] = msg_obj;
+			break;
+		}
+		case CALLABLE_CONTEXT:
+			res = Json::Value(Json::objectValue);
+			res["callableContext"] = ptr<CallableContext>(val)->inspect();
+			break;
+		case VARIABLE_FRAME:
+			res = Json::Value(Json::objectValue);
+			res["variableFrame"] = "Unable to reproduce as json";
+			break;
+		case RUNNING_CONTEXT:
+			res = Json::Value(Json::objectValue);
+			res["runningContext"] = ptr<RunningContext>(val)->inspect();
+			break;
+		case RUNNABLE_CONTEXT:
+			res = Json::Value(Json::objectValue);
+			res["runnableContext"] = ptr<RunnableContext>(val)->inspect();
+			break;
+		default:
+			assert(!type(val));
+			break;
+		}
+		return res;
+	}
 }
 
