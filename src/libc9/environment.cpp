@@ -70,7 +70,7 @@ namespace Channel9
 			clear_vstore();
 			TRACE_PRINTF(TRACE_VM, TRACE_INFO, "Entering running state with %p\n", context);
 			m_running = true;
-			SourcePos *last_pos = NULL; // used for debug output below.
+			const SourcePos *last_pos = NULL; // used for debug output below.
 			const Instruction *ipos;
 			while (m_context && (ipos = m_context->next()))
 			{
@@ -86,7 +86,7 @@ namespace Channel9
 				m_ipos = *ipos;
 
 				TRACE_DO(TRACE_VM, TRACE_INFO) {
-					SourcePos &pos = m_context->m_instructions->source_pos(ipos);
+					const SourcePos &pos = m_context->m_instructions->source_pos(ipos);
 					if (!last_pos || *last_pos != pos)
 						tprintf("Source Position: %s:%d:%d (%s)\n", pos.file.c_str(), (int)pos.line_num, (int)pos.column, pos.annotation.c_str());
 					last_pos = &pos;

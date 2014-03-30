@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "json/json.h"
 #include "c9/channel9.hpp"
 #include "c9/gc.hpp"
 #include "c9/string.hpp"
@@ -161,6 +162,7 @@ namespace Channel9
 	}
 
 	std::string inspect(const Value &val);
+	Json::Value to_json(const Value &val);
 
 	template <typename tVal>
 	class GCRef : private GCRoot

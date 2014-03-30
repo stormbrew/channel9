@@ -16,8 +16,12 @@ add_definitions( -D__STDC_FORMAT_MACROS )
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -g")
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall -Werror -frtti -Wno-unknown-warning-option -Wno-unused-but-set-variable -Wno-strict-aliasing")
-if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-    set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} --param inline-unit-growth=100000 --param large-function-growth=100000 --param max-inline-insns-single=100000")
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libc++")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -stdlib=libc++")
 endif()
 
 if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
@@ -79,14 +83,14 @@ add_subdirectory(src/libc9)
 add_subdirectory(src/jsoncpp)
 add_subdirectory(src/c9)
 
-function(add_c9script SRC DST COMMON_PATH TARGET_PREFIX) # extra args are script names.
+function(copy_script_files SRC DST COMMON_PATH TARGET_PREFIX) # extra args are script names.
     foreach(FILE ${ARGN})
         add_custom_command(
-            OUTPUT ${DST}/${COMMON_PATH}/${FILE}.c9b
-            COMMAND ${RUBY_EXECUTABLE} -rubygems -I${CMAKE_SOURCE_DIR}/ruby/lib ${CMAKE_SOURCE_DIR}/bin/c9c ${SRC}/${COMMON_PATH}/${FILE} ${DST}/${COMMON_PATH}/${FILE}.c9b
+            OUTPUT ${DST}/${COMMON_PATH}/${FILE}
+            COMMAND ${CMAKE_COMMAND} -E copy ${SRC}/${COMMON_PATH}/${FILE} ${DST}/${COMMON_PATH}/${FILE}
             DEPENDS ${SRC}/${COMMON_PATH}/${FILE}
         )
-        add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE}.c9b bundle-install)
+        add_custom_target(${TARGET_PREFIX}-${FILE} ALL DEPENDS ${DST}/${COMMON_PATH}/${FILE})
     endforeach()
 endfunction()
 

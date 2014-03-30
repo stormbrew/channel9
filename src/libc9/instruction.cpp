@@ -209,8 +209,28 @@ namespace Channel9
 
 	Instruction instruction(INUM ins, const Value &arg1, const Value &arg2, const Value &arg3)
 	{
-		Instruction instruction = {ins, arg1, arg2, arg3};
+		Instruction instruction = {ins, {{arg1, arg2, arg3}}};
 		return instruction;
+	}
+
+	Json::Value to_json(const Instruction &ins)
+	{
+		Json::Value val(Json::arrayValue);
+		InstructionInfo info = iinfo(ins);
+
+		std::string name = iname(ins.instruction);
+		std::transform(name.begin(), name.end(), name.begin(), [](char c) {
+			return std::tolower(c);
+		});
+
+		val.append(name);
+		if (info.argc > 0)
+			val.append(to_json(ins.arg1));
+		if (info.argc > 1)
+			val.append(to_json(ins.arg2));
+		if (info.argc > 2)
+			val.append(to_json(ins.arg3));
+		return val;
 	}
 
 	std::string inspect(const Instruction &ins)
