@@ -17,6 +17,7 @@ before_script:
   - rvm install ${RUBY_VERSION}
   - rvm use ${RUBY_VERSION}
   - travis/install-deps-${TRAVIS_OS_NAME}.sh
+  - '[ "${TRAVIS_OS_NAME}" = "osx" ] && export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/":$PKG_CONFIG_PATH'
   - cmake .
   - make
 script: travis/run-tests.sh
