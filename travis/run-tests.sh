@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+rvm use ${RUBY_VERSION}
+
 # This is just a hackjob for now. Will make it better later.
 export PATH=${PATH}:${PWD}/build/bin:${PWD}/bin
 
