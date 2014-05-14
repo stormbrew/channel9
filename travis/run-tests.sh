@@ -5,7 +5,11 @@ set -e
 export PATH=${PATH}:${PWD}/build/bin:${PWD}/bin
 
 # Make libffi pkgconfig setup available.
-[ "${TRAVIS_OS_NAME}" = "osx" ] && export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/":$PKG_CONFIG_PATH
+[ "${TRAVIS_OS_NAME}" = "osx" ] && {
+	brew --prefix libffi
+	ls $(brew --prefix libffi)/lib/pkgconfig
+	export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/":$PKG_CONFIG_PATH
+}
 
 c9 sample/bytecode/gcd-1mil.c9b
 c9 sample/c9script/gcd.c9s
