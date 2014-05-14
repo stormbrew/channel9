@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-brew install libffi oniguruma pkg-config
+brew install libffi oniguruma pkg-config cmake
