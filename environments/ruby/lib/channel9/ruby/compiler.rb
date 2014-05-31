@@ -249,7 +249,11 @@ module Channel9
         }
         with_state(:loop => linfo) do
           builder.set_label(redo_label)
-          transform(body)
+          if body
+            transform(body)
+          else
+            builder.push(nil)
+          end
         end
         builder.pop
 
@@ -276,7 +280,11 @@ module Channel9
         }
         with_state(:loop => linfo) do
           builder.set_label(redo_label)
-          transform(body)
+          if body
+            transform(body)
+          else
+            builder.push(nil)
+          end
         end
         builder.pop
 
