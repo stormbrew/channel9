@@ -3,4 +3,5 @@ module RbConfig
   CONFIG = {}
   CONFIG['bindir'] = File.expand_path("../../../bin", __FILE__)
   CONFIG['ruby_install_name'] = "c9.rb"
+  CONFIG['ruby_version'] = '1.8.7'
 end
