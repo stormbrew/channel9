@@ -12,6 +12,34 @@ class String
     pattern.match(self, pos)
   end
 
+
+  def split(by=$;, limit = nil)
+    return [] if empty?
+
+    by ||= ' '
+    splits = case by
+    when ' '
+      /\s+/.c9_split(@str, true, limit)
+    when String
+      if !limit || limit < 0
+        @str.split(by.to_s_prim).collect {|i| i.to_s }
+      else
+        /#{by}/.c9_split(@str, false, limit)
+      end
+    when Regexp
+      by.c9_split(@str, false, limit)
+    else
+      raise "Unknown argument type passed to split (TODO: Should coerce to string?)."
+    end
+    if !limit
+      # If the limit isn't passed, cut off trailing empty items.
+      while splits.last && splits.last.length == 0
+        splits.pop
+      end
+    end
+    splits
+  end
+
   def gsub(pattern, replacement, &block)
     if (!pattern.is_a? Regexp)
       pattern = Regexp.new(pattern)
