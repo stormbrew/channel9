@@ -97,6 +97,19 @@ module Kernel
         end
         klass = klass.superclass
       end
+    elsif (other.class == Module)
+      klass = self.class
+      while (klass)
+        included = klass.__c9_included__
+        i = 0
+        while i < included.length
+          if (included.at(i) == other)
+            return true
+          end
+          i += 1
+        end
+        klass = klass.superclass
+      end
     end
     return false
   end
