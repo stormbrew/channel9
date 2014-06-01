@@ -85,4 +85,22 @@ class String
       "%c" % (c[0] | 32)
     end
   end
+
+  def unpack(pattern)
+    # For now this will only implement C* because that's what Parser wants.
+    # TODO: Implement properly, possibly in C++.
+    if pattern == "C*"
+      prim = to_s_prim
+      len = prim.length
+      i = 0
+      res = []
+      while i < len
+        res << prim.substr(i,i).to_chr
+        i += 1
+      end
+      res
+    else
+      raise "Unsupported unpack pattern '#{pattern}'"
+    end
+  end
 end
