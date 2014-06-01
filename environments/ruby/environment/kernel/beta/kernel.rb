@@ -3,6 +3,7 @@ module Kernel
   end
 
   def freeze
+    self
   end
 
   def nil?
