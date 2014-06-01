@@ -5,6 +5,9 @@ class Object
   def instance_variable_get(name)
     __c9_ivar_get__(name.to_sym)
   end
+  def instance_variable_defined?(name)
+    __c9_ivar_get__(name.to_sym) ? true : false
+  end
 
   def class_variable_get(name)
     self.class.class_variable_get(name)
