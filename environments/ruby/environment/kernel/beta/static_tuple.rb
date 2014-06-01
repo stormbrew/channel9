@@ -43,7 +43,7 @@ class StaticTuple
     h = 0xf51afd7ed558ccd
     i = 0
     while (i < length)
-      h ^= at(i)
+      h ^= at(i).hash
       i += 1
     end
     h
