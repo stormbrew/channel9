@@ -106,6 +106,8 @@ lexical RubyClass = (lexical name, lexical super) {
 				}
 				included = included.push(mod)
 				return <- mod
+			} case (@'included') {
+				return <- included
 			} case (@'add_method') {
 				local meth_name
 				local meth
