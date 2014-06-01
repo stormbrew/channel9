@@ -73,4 +73,16 @@ class String
   def chomp!
     @str = chomp.to_s_prim
   end
+
+  def upcase
+    # Really simple non-unicode implementation
+    gsub(/[a-z]/) do |c|
+      "%c" % (c[0] & (0xff ^ 32))
+    end
+  end
+  def downcase
+    gsub(/[A-Z]/) do |c|
+      "%c" % (c[0] | 32)
+    end
+  end
 end
