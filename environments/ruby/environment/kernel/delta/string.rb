@@ -74,6 +74,10 @@ class String
     @str = chomp.to_s_prim
   end
 
+  def end_with?(str)
+    /#{Regexp.escape(str)}$/.match(self) ? true : false
+  end
+
   def upcase
     # Really simple non-unicode implementation
     gsub(/[a-z]/) do |c|
