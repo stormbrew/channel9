@@ -2077,7 +2077,7 @@ module Channel9
           transform_self
           name, varname = val
           transform_lit(varname)
-          builder.message_new(:instance_variable?, 0, 1)
+          builder.message_new(:instance_variable_defined?, 0, 1)
           builder.channel_call
           builder.pop
         else
