@@ -152,7 +152,7 @@ namespace Channel9
 	{
 		std::vector<Value> strings;
 		String::const_iterator first = s->begin(), next;
-		while (first < s->end())
+		while (first <= s->end())
 		{
 			next = std::search(first, s->end(), by->begin(), by->end());
 			strings.push_back(value(new_string(first, next)));

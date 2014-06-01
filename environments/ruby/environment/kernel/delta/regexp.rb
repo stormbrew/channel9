@@ -148,6 +148,58 @@ class Regexp
     end
   end
 
+  def c9_split(s, collapse_all, limit = nil)
+    s = s.to_s_prim
+    pos = 0
+
+    res = []
+
+    forced_forward = false
+    while true && (!limit || res.length < limit - 1)
+      err, errstr, results = @matcher.match(s, pos)
+      if errstr
+        raise errstr # TODO: raise the right error type
+      end
+
+      if results.nil?
+        break
+      end
+      range = results.at(0)
+      #print "@#{pos} #{range.at(0)},#{range.at(1)} "
+      forced_forward, saved_forced_forward = false, forced_forward
+      case
+      when range.at(0) > pos
+        #print "a "
+        res.push(String.new(s.substr(pos, range.at(0) - 1)))
+        pos = range.at(1)
+      when range.at(0) == range.at(1)
+        #print "b "
+        res.push(String.new(s.substr(pos, pos)))
+        # We set this to make the next match collapse if it's
+        # an immediate, but not empty, match. Otherwise:
+        #   "hi mom".match(/\s+/)
+        # will match empty at the i, and then match an empty
+        # split at the space. But really this is just one split
+        # and should be treated as such.
+        # I suspect there's a much better way to do this, but this
+        # works for now.
+        forced_forward = true
+        pos += 1
+      else
+        #print "c #{collapse_all} "
+        res.push("") if !saved_forced_forward && !collapse_all
+        pos = range.at(1)
+      end
+      #puts "=> '#{res.last}'"
+    end
+    # add the remainder on if it makes sense
+    if pos < s.length && (!limit || res.length < limit)
+      res.push(String.new(s.substr(pos, s.length - 1)))
+    end
+
+    return res
+  end
+
   def self.escape(str)
     str.gsub(%r{[\t\n\v\f\r\ \#\$\(\)\*\+\-\.\?\[\\\]\^\{\|\}]}) do |match|
       case match
