@@ -1553,6 +1553,15 @@ module Channel9
           builder.message_new(:to_tuple_prim, 0, 0)
           builder.channel_call
           builder.pop
+
+          # add any remaining arguments
+          while (!arglist.empty?)
+            transform(arglist.shift)
+            builder.message_new(:push, 0, 1)
+            builder.channel_call
+            builder.pop
+          end
+
           builder.message_splat
         else
           arglist.each do |arg|
