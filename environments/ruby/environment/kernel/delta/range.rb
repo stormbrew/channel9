@@ -82,9 +82,9 @@ class Range
   end
 
   def to_s
-    "#{@begin}..#{@exclusive ? '' : '.'}#{@end}"
+    "#{@begin}..#{@exclusive ? '.' : ''}#{@end}"
   end
   def inspect
-    "#{@begin.inspect}..#{@exclusive ? '' : '.'}#{@end.inspect}"
+    "#{@begin.inspect}..#{@exclusive ? '.' : ''}#{@end.inspect}"
   end
 end

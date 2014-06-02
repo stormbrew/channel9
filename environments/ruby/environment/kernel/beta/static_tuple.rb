@@ -49,6 +49,16 @@ class StaticTuple
     h
   end
 
+  def replace(idx, val)
+    if idx < 0
+      idx = length + idx
+    end
+    if idx < 0
+      raise IndexError, "Invalid index #{idx}"
+    end
+    replace(idx, val)
+  end
+
   def subary(b, e)
     if (b > e)
       return subary(e, b)
