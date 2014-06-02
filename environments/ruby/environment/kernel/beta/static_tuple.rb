@@ -43,10 +43,20 @@ class StaticTuple
     h = 0xf51afd7ed558ccd
     i = 0
     while (i < length)
-      h ^= at(i)
+      h ^= at(i).hash
       i += 1
     end
     h
+  end
+
+  def replace(idx, val)
+    if idx < 0
+      idx = length + idx
+    end
+    if idx < 0
+      raise IndexError, "Invalid index #{idx}"
+    end
+    replace(idx, val)
   end
 
   def subary(b, e)
@@ -58,11 +68,11 @@ class StaticTuple
     changed = false
     if (b < 0)
       changed = true
-      b = length - b
+      b = length + b
     end
     if (e < 0)
       changed = true
-      e = length - e
+      e = length + e
     end
     raise ArgumentError, "Invalid arguments to StaticTuple#subary (length: #{length}, args: (#{b}, #{e}))" if !changed
     subary(b, e)

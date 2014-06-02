@@ -5,6 +5,15 @@ class String
     sprintf(self, *vals)
   end
 
+  def *(times)
+    s = ""
+    while times > 0
+      s += self
+      times -= 1
+    end
+    s
+  end
+
   def match(pattern, pos)
     if (!pattern.is_a? Regexp)
       pattern = Regexp.new(pattern)
@@ -72,5 +81,39 @@ class String
   end
   def chomp!
     @str = chomp.to_s_prim
+  end
+
+  def end_with?(str)
+    /#{Regexp.escape(str)}$/.match(self) ? true : false
+  end
+
+  def upcase
+    # Really simple non-unicode implementation
+    gsub(/[a-z]/) do |c|
+      "%c" % (c[0] & (0xff ^ 32))
+    end
+  end
+  def downcase
+    gsub(/[A-Z]/) do |c|
+      "%c" % (c[0] | 32)
+    end
+  end
+
+  def unpack(pattern)
+    # For now this will only implement C* because that's what Parser wants.
+    # TODO: Implement properly, possibly in C++.
+    if pattern == "C*"
+      prim = to_s_prim
+      len = prim.length
+      i = 0
+      res = []
+      while i < len
+        res << prim.substr(i,i).to_chr
+        i += 1
+      end
+      res
+    else
+      raise "Unsupported unpack pattern '#{pattern}'"
+    end
   end
 end

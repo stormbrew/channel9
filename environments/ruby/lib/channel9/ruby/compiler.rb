@@ -1553,6 +1553,15 @@ module Channel9
           builder.message_new(:to_tuple_prim, 0, 0)
           builder.channel_call
           builder.pop
+
+          # add any remaining arguments
+          while (!arglist.empty?)
+            transform(arglist.shift)
+            builder.message_new(:push, 0, 1)
+            builder.channel_call
+            builder.pop
+          end
+
           builder.message_splat
         else
           arglist.each do |arg|
@@ -2077,7 +2086,7 @@ module Channel9
           transform_self
           name, varname = val
           transform_lit(varname)
-          builder.message_new(:instance_variable?, 0, 1)
+          builder.message_new(:instance_variable_defined?, 0, 1)
           builder.channel_call
           builder.pop
         else
