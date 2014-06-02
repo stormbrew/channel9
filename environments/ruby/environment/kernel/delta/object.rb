@@ -40,4 +40,9 @@ class Object
   def frozen?
     false
   end
+
+  def tap
+    yield self
+    self
+  end
 end
