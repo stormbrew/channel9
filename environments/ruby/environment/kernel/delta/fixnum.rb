@@ -12,6 +12,9 @@ class Fixnum < Numeric
   def to_s
     to_string_primitive.to_s
   end
+  def chr
+    "%c" % self
+  end
   def size
     # TODO: Make this smarter
     8

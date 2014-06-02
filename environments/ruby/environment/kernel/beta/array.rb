@@ -12,7 +12,7 @@ class Array
     @count = len
   end
 
-  def initialize(ary)
+  def initialize(ary = undefined)
     if (ary.kind_of?(Fixnum))
       count = ary
       ary = [].to_tuple_prim
@@ -20,6 +20,8 @@ class Array
         ary = ary.push(nil)
       end
       __setup__(ary, count)
+    elsif ary == undefined
+      __setup__([].to_tuple_prim, 0)
     else
       __setup__(ary.to_tuple_prim, ary.length)
     end
@@ -238,6 +240,10 @@ class Array
     if (len.nil?)
       @tuple.at(idx)
     else
+      if idx < 0
+        idx = @tuple.length + idx
+        return nil if idx < 0
+      end
       @tuple.subary(idx, idx + len).to_a
     end
   end
@@ -250,9 +256,86 @@ class Array
   def last
     @tuple.at(-1)
   end
-  def []=(idx, val)
-    @tuple = @tuple.replace(idx, val)
-    val
+
+  def c9_replace_range(idx, len, val)
+    if val
+      vals = [*val].to_tuple_prim
+    else
+      vals = [].to_tuple_prim # NOTE: 1.8ism
+    end
+
+    tuple = @tuple
+    tuple_len = tuple.length
+    if idx < 0
+      idx = tuple_len + idx
+    end
+    if idx < 0
+      raise IndexError, "#{idx} out of range"
+    end
+
+    # if it's beyond the end we just have to replace the index,
+    # it'll fill in automatically
+    while tuple_len < idx
+      tuple = tuple.replace(tuple_len+1, nil)
+      tuple_len += 1
+    end
+
+    ntuple = tuple.subary(0, idx) + vals
+    if idx + len < tuple_len
+      ntuple += tuple.subary(idx+len, tuple_len)
+    end
+    @tuple = ntuple
+    Array.new(vals)
+  end
+  def []=(idx, val_or_len, maybe_val = undefined)
+    # Expand out a range.
+    if maybe_val == undefined && idx.kind_of?(Range)
+      range = idx
+      maybe_val = val_or_len
+
+      # deal with negative first indexes (because we may need
+      # an absolute position for a negative end index)
+      if range.first < 0
+        idx = @tuple.length + range.first
+        if idx < 0
+          raise IndexError, "#{range.first} out of range"
+        end
+      else
+        idx = range.first
+      end
+      # deal with negative end indexes
+      if range.end < 0
+        last = @tuple.length + range.end
+        if last < 0
+          raise IndexError, "#{range.end} out of range"
+        end
+      else
+        last = range.end
+      end
+      last += range.exclude_end? ? 0 : 1
+      # and translate the end index into a length
+      val_or_len = last - idx
+      #puts range, idx, last, val_or_len
+    end
+    if maybe_val == undefined
+      @tuple = @tuple.replace(idx, val_or_len)
+      val_or_len
+    else
+      c9_replace_range(idx, val_or_len, maybe_val)
+    end
+  end
+
+  def index(obj = undefined)
+    if block_given?
+      each_with_index do |i, idx|
+        return idx if yield(i)
+      end
+    else
+      each_with_index do |i, idx|
+        return idx if i == obj
+      end
+    end
+    nil
   end
 
   def +(other)
