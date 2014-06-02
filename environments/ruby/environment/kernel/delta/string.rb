@@ -5,6 +5,15 @@ class String
     sprintf(self, *vals)
   end
 
+  def *(times)
+    s = ""
+    while times > 0
+      s += self
+      times -= 1
+    end
+    s
+  end
+
   def match(pattern, pos)
     if (!pattern.is_a? Regexp)
       pattern = Regexp.new(pattern)
