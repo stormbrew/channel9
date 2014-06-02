@@ -325,6 +325,19 @@ class Array
     end
   end
 
+  def index(obj = undefined)
+    if block_given?
+      each_with_index do |i, idx|
+        return idx if yield(i)
+      end
+    else
+      each_with_index do |i, idx|
+        return idx if i == obj
+      end
+    end
+    nil
+  end
+
   def +(other)
     Array.new(@tuple + other.to_tuple_prim)
   end
