@@ -68,11 +68,11 @@ class StaticTuple
     changed = false
     if (b < 0)
       changed = true
-      b = length - b
+      b = length + b
     end
     if (e < 0)
       changed = true
-      e = length - e
+      e = length + e
     end
     raise ArgumentError, "Invalid arguments to StaticTuple#subary (length: #{length}, args: (#{b}, #{e}))" if !changed
     subary(b, e)
