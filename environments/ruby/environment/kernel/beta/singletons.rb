@@ -6,6 +6,9 @@ class NilClass
   def to_s
     ""
   end
+  def inspect
+    "nil"
+  end
   def to_i
     0
   end

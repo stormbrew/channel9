@@ -116,4 +116,8 @@ class String
       raise "Unsupported unpack pattern '#{pattern}'"
     end
   end
+
+  def inspect
+    "\"#{gsub(/"/, '\\"')}\""
+  end
 end
