@@ -240,6 +240,10 @@ class Array
     if (len.nil?)
       @tuple.at(idx)
     else
+      if idx < 0
+        idx = @tuple.length + idx
+        return nil if idx < 0
+      end
       @tuple.subary(idx, idx + len).to_a
     end
   end
