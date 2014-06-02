@@ -14,6 +14,10 @@ class Symbol
   def to_str
     String.new(self)
   end
+  def inspect
+    # TODO: Deal with non-bare symbols
+    ":#{self}"
+  end
   def to_proc
     proc { |obj, *args| obj.send(self, *args) }
   end

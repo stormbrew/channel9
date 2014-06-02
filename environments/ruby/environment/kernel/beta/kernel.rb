@@ -134,6 +134,15 @@ module Kernel
       end
     }
   end
+  def p(*args)
+    args.each {|arg|
+      if (arg.kind_of?(::Channel9::Tuple) || arg.kind_of?(::StaticTuple) || arg.kind_of?(::Array))
+        puts(*arg)
+      else
+        print arg.inspect,:"\n"
+      end
+    }
+  end
 
   def exit(n)
     $__c9_exit.call(n)
