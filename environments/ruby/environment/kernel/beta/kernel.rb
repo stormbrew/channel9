@@ -130,7 +130,13 @@ module Kernel
       elsif (arg.nil?)
         print(:"nil\n")
       else
-        print arg,:"\n"
+        raw = arg.to_s_prim
+        len = raw.length
+        if len > 0 && raw.substr(len-1,len-1) == :"\n"
+          print(raw)
+        else
+          print(raw + :"\n")
+        end
       end
     }
   end

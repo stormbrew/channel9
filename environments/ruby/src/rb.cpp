@@ -131,6 +131,14 @@ void setup_basic_ffi_functions(Environment *env)
 	fgets_args->add(ffi_type_map<Channel9::intptr_t>()); // FILE*
 	FFICall *fgets_call = new FFICall("fgets", ffi_fn(fgets), ffi_type_map<Channel9::intptr_t>(), fgets_args);
 
+	// TODO: Same as fgets
+	FFIDefinition *fread_args = new FFIDefinition("fread args");
+	fread_args->add_pointer(); // string buffer
+	fread_args->add(ffi_type_map<size_t>()); // member size
+	fread_args->add(ffi_type_map<size_t>()); // members
+	fread_args->add(ffi_type_map<Channel9::intptr_t>()); // FILE*
+	FFICall *fread_call = new FFICall("fread", ffi_fn(fread), ffi_type_map<size_t>(), fread_args);
+
 	FFIDefinition *fclose_args = new FFIDefinition("fclose args");
 	fclose_args->add(ffi_type_map<Channel9::intptr_t>()); // FILE*
 	FFICall *fclose_call = new FFICall("fclose", ffi_fn(fclose), ffi_type_map<int>(), fclose_args);
@@ -138,6 +146,7 @@ void setup_basic_ffi_functions(Environment *env)
 	env->set_special_channel("ffi_fopen", Channel9::value(fopen_call));
 	env->set_special_channel("ffi_fgets", Channel9::value(fgets_call));
 	env->set_special_channel("ffi_fwrite", Channel9::value(fwrite_call));
+	env->set_special_channel("ffi_fread", Channel9::value(fread_call));
 	env->set_special_channel("ffi_fclose", Channel9::value(fclose_call));
 
 	FFIDefinition *time_t_holder = new FFIDefinition("time_t holder");
