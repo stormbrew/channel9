@@ -47,6 +47,9 @@ class String
   def to_s_prim
     @str
   end
+  def c9_set_prim(prim)
+    @str = prim
+  end
   def to_s
     self
   end
