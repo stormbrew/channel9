@@ -8,3 +8,11 @@ File.open("/tmp/031.fileio.rb.out", "rb") do |f|
     print line
   end
 end
+File.open("/tmp/031.fileio.rb.out", "ab") do |f|
+  1000.times do
+    f.puts("boom!")
+  end
+end
+File.open("/tmp/031.fileio.rb.out", "rb") do |f|
+  puts f.read
+end

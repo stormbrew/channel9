@@ -31,18 +31,47 @@ class File < IO
     end
   end
 
+  def read(length = nil, outbuf = String.new)
+    outbuf.c9_set_prim(:"")
+    if length == 0
+      # Do nothing, just return the empty string.
+
+    elsif length
+      buffer = c9_make_buffer(length)
+      res = $__c9_ffi_fread.fread(buffer, 1, length, @file_ptr)
+      if res == 0
+        # TODO: Check properly for an error.
+        return nil
+      else
+        outbuf.c9_set_prim(buffer.substr(0, res - 1))
+        return outbuf
+      end
+
+    else
+      buffer = c9_make_buffer
+      while true
+        res = $__c9_ffi_fread.fread(buffer, 1, buffer.length, @file_ptr)
+        if res > 0
+          outbuf << buffer.substr(0, res - 1)
+        else
+          break
+        end
+      end
+    end
+    return outbuf
+  end
+
   def write(s)
     s = s.to_s_prim
     $__c9_ffi_fwrite.fwrite(s, 1, s.length, @file_ptr)
   end
 
-  def c9_make_buffer
+  def c9_make_buffer(size = 1024)
     # yes this is slow and ugly. TODO: Add a real buffer object we
     # can use for this stuff!
-    buffer = :"          "
-    buffer = buffer + buffer + buffer + buffer + buffer
-    buffer = buffer + buffer + buffer + buffer + buffer
-    buffer
+    buffer = "          " * (size / 10)
+    buffer += " " * (size % 10)
+    buffer.to_s_prim
   end
 
   def gets
