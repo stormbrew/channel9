@@ -148,6 +148,19 @@ class Regexp
     end
   end
 
+  def c9_index(s, offset)
+    err, errstr, results = @matcher.match(s, offset)
+    if errstr
+      raise errstr
+    end
+
+    if results.nil?
+      return nil
+    else
+      return results.at(0).at(0)
+    end
+  end
+
   def c9_split(s, collapse_all, limit = nil)
     s = s.to_s_prim
     pos = 0
