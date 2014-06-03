@@ -87,6 +87,13 @@ class String
     /#{Regexp.escape(str)}$/.match(self) ? true : false
   end
 
+  def index(search, offset = 0)
+    if !search.is_a? Regexp
+      search = /#{Regexp.escape(search.to_s)}/
+    end
+    return search.c9_index(@str, offset)
+  end
+
   def upcase
     # Really simple non-unicode implementation
     gsub(/[a-z]/) do |c|
