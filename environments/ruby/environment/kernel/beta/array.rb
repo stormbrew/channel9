@@ -95,6 +95,19 @@ class Array
     r
   end
 
+  def uniq
+    p self
+    check = {}
+    res = []
+    each do |i|
+      if !check[i]
+        res << i
+        check[i] = true
+      end
+    end
+    res
+  end
+
   def c9_inner_flatten(level, from, to)
     if !level || level > 0
       from.each do |i|
