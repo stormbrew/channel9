@@ -114,7 +114,7 @@ class String
     # For now this will only implement C* because that's what Parser wants.
     # TODO: Implement properly, possibly in C++.
     if pattern == "C*"
-      prim = to_s_prim
+      prim = @str
       len = prim.length
       i = 0
       res = []
@@ -125,6 +125,25 @@ class String
       res
     else
       raise "Unsupported unpack pattern '#{pattern}'"
+    end
+  end
+
+  def each_char
+    prim = @str
+    len = prim.length
+    i = 0
+    if block_given?
+      while i < len
+        yield prim.substr(i,i)
+        i += 1
+      end
+    else
+      res = []
+      while i < len
+        res << String.new(prim.substr(i,i))
+        i+=1
+      end
+      res
     end
   end
 
