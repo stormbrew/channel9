@@ -126,12 +126,13 @@ class Array
   end
 
   def each
-    return if @tuple.nil? #only meaningful in debug output for initialize.
+    return self if @tuple.nil? #only meaningful in debug output for initialize.
     i = 0
     while (i < @tuple.length)
       yield @tuple.at(i)
       i += 1
     end
+    self
   end
   def reverse_each
     return if @tuple.nil? or @tuple.length == 0
