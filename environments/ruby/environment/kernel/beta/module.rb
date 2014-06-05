@@ -24,7 +24,7 @@ class Module
   end
 
   def method_defined?(name)
-    __c9_lookup__(name.to_s_prim.to_message_id) != undefined
+    __c9_lookup__(name.to_s_prim.to_message_id) ? true : false
   end
 
   def remove_method(name)

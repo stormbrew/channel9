@@ -189,7 +189,7 @@ module Kernel
   end
 
   def respond_to?(name)
-    __c9_class__.__c9_lookup__(name.to_s_prim.to_message_id) != undefined
+    __c9_class__.__c9_lookup__(name.to_s_prim.to_message_id) ? true : false
   end
 
   def hash
