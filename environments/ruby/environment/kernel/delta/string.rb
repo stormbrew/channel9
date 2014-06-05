@@ -21,6 +21,16 @@ class String
     pattern.match(self, pos)
   end
 
+  def lines(by=$/)
+    res = split(by || '\n')
+    if block_given?
+      res.each do |s|
+        yield s
+      end
+    else
+      res
+    end
+  end
 
   def split(by=$;, limit = nil)
     return [] if empty?
