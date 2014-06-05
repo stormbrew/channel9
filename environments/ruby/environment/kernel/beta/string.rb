@@ -11,7 +11,24 @@ class String
     if (of.class == Range)
       first = of.begin
       last = of.end
+
+      strlen = @str.length
+      if first < 0
+        first = strlen - first
+        if first < 0
+          return nil
+        end
+      end
+      if last < 0
+        last = strlen - last
+        if last < 0
+          return nil
+        end
+      end
+
       last -= 1 if (of.exclude_end?)
+
+      return "" if last < first
       @str.substr(first, last).to_s
     elsif (of.class == Fixnum)
       if (len.nil?)
