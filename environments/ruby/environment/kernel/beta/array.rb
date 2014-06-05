@@ -351,6 +351,13 @@ class Array
     nil
   end
 
+  def fetch(idx)
+    if idx < 0 || idx >= @tuple.length
+      raise IndexError, "Invalid index #{idx}"
+    end
+    self[idx]
+  end
+
   def +(other)
     Array.new(@tuple + other.to_tuple_prim)
   end
