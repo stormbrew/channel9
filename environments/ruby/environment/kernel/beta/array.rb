@@ -252,14 +252,30 @@ class Array
 
   def at(idx, len = nil)
     if (len.nil?)
-      @tuple.at(idx)
-    else
-      if idx < 0
-        idx = @tuple.length + idx
-        return nil if idx < 0
+      if idx.kind_of?(Range)
+        idx, ending, exclude_end = idx.first, idx.end, idx.exclude_end?
+        if idx < 0
+          idx = @tuple.length + idx
+        end
+        if ending < 0
+          ending = @tuple.length + ending
+        end
+        if exclude_end
+          ending -= 1
+        end
+        if ending < idx
+          return []
+        end
+        return @tuple.subary(idx, ending).to_a
+      else
+        return @tuple.at(idx)
       end
-      @tuple.subary(idx, idx + len).to_a
     end
+    if idx < 0
+      idx = @tuple.length + idx
+      return nil if idx < 0
+    end
+    @tuple.subary(idx, idx + len).to_a
   end
   def [](idx,len=nil)
     at(idx,len)
