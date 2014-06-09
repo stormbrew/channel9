@@ -84,6 +84,10 @@ class Fixnum < Numeric
     self + 1
   end
 
+  def [](n)
+    (self >> (n-1)) & 1
+  end
+
   # These are called if the primitive
   # errors for some reason in its default handling
   # of these operators.
