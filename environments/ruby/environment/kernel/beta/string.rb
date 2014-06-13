@@ -14,13 +14,13 @@ class String
 
       strlen = @str.length
       if first < 0
-        first = strlen - first
+        first = strlen + first
         if first < 0
           return nil
         end
       end
       if last < 0
-        last = strlen - last
+        last = strlen + last
         if last < 0
           return nil
         end
