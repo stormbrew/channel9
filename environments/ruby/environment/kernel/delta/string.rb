@@ -98,7 +98,7 @@ class String
   end
   def start_with?(str)
     str = str.to_s_prim
-    return str.length > @str.length && str.substr(0,@str.length-1) == @str
+    return @str.length > str.length && @str.substr(0,str.length-1) == str
   end
 
   def index(search, offset = 0)
