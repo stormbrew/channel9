@@ -140,8 +140,6 @@ fails:The defined? keyword for a simple constant does not call Object.const_miss
 fails:The defined? keyword for a simple constant returns 'constant' for an included module
 fails:The defined? keyword for a simple constant returns 'constant' for a constant defined in an included module
 fails:The defined? keyword for a top-level constant returns 'constant' when passed the name of a top-level constant
-fails:The defined? keyword for a top-level constant retuns nil if the constant is not defined
-fails:The defined? keyword for a top-level constant does not call Object.const_missing if the constant is not defined
 fails:The defined? keyword for a scoped constant returns 'constant' when the scoped constant is defined
 fails:The defined? keyword for a scoped constant returns nil when the scoped constant is not defined
 fails:The defined? keyword for a scoped constant calls .const_missing if the parent to the constant is not defined
