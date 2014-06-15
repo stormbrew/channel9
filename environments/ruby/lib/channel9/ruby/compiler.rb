@@ -1727,6 +1727,13 @@ module Channel9
               builder.jmp(label_prefix + ".done_unpack")
               builder.set_label(label_prefix + ".splatify")
               builder.message_unpack(0, 1, 0)
+
+              builder.channel_special(:Array)
+              builder.swap
+              builder.message_new(:new_from_tuple, 0, 1)
+              builder.channel_call
+              builder.pop
+
               builder.set_label(label_prefix + ".done_unpack")
             else
               builder.message_count
