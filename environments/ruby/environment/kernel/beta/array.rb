@@ -258,7 +258,7 @@ class Array
           idx = @tuple.length + idx
         end
         if ending < 0
-          ending = @tuple.length + ending
+          ending = @tuple.length + ending + 1
         end
         if exclude_end
           ending -= 1
