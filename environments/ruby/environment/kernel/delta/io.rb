@@ -3,6 +3,16 @@ class IO
     raise NotImplementedError, "IO.new not implemented."
   end
 
+  def self.readlines(filename)
+    lines = []
+    File.open(filename, "r") do |f|
+      f.each_line do |line|
+        lines << line
+      end
+    end
+    lines
+  end
+
   def write
     raise NotImplementedError, "IO#write not implemented."
   end
@@ -20,7 +30,13 @@ class IO
       elsif (arg.nil?)
         write(:"nil\n")
       else
-        write(arg.to_s_prim + :"\n")
+        raw = arg.to_s_prim
+        len = raw.length
+        if len > 0 && raw.substr(len-1,len-1) == :"\n"
+          write(raw)
+        else
+          write(raw + :"\n")
+        end
       end
     }
   end
