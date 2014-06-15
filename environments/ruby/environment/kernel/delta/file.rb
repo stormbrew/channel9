@@ -168,6 +168,16 @@ class File < IO
     end
   end
 
+  def self.size?(name)
+    begin
+      s = stat(name)
+      return s.size if s.size > 0
+    rescue Errno::ENOENT
+      # Fall through to returning nil
+    end
+    nil
+  end
+
   class Stat
     ["atime", "blksize", "blocks", "ctime",
     "dev", "dev_major", "dev_minor",
