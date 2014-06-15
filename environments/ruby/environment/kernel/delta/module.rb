@@ -48,7 +48,7 @@ class Module
 
   def class_eval(s = nil, &block)
     if (s)
-      block = Channel9.compile_string(:eval, s, "__eval__", 1)
+      block = Channel9.compile_string(:eval, s, "(eval)", 1)
       if (!block)
         raise ParseError
       end
